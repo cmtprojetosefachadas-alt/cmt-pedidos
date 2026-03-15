@@ -390,8 +390,8 @@ onSnapshot(collection(db,'clientes'),snap=>{
 });
 
 function updateStats(){
-  const ativos=pedidos.filter(p=>(p.etapa||0)<ETAPAS.length-1);
-  const fins=pedidos.filter(p=>(p.etapa||0)>=ETAPAS.length-1);
+  const ativos=pedidos.filter(p=>Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
+  const fins=pedidos.filter(p=>Number(p.etapa||0)>=ETAPAS.length-1||p.finalizado===true);
   document.getElementById('stat-total').textContent=pedidos.length;
   document.getElementById('stat-andamento').textContent=ativos.length;
   document.getElementById('stat-fin').textContent=fins.length;
@@ -414,15 +414,17 @@ function clienteCard(p){
 }
 
 function renderClientes(){
-  const ativos=pedidos.filter(p=>(p.etapa||0)<ETAPAS.length-1);
+  const ativos=pedidos.filter(p=>Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
   document.getElementById('clientes-grid').innerHTML=ativos.map(clienteCard).join('')||'<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum cliente ativo.</div>';
 }
 function renderFinalizados(){
-  const fins=pedidos.filter(p=>(p.etapa||0)>=ETAPAS.length-1);
-  document.getElementById('finalizados-grid').innerHTML=fins.map(clienteCard).join('')||'<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;">Nenhum pedido finalizado ainda.</div>';
+  const fins=pedidos.filter(p=>Number(p.etapa||0)>=ETAPAS.length-1||p.finalizado===true);
+  const el=document.getElementById('finalizados-grid');
+  if(!el)return;
+  el.innerHTML=fins.map(clienteCard).join('')||'<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;">Nenhum pedido finalizado ainda.</div>';
 }
 function renderPedidos(){
-  const ativos=pedidos.filter(p=>(p.etapa||0)<ETAPAS.length-1);
+  const ativos=pedidos.filter(p=>Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
   document.getElementById('pedidos-grid').innerHTML=ativos.map(clienteCard).join('')||'<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum pedido ativo.</div>';
 }
 
