@@ -358,8 +358,10 @@ function showToast(msg,id='toast'){const t=document.getElementById(id);if(!t)ret
 function showTab(tab){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
-  document.getElementById('panel-'+tab).classList.add('active');
+  const tabEl=document.getElementById('tab-'+tab);
+  const panelEl=document.getElementById('panel-'+tab);
+  if(tabEl)tabEl.classList.add('active');
+  if(panelEl)panelEl.classList.add('active');
   if(tab==='novo-orc'){
     editingItens=[];renderItens();
     const hoje=new Date();
@@ -377,7 +379,7 @@ onSnapshot(query(collection(db,'pedidos'),orderBy('criadoEm','desc')),snap=>{
   pedidos=snap.docs.map(d=>({id:d.id,...d.data()}));
   renderClientes();renderPedidos();updateStats();
 });
-onSnapshot(query(collection(db,'orcamentos'),orderBy('criadoEm','desc')),snap=>{
+onSnapshot(collection(db,'orcamentos'),snap=>{
   orcamentos=snap.docs.map(d=>({id:d.id,...d.data()}));
   renderOrcamentos();atualizarSelectClientes();
 });
