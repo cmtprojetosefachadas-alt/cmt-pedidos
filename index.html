@@ -381,7 +381,7 @@ onSnapshot(query(collection(db,'pedidos'),orderBy('criadoEm','desc')),snap=>{
 });
 onSnapshot(collection(db,'orcamentos'),snap=>{
   orcamentos=snap.docs.map(d=>({id:d.id,...d.data()}));
-  renderOrcamentos();atualizarSelectClientes();
+  renderOrcamentos();atualizarSelectClientes();updateStats();
 });
 onSnapshot(collection(db,'clientes'),snap=>{
   clientes=snap.docs.map(d=>({id:d.id,...d.data()}));
