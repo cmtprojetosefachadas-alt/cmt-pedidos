@@ -113,7 +113,7 @@
   .field textarea { resize: vertical; min-height: 72px; }
   .item-header { display: grid; grid-template-columns: 2.5fr 0.8fr 0.8fr 1fr auto; gap: 8px; margin-bottom: 6px; }
   .col-h { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
-  .item-row { display: grid; grid-template-columns: 2.5fr 0.8fr 0.8fr 1fr auto; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .item-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
   .item-row span { font-size: 13px; color: var(--text); }
   .del-btn { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 18px; padding: 2px 6px; border-radius: 4px; line-height: 1; }
   .del-btn:hover { background: var(--red-bg); color: var(--red); }
@@ -212,6 +212,7 @@
   <button class="tab" id="tab-pedidos" onclick="showTab('pedidos')">Pedidos</button>
   <button class="tab" id="tab-orcamentos" onclick="showTab('orcamentos')">Orçamentos (3)</button>
   <button class="tab" id="tab-finalizados" onclick="showTab('finalizados')">Finalizados (0)</button>
+  <button class="tab" id="tab-cadastro" onclick="showTab('cadastro')">+ Cadastrar Cliente</button>
   <button class="tab" id="tab-novo-orc" onclick="showTab('novo-orc')">+ Novo Orçamento</button>
 </div>
 
@@ -271,17 +272,12 @@
 
     <div class="form-card">
       <h3>Itens do orçamento</h3>
-      <div class="item-header">
-        <span class="col-h">Descrição</span><span class="col-h">Qtd</span>
-        <span class="col-h">Unid.</span><span class="col-h">Valor unit.</span><span></span>
+      <div class="item-header" style="grid-template-columns:1fr 1fr auto;">
+        <span class="col-h">Descrição do serviço</span><span class="col-h">Valor</span><span></span>
       </div>
       <div id="itens-lista"></div>
-      <div class="fg3" style="margin-top:12px;">
-        <div class="field"><input type="text" id="i-desc" placeholder="Ex: Chapa ACM 3mm Preto Fosco"/></div>
-        <div class="field"><input type="number" id="i-qtd" placeholder="1" min="0.01" step="0.01"/></div>
-        <div class="field">
-          <select id="i-unid"><option>un</option><option>m²</option><option>m</option><option>pç</option><option>kg</option><option>h</option></select>
-        </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-top:12px;">
+        <div class="field"><input type="text" id="i-desc" placeholder="Ex: Fabricação e instalação totem ACM"/></div>
         <div class="field"><input type="number" id="i-valor" placeholder="0,00" min="0" step="0.01"/></div>
         <button class="btn btn-primary" onclick="addItem()" style="white-space:nowrap;">+ Add</button>
       </div>
@@ -340,6 +336,34 @@
       <div class="pdf-total"><div style="color:#555;font-size:13px;">Subtotal: <strong>R$ 8.500,00</strong></div><div class="pdf-total-final">Total: R$ 8.500,00</div></div>
       <div class="pdf-obs"><strong>Observações:</strong><br/>Prazo de entrega: 15 dias úteis após aprovação. Pagamento: 50% na aprovação e 50% na entrega. Orçamento válido por 15 dias.</div>
       <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em 15/03/2026</span></div>
+    </div>
+  </div>
+
+
+  <!-- CADASTRO DE CLIENTES -->
+  <div id="panel-cadastro" class="panel">
+    <div class="section-header">
+      <span class="section-title">Cadastro de Clientes</span>
+    </div>
+    <div class="form-card">
+      <h3>Novo cliente</h3>
+      <div class="fg2">
+        <div class="field"><label>Nome completo *</label><input type="text" id="cad-nome" placeholder="Ex: João da Silva"/></div>
+        <div class="field"><label>Telefone / WhatsApp *</label><input type="text" id="cad-tel" placeholder="Ex: 16991234567"/></div>
+        <div class="field"><label>CPF ou CNPJ</label><input type="text" id="cad-doc" placeholder="Ex: 000.000.000-00"/></div>
+        <div class="field"><label>Endereço</label><input type="text" id="cad-end" placeholder="Ex: Rua das Flores, 123 - Franca/SP"/></div>
+      </div>
+      <div style="margin-top:16px;">
+        <button class="btn btn-primary" onclick="cadastrarCliente()">&#43; Cadastrar Cliente</button>
+      </div>
+      <div class="toast" id="toast-cad"></div>
+    </div>
+
+    <div class="form-card" style="margin-top:8px;">
+      <h3>Clientes cadastrados</h3>
+      <div id="cad-lista">
+        <div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum cliente cadastrado ainda.</div>
+      </div>
     </div>
   </div>
 
@@ -404,6 +428,66 @@
 </div>
 
 <script>
+// ======= CLIENTES CADASTRADOS =======
+let clientesCad = [];
+
+function cadastrarCliente() {
+  const nome = document.getElementById('cad-nome').value.trim();
+  const tel = document.getElementById('cad-tel').value.trim().replace(/\D/g,'');
+  const doc = document.getElementById('cad-doc').value.trim();
+  const end = document.getElementById('cad-end').value.trim();
+  if (!nome) { alert('Nome é obrigatório.'); return; }
+  clientesCad.push({ id: Date.now(), nome, tel, doc, end });
+  document.getElementById('cad-nome').value = '';
+  document.getElementById('cad-tel').value = '';
+  document.getElementById('cad-doc').value = '';
+  document.getElementById('cad-end').value = '';
+  renderCadLista();
+  atualizarSelectClientes();
+  const t = document.getElementById('toast-cad');
+  t.textContent = 'Cliente cadastrado com sucesso!';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function renderCadLista() {
+  const el = document.getElementById('cad-lista');
+  if (!clientesCad.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum cliente cadastrado ainda.</div>';
+    return;
+  }
+  el.innerHTML = clientesCad.map(c => `
+    <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);">
+      <div class="avatar" style="width:36px;height:36px;font-size:12px;">${c.nome.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase()}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:600;color:var(--text);">${c.nome}</div>
+        <div style="font-size:12px;color:var(--muted);">
+          ${c.tel ? '&#128222; ' + c.tel : ''}
+          ${c.doc ? ' &nbsp;·&nbsp; ' + c.doc : ''}
+          ${c.end ? '<br/>&#128205; ' + c.end : ''}
+        </div>
+      </div>
+      <button class="del-btn" onclick="removerCliente(${c.id})" title="Remover">×</button>
+    </div>`).join('');
+}
+
+function removerCliente(id) {
+  if (!confirm('Remover este cliente?')) return;
+  clientesCad = clientesCad.filter(c => c.id !== id);
+  renderCadLista();
+  atualizarSelectClientes();
+}
+
+function atualizarSelectClientes() {
+  const sel = document.getElementById('f-cliente');
+  if (!sel) return;
+  const fixos = ['Raul Meneguetti','Taeko','Dr. Vagner','Sentinela','Paulino In Casa'];
+  const cadastrados = clientesCad.map(c => c.nome);
+  const todos = [...fixos, ...cadastrados];
+  const atual = sel.value;
+  sel.innerHTML = todos.map(n => `<option value="${n}" ${n===atual?'selected':''}>${n}</option>`).join('');
+}
+
 // ======= DATA =======
 let pedidos = [
   { id: 1, ini: 'RM', nome: 'Raul Meneguetti', codigo: 'CMT-1001', tel: '16991318722', desc: 'TOTEM FORJAX e PAULO XI', status: 'installing', prog: 80 },
@@ -493,6 +577,7 @@ function showTab(tab) {
   document.getElementById('tab-' + tab).classList.add('active');
   document.getElementById('panel-' + tab).classList.add('active');
   if (tab === 'clientes') renderClientes();
+  if (tab === 'cadastro') renderCadLista();
   if (tab === 'pedidos') renderPedidos();
   if (tab === 'orcamentos') renderOrcamentos();
   if (tab === 'novo-orc') {
@@ -587,13 +672,10 @@ function converterPedido() {
 // ======= ITENS =======
 function addItem() {
   const desc = document.getElementById('i-desc').value.trim();
-  const qtd = parseFloat(document.getElementById('i-qtd').value) || 0;
-  const unid = document.getElementById('i-unid').value;
   const valor = parseFloat(document.getElementById('i-valor').value) || 0;
-  if (!desc || qtd <= 0 || valor <= 0) { alert('Preencha todos os campos do item.'); return; }
-  editingItens.push({ desc, qtd, unid, valor });
+  if (!desc || valor <= 0) { alert('Preencha a descrição e o valor do serviço.'); return; }
+  editingItens.push({ desc, valor });
   document.getElementById('i-desc').value = '';
-  document.getElementById('i-qtd').value = '';
   document.getElementById('i-valor').value = '';
   renderItens();
 }
@@ -602,14 +684,14 @@ function renderItens() {
   const c = document.getElementById('itens-lista');
   c.innerHTML = editingItens.map((it, i) => `
     <div class="item-row">
-      <span>${it.desc}</span><span>${it.qtd}</span><span>${it.unid}</span>
+      <span>${it.desc}</span>
       <span>${fmtMoney(it.valor)}</span>
       <button class="del-btn" onclick="removeItem(${i})">×</button>
     </div>`).join('');
   calcTotal();
 }
 function calcTotal() {
-  const sub = editingItens.reduce((s, it) => s + it.qtd * it.valor, 0);
+  const sub = editingItens.reduce((s, it) => s + it.valor, 0);
   const desc = parseFloat(document.getElementById('desconto').value) || 0;
   const total = sub * (1 - desc / 100);
   document.getElementById('subtotal').textContent = fmtMoney(sub);
@@ -622,7 +704,7 @@ function salvarRascunho() {
   const cliente = document.getElementById('f-cliente').value;
   const ini = cliente.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
   const tel = '';
-  const sub = editingItens.reduce((s, it) => s + it.qtd * it.valor, 0);
+  const sub = editingItens.reduce((s, it) => s + it.valor, 0);
   const desc = parseFloat(document.getElementById('desconto').value) || 0;
   const total = sub * (1 - desc / 100);
   const existIdx = orcamentos.findIndex(o => o.num === num);
@@ -648,12 +730,12 @@ function gerarPDF() {
   const dt = document.getElementById('f-data').value;
   const dtv = document.getElementById('f-validade').value;
   const obs = document.getElementById('f-obs').value || 'Sem observações.';
-  const sub = editingItens.reduce((s, it) => s + it.qtd * it.valor, 0);
+  const sub = editingItens.reduce((s, it) => s + it.valor, 0);
   const desc = parseFloat(document.getElementById('desconto').value) || 0;
   const total = sub * (1 - desc / 100);
   const rows = editingItens.length
-    ? editingItens.map(it => `<tr><td>${it.desc}</td><td>${it.qtd}</td><td>${it.unid}</td><td>${fmtMoney(it.valor)}</td><td>${fmtMoney(it.qtd * it.valor)}</td></tr>`).join('')
-    : '<tr><td colspan="5" style="text-align:center;color:#999;">Nenhum item adicionado</td></tr>';
+    ? editingItens.map(it => `<tr><td>${it.desc}</td><td>${fmtMoney(it.valor)}</td></tr>`).join('')
+    : '<tr><td colspan="2" style="text-align:center;color:#999;">Nenhum serviço adicionado</td></tr>';
 
   document.getElementById('pdf-content').innerHTML = `
     <div class="pdf-header">
@@ -680,7 +762,7 @@ function gerarPDF() {
 function enviarWpp() {
   const num = document.getElementById('f-num') ? document.getElementById('f-num').value : 'ORC';
   const cliente = document.getElementById('f-cliente') ? document.getElementById('f-cliente').value : 'cliente';
-  const sub = editingItens.reduce((s, it) => s + it.qtd * it.valor, 0);
+  const sub = editingItens.reduce((s, it) => s + it.valor, 0);
   const desc = document.getElementById('desconto') ? parseFloat(document.getElementById('desconto').value) || 0 : 0;
   const total = sub * (1 - desc / 100);
   const msg = encodeURIComponent(`Olá ${cliente}! 🏗️\n\nSegue o orçamento *${num}* da CMT Projetos e Fachadas.\n\nValor total: *${fmtMoney(total)}*\n\nQualquer dúvida estamos à disposição!`);
@@ -718,6 +800,7 @@ setTimeout(() => document.getElementById('login-senha').focus(), 100);
 
 // ======= INIT =======
 renderClientes();
+atualizarSelectClientes();
 </script>
 </body>
 </html>
