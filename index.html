@@ -463,7 +463,8 @@ function renderPedidos() {
 function renderOrcamentos() {
   const list = document.getElementById('orc-list');
   if (!orcamentos.length) { list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;">Nenhum orçamento ainda.</div>'; return; }
-  list.innerHTML = orcamentos.map(o => `
+  const sorted = [...orcamentos].sort((a, b) => new Date(b.data) - new Date(a.data));
+  list.innerHTML = sorted.map(o => `
     <div class="orc-card" onclick="openOrcModal(${o.id})">
       <div class="avatar">${o.ini}</div>
       <div class="orc-info">
@@ -471,6 +472,7 @@ function renderOrcamentos() {
         <div class="orc-sub">${o.num} · ${o.desc}</div>
       </div>
       <div class="orc-right">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">&#128197; ${fmtDate(o.data)}</div>
         <div class="orc-valor">${fmtMoney(o.valor)}</div>
         <div style="margin-top:4px;"><span class="badge ${badgeClass(o.status)}">${badgeLabel(o.status)}</span></div>
       </div>
