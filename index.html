@@ -356,9 +356,14 @@
     <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;">ETAPAS DO PEDIDO</div>
     <div class="etapas-wrap" id="etapas-wrap"></div>
 
-    <div style="display:flex;gap:8px;margin:14px 0 18px;">
+    <div style="display:flex;gap:8px;margin:14px 0 14px;">
       <button class="btn btn-primary" style="flex:1;" onclick="avancarEtapa()">▶ Avançar etapa</button>
       <button class="btn" style="flex:1;" onclick="voltarEtapa()">◀ Voltar etapa</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:18px;">
+      <span style="font-size:13px;color:var(--muted);white-space:nowrap;">📅 Previsão de entrega:</span>
+      <input type="date" id="previsao-input" style="flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;"/>
+      <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;" onclick="salvarPrevisao()">Salvar</button>
     </div>
 
     <!-- POS VENDA -->
@@ -367,7 +372,10 @@
     <div class="modal-field">
       <textarea id="posvenda-input" placeholder="Ex: Pedido pausado por falta de material. Retorno previsto em 2 dias." style="min-height:50px;"></textarea>
     </div>
-    <button class="btn btn-primary" style="width:100%;margin-bottom:16px;" onclick="enviarPosvenda()">&#128172; Enviar mensagem ao cliente</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <button class="btn btn-primary" onclick="salvarPosvenda()">&#128190; Salvar mensagem</button>
+      <button class="btn btn-wpp" onclick="enviarPosvenda()">&#128172; Enviar via WhatsApp</button>
+    </div>
 
     <div class="modal-actions">
       <button class="btn" onclick="closeModal()">Fechar</button>
@@ -549,6 +557,13 @@ window.openModal = async function(id) {
   const p = pedidos.find(x => x.id === id);
   if (!p) return;
   document.getElementById('modal-title').textContent = `${p.nome} — ${p.codigo}`;
+  // Preenche previsão se já tiver
+  if (p.previsaoEntrega) {
+    const [d,m,y] = p.previsaoEntrega.split('/');
+    document.getElementById('previsao-input').value = `${y}-${m}-${d}`;
+  } else {
+    document.getElementById('previsao-input').value = '';
+  }
 
   // Credenciais
   if (p.loginCliente) {
@@ -597,6 +612,15 @@ window.voltarEtapa = async function() {
   renderEtapas(novaEtapa);
 };
 
+window.salvarPrevisao = async function() {
+  const data = document.getElementById('previsao-input').value;
+  if (!data) return;
+  const [y,m,d] = data.split('-');
+  const fmt = `${d}/${m}/${y}`;
+  await updateDoc(doc(db, 'pedidos', currentPedidoId), { previsaoEntrega: fmt });
+  showToast(`📅 Previsão salva: ${fmt}`);
+};
+
 window.finalizarPedido = async function() {
   if (!confirm('Finalizar este pedido?')) return;
   await updateDoc(doc(db, 'pedidos', currentPedidoId), { etapa: ETAPAS.length - 1, finalizado: true });
@@ -617,6 +641,17 @@ async function renderPosvenda(pedidoId) {
   el.scrollTop = el.scrollHeight;
 }
 
+window.salvarPosvenda = async function() {
+  const texto = document.getElementById('posvenda-input').value.trim();
+  if (!texto) return;
+  await addDoc(collection(db, 'pedidos', currentPedidoId, 'mensagens'), {
+    texto, criadoEm: serverTimestamp(), tipo: 'admin'
+  });
+  document.getElementById('posvenda-input').value = '';
+  await renderPosvenda(currentPedidoId);
+  showToast('Mensagem salva no histórico!');
+};
+
 window.enviarPosvenda = async function() {
   const texto = document.getElementById('posvenda-input').value.trim();
   if (!texto) return;
@@ -626,13 +661,11 @@ window.enviarPosvenda = async function() {
   });
   document.getElementById('posvenda-input').value = '';
   await renderPosvenda(currentPedidoId);
-
-  // Envia via WhatsApp se tiver telefone
   if (p && p.tel) {
     const msg = encodeURIComponent(`CMT Projetos e Fachadas 🏗️\n\n*Atualização do seu pedido ${p.codigo}:*\n${texto}`);
     window.open(`https://wa.me/55${p.tel}?text=${msg}`, '_blank');
   }
-  showToast('Mensagem enviada!');
+  showToast('Mensagem enviada via WhatsApp!');
 };
 
 window.enviarStatusWpp = function() {
