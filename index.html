@@ -707,18 +707,14 @@ function fazerLogin() {
   const senha = document.getElementById('login-senha').value;
   if (senha === 'cmt2026') {
     document.getElementById('login-screen').style.display = 'none';
-    sessionStorage.setItem('cmt-auth', '1');
   } else {
     document.getElementById('login-error').style.display = 'block';
     document.getElementById('login-senha').value = '';
     document.getElementById('login-senha').focus();
   }
 }
-if (sessionStorage.getItem('cmt-auth') !== '1') {
-  document.getElementById('login-screen').style.display = 'flex';
-} else {
-  document.getElementById('login-screen').style.display = 'none';
-}
+document.getElementById('login-screen').style.display = 'flex';
+setTimeout(() => document.getElementById('login-senha').focus(), 100);
 
 // ======= INIT =======
 renderClientes();
