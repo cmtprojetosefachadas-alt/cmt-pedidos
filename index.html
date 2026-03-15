@@ -650,7 +650,7 @@ function renderClientes(){
         </div>
       </div>
       <div class="cm-desc">${p.descricao||'—'}</div>
-      <div class="cm-badge"><span class="badge b${p.etapa}">${ETAPAS[p.etapa]}${p.etapa===6&&p.timestamps[6]?' · '+p.timestamps[6].split(' às')[0]:''}</span></div>
+      <div class="cm-badge"><span class="badge b${p.etapa}">${ETAPAS[p.etapa]}</span></div>
       <div class="cm-progress-bar"><div class="cm-progress-fill" style="width:${pctEtapa(p.etapa)}%"></div></div>
     </div>`).join('');
 
@@ -674,7 +674,6 @@ function renderFinalizados(){
     <div class="fin-lista">
       ${fins.map(p=>{
         const dataFim=p.timestamps[6]||'—';
-        const dataFimCurta=p.timestamps[6]?p.timestamps[6].split(' às')[0]:'—';
         return `<div class="fin-item">
           <div class="fin-item-left">
             <div class="fin-avatar">${initials(p.cliente)}</div>
@@ -685,7 +684,6 @@ function renderFinalizados(){
           </div>
           <div class="fin-acoes">
             <div class="fin-data">✅ Finalizado em<br/><strong>${dataFim}</strong></div>
-            <button class="btn-voltar-pedido" data-voltar="${p.id}" style="padding:7px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--cmt-border2);background:#fff;color:var(--cmt-gray);font-size:12px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;">↩️ Voltar</button>
             <button class="btn-pdf" data-pdf="${p.id}">🖨️ Gerar PDF</button>
           </div>
         </div>`;
@@ -897,11 +895,7 @@ function renderCliente(){
         <div class="cl-num">PEDIDO ${p.id}</div>
         <div class="cl-cliente">${p.cliente}</div>
         <div class="cl-desc">${p.descricao||''}</div>
-        <div class="cl-status-row">
-          <span class="cl-status-label">Status:</span>
-          <span class="badge cl-badge b${p.etapa}">${ETAPAS[p.etapa]}</span>
-          ${p.previsao?`<span style="margin-left:auto;font-size:12px;font-weight:700;color:#86efac;background:rgba(255,255,255,0.1);padding:4px 10px;border-radius:20px;border:1px solid rgba(134,239,172,0.4);">📅 ${p.previsao}</span>`:''}
-        </div>
+        <div class="cl-status-row"><span class="cl-status-label">Status:</span><span class="badge cl-badge b${p.etapa}">${ETAPAS[p.etapa]}</span></div>
       </div>
       <div class="cl-progress">
         <div class="cl-progress-label">Progresso geral</div>
@@ -1255,19 +1249,6 @@ function bindEvents(){
     if(p&&p.posVenda&&confirm('Excluir esta mensagem?')){
       p.posVenda.splice(idx,1);
       savePedidos(S.pedidos);
-      render();
-    }
-  }));
-
-  // VOLTAR PEDIDO (de finalizado para pedidos)
-  document.querySelectorAll('.btn-voltar-pedido[data-voltar]').forEach(b=>b.addEventListener('click',()=>{
-    const p=S.pedidos.find(x=>x.id===b.dataset.voltar);
-    if(p&&confirm(`Voltar "${p.id}" para Em finalização?`)){
-      p.etapa=5;
-      p.timestamps[6]=null;
-      savePedidos(S.pedidos);
-      S.aba='pedidos';
-      S.cardAberto=p.id;
       render();
     }
   }));
