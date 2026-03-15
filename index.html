@@ -7,37 +7,32 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
   :root {
-    --brand: #E05C1A;
-    --brand-dark: #c44e14;
-    --navy: #1C2340;
-    --bg: #F0EDE8;
-    --surface: #FFFFFF;
-    --surface2: #F7F5F2;
-    --border: rgba(0,0,0,0.09);
-    --border2: rgba(0,0,0,0.15);
-    --text: #1a1a1a;
-    --muted: #6b6b6b;
-    --green: #0F6E56;
-    --green-bg: #E1F5EE;
-    --green-text: #085041;
-    --amber: #854F0B;
-    --amber-bg: #FAEEDA;
-    --amber-text: #633806;
-    --blue: #185FA5;
-    --blue-bg: #E6F1FB;
-    --blue-text: #0C447C;
-    --red: #A32D2D;
-    --red-bg: #FCEBEB;
-    --red-text: #791F1F;
-    --gray-bg: #F1EFE8;
-    --gray-text: #444441;
-    --shadow: 0 2px 12px rgba(0,0,0,0.07);
-    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
-    --radius: 12px;
-    --radius-sm: 8px;
+    --brand: #E05C1A; --brand-dark: #c44e14; --navy: #1C2340;
+    --bg: #F0EDE8; --surface: #FFFFFF; --surface2: #F7F5F2;
+    --border: rgba(0,0,0,0.09); --border2: rgba(0,0,0,0.15);
+    --text: #1a1a1a; --muted: #6b6b6b;
+    --green: #0F6E56; --green-bg: #E1F5EE; --green-text: #085041;
+    --amber: #854F0B; --amber-bg: #FAEEDA; --amber-text: #633806;
+    --blue: #185FA5; --blue-bg: #E6F1FB; --blue-text: #0C447C;
+    --red: #A32D2D; --red-bg: #FCEBEB; --red-text: #791F1F;
+    --gray-bg: #F1EFE8; --gray-text: #444441;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07); --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+    --radius: 12px; --radius-sm: 8px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* LOGIN */
+  .login-screen { position: fixed; inset: 0; background: var(--navy); display: flex; align-items: center; justify-content: center; z-index: 999; }
+  .login-box { background: #fff; border-radius: 16px; padding: 40px 44px; width: 360px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+  .login-logo { width: 56px; height: 56px; background: var(--brand); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #fff; margin: 0 auto 20px; }
+  .login-title { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .login-sub { font-size: 13px; color: #888; margin-bottom: 28px; }
+  .login-input { width: 100%; padding: 11px 14px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.15s; text-align: center; letter-spacing: 3px; color: var(--navy); margin-bottom: 10px; }
+  .login-input:focus { border-color: var(--brand); }
+  .login-btn { width: 100%; padding: 12px; background: var(--brand); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s; }
+  .login-btn:hover { background: var(--brand-dark); }
+  .login-error { color: #e02020; font-size: 12px; margin-top: 10px; display: none; }
 
   /* TOPBAR */
   .topbar { background: var(--navy); padding: 14px 32px; display: flex; align-items: center; gap: 16px; }
@@ -48,15 +43,12 @@
   .topbar-btn:hover { background: var(--brand-dark); }
 
   /* TABS */
-  .tabs-wrap { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; gap: 0; }
-  .tab { padding: 14px 22px; font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 2.5px solid transparent; color: var(--muted); background: none; border-top: none; border-left: none; border-right: none; transition: all 0.15s; }
+  .tabs-wrap { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; gap: 0; overflow-x: auto; }
+  .tab { padding: 14px 22px; font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 2.5px solid transparent; color: var(--muted); background: none; border-top: none; border-left: none; border-right: none; transition: all 0.15s; white-space: nowrap; }
   .tab.active { color: var(--brand); border-bottom-color: var(--brand); }
   .tab:hover:not(.active) { color: var(--text); }
 
-  /* MAIN */
   .main { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
-
-  /* PANELS */
   .panel { display: none; }
   .panel.active { display: block; }
 
@@ -68,7 +60,7 @@
   .stat-label { font-size: 13px; color: var(--muted); }
   .stat-link { font-size: 12px; color: var(--brand); cursor: pointer; }
 
-  /* CLIENT CARDS */
+  /* CARDS */
   .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
   .client-card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 18px 20px; cursor: pointer; transition: box-shadow 0.2s, transform 0.15s; }
   .client-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
@@ -89,7 +81,7 @@
   .progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; }
   .progress-fill { height: 100%; border-radius: 2px; background: var(--brand); transition: width 0.4s; }
 
-  /* ORC CARDS */
+  /* ORC */
   .orc-card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px 20px; cursor: pointer; transition: box-shadow 0.2s; display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
   .orc-card:hover { box-shadow: var(--shadow); }
   .orc-info { flex: 1; min-width: 0; }
@@ -102,23 +94,18 @@
   .form-card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 22px 24px; margin-bottom: 16px; }
   .form-card h3 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 16px; }
   .fg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .fg3 { display: grid; grid-template-columns: 2.5fr 0.8fr 0.8fr 1fr auto; gap: 8px; align-items: end; }
   .field label { display: block; font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 5px; }
-  .field input, .field select, .field textarea {
-    width: 100%; padding: 9px 12px; border: 1px solid var(--border2); border-radius: var(--radius-sm);
-    font-size: 13px; background: var(--surface2); color: var(--text); font-family: 'DM Sans', sans-serif;
-    outline: none; transition: border-color 0.15s;
-  }
+  .field input, .field select, .field textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; background: var(--surface2); color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.15s; }
   .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--brand); }
   .field textarea { resize: vertical; min-height: 72px; }
-  .item-header { display: grid; grid-template-columns: 2.5fr 0.8fr 0.8fr 1fr auto; gap: 8px; margin-bottom: 6px; }
+  .item-header { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-bottom: 6px; }
   .col-h { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
   .item-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
   .item-row span { font-size: 13px; color: var(--text); }
   .del-btn { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 18px; padding: 2px 6px; border-radius: 4px; line-height: 1; }
   .del-btn:hover { background: var(--red-bg); color: var(--red); }
   .total-box { background: var(--surface2); border-radius: var(--radius-sm); padding: 16px 20px; margin-top: 16px; }
-  .total-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); padding: 3px 0; }
+  .total-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); padding: 3px 0; align-items: center; gap: 8px; }
   .total-final { display: flex; justify-content: space-between; font-size: 18px; font-weight: 600; color: var(--text); border-top: 1px solid var(--border); padding-top: 12px; margin-top: 8px; }
   .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
   .btn { padding: 9px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--border2); background: var(--surface); color: var(--text); transition: all 0.15s; display: inline-flex; align-items: center; gap: 7px; font-family: 'DM Sans', sans-serif; }
@@ -126,14 +113,15 @@
   .btn-primary { background: var(--brand); color: #fff; border-color: var(--brand); }
   .btn-primary:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
   .btn-green { background: var(--green); color: #fff; border-color: var(--green); }
-  .btn-green:hover { background: var(--green-text); border-color: var(--green-text); }
+  .btn-green:hover { background: var(--green-text); }
   .btn-wpp { background: #25D366; color: #fff; border-color: #25D366; }
-  .btn-wpp:hover { background: #1da851; border-color: #1da851; }
+  .btn-wpp:hover { background: #1da851; }
+  .btn-red { background: var(--red); color: #fff; border-color: var(--red); }
   .toast { display: none; background: var(--green); color: #fff; border-radius: var(--radius-sm); padding: 11px 18px; font-size: 13px; font-weight: 500; margin-top: 12px; }
   .toast.show { display: block; animation: fadeIn 0.2s; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* PDF PREVIEW */
+  /* PDF */
   .pdf-wrap { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 40px 44px; font-family: Georgia, serif; color: #222; }
   .pdf-co { font-size: 20px; font-weight: 700; color: var(--navy); margin-bottom: 2px; }
   .pdf-co-sub { font-size: 12px; color: #777; margin-bottom: 24px; }
@@ -152,65 +140,81 @@
   .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
   .section-title { font-size: 18px; font-weight: 600; }
 
-  /* MODAL DETAIL */
+  /* MODAL */
   .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: center; justify-content: center; }
   .modal-bg.open { display: flex; }
-  .modal { background: var(--surface); border-radius: var(--radius); padding: 28px 30px; max-width: 560px; width: 90%; box-shadow: var(--shadow-lg); }
+  .modal { background: var(--surface); border-radius: var(--radius); padding: 28px 30px; max-width: 600px; width: 95%; box-shadow: var(--shadow-lg); max-height: 90vh; overflow-y: auto; position: relative; }
   .modal h2 { font-size: 17px; font-weight: 600; margin-bottom: 18px; }
   .modal-field { margin-bottom: 12px; }
   .modal-field label { font-size: 12px; color: var(--muted); font-weight: 500; display: block; margin-bottom: 4px; }
-  .modal-field select, .modal-field input { width: 100%; padding: 9px 12px; border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; background: var(--surface2); color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; }
-  .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+  .modal-field select, .modal-field input, .modal-field textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; background: var(--surface2); color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; }
+  .modal-field textarea { resize: vertical; min-height: 60px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; flex-wrap: wrap; }
   .modal-close { position: absolute; top: 16px; right: 20px; background: none; border: none; font-size: 22px; cursor: pointer; color: var(--muted); }
 
+  /* ETAPAS */
+  .etapas-wrap { margin: 16px 0; }
+  .etapa-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .etapa-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border2); background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--muted); flex-shrink: 0; transition: all 0.3s; }
+  .etapa-dot.done { background: var(--green); border-color: var(--green); color: #fff; }
+  .etapa-dot.current { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .etapa-label { font-size: 13px; color: var(--muted); flex: 1; }
+  .etapa-label.done { color: var(--green); font-weight: 500; }
+  .etapa-label.current { color: var(--brand); font-weight: 600; }
+  .etapa-btns { display: flex; gap: 6px; }
+  .etapa-btn { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--border2); background: var(--surface); color: var(--text); transition: all 0.15s; font-family: 'DM Sans', sans-serif; }
+  .etapa-btn:hover { background: var(--surface2); }
+  .etapa-btn.avancar { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .etapa-btn.voltar { background: var(--surface2); color: var(--muted); }
 
-  /* LOGIN */
-  .login-screen { position: fixed; inset: 0; background: var(--navy); display: flex; align-items: center; justify-content: center; z-index: 999; }
-  .login-box { background: #fff; border-radius: 16px; padding: 40px 44px; width: 360px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-  .login-logo { width: 56px; height: 56px; background: var(--brand); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #fff; margin: 0 auto 20px; }
-  .login-title { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
-  .login-sub { font-size: 13px; color: #888; margin-bottom: 28px; }
-  .login-input { width: 100%; padding: 11px 14px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.15s; text-align: center; letter-spacing: 3px; color: var(--navy); }
-  .login-input:focus { border-color: var(--brand); }
-  .login-btn { width: 100%; margin-top: 14px; padding: 12px; background: var(--brand); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s; }
-  .login-btn:hover { background: var(--brand-dark); }
-  .login-error { color: #e02020; font-size: 12px; margin-top: 10px; display: none; }
+  /* POS VENDA */
+  .posvenda-lista { max-height: 180px; overflow-y: auto; margin-bottom: 10px; }
+  .posvenda-item { background: var(--surface2); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 12px; }
+  .posvenda-data { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .posvenda-msg { color: var(--text); }
+
+  /* CREDENCIAIS */
+  .cred-box { background: var(--navy); border-radius: 8px; padding: 12px 16px; color: #fff; font-size: 13px; margin: 10px 0; }
+  .cred-box span { font-family: 'DM Mono', monospace; background: rgba(255,255,255,0.15); padding: 2px 8px; border-radius: 4px; margin-left: 6px; }
+
+  /* LOADING */
+  .loading { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
 
   @media print {
-    .topbar, .tabs-wrap, .actions, #panel-lista, #panel-novo, #print-no { display: none !important; }
+    .topbar, .tabs-wrap, .actions, .section-header, #print-no { display: none !important; }
     #panel-preview { display: block !important; }
-    .pdf-wrap { border: none; box-shadow: none; padding: 20px; }
+    .pdf-wrap { border: none; padding: 20px; }
     body { background: #fff; }
   }
 </style>
 </head>
 <body>
 
-
-<!-- LOGIN SCREEN -->
+<!-- LOGIN -->
 <div class="login-screen" id="login-screen">
   <div class="login-box">
     <div class="login-logo">CMT</div>
     <div class="login-title">CMT Projetos e Fachadas</div>
     <div class="login-sub">Painel Administrativo</div>
+    <input class="login-input" type="text" id="login-user" placeholder="usuário" style="letter-spacing:normal;margin-bottom:10px;"/>
     <input class="login-input" type="password" id="login-senha" placeholder="••••••••" onkeydown="if(event.key==='Enter')fazerLogin()"/>
     <button class="login-btn" onclick="fazerLogin()">Entrar</button>
-    <div class="login-error" id="login-error">Senha incorreta. Tente novamente.</div>
+    <div class="login-error" id="login-error">Usuário ou senha incorretos.</div>
   </div>
 </div>
 
 <!-- TOPBAR -->
 <div class="topbar">
   <span class="topbar-label">&#128279; Link do sistema (WhatsApp):</span>
-  <input class="topbar-input" id="sys-link" value="https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/ir"/>
+  <input class="topbar-input" id="sys-link" value="https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/cliente.html"/>
   <button class="topbar-btn" onclick="saveLink()">Salvar link</button>
 </div>
 
 <!-- TABS -->
 <div class="tabs-wrap">
-  <button class="tab active" id="tab-clientes" onclick="showTab('clientes')">Clientes (5)</button>
+  <button class="tab active" id="tab-clientes" onclick="showTab('clientes')">Clientes</button>
   <button class="tab" id="tab-pedidos" onclick="showTab('pedidos')">Pedidos</button>
-  <button class="tab" id="tab-orcamentos" onclick="showTab('orcamentos')">Orçamentos (3)</button>
+  <button class="tab" id="tab-orcamentos" onclick="showTab('orcamentos')">Orçamentos</button>
   <button class="tab" id="tab-finalizados" onclick="showTab('finalizados')">Finalizados (0)</button>
   <button class="tab" id="tab-cadastro" onclick="showTab('cadastro')">+ Cadastrar Cliente</button>
   <button class="tab" id="tab-novo-orc" onclick="showTab('novo-orc')">+ Novo Orçamento</button>
@@ -221,30 +225,29 @@
   <!-- CLIENTES -->
   <div id="panel-clientes" class="panel active">
     <div class="stats">
-      <div class="stat"><div class="stat-val">5</div><div class="stat-label">Total de clientes</div></div>
-      <div class="stat"><div class="stat-val dark">5</div><div class="stat-label">Em andamento</div></div>
-      <div class="stat"><div class="stat-val dark">0</div><div class="stat-label">Finalizados <span class="stat-link" onclick="showTab('finalizados')">— clique para ver →</span></div></div>
+      <div class="stat"><div class="stat-val" id="stat-total">0</div><div class="stat-label">Total de clientes</div></div>
+      <div class="stat"><div class="stat-val dark" id="stat-andamento">0</div><div class="stat-label">Em andamento</div></div>
+      <div class="stat"><div class="stat-val dark" id="stat-fin">0</div><div class="stat-label">Finalizados <span class="stat-link" onclick="showTab('finalizados')">— clique para ver →</span></div></div>
     </div>
-    <div class="cards-grid" id="clientes-grid">
-      <!-- gerados por JS -->
-    </div>
+    <div class="loading" id="load-clientes">Carregando...</div>
+    <div class="cards-grid" id="clientes-grid"></div>
   </div>
 
   <!-- PEDIDOS -->
   <div id="panel-pedidos" class="panel">
-    <div class="section-header">
-      <span class="section-title">Pedidos em andamento</span>
-    </div>
+    <div class="section-header"><span class="section-title">Pedidos em andamento</span></div>
+    <div class="loading" id="load-pedidos">Carregando...</div>
     <div class="cards-grid" id="pedidos-grid"></div>
   </div>
 
   <!-- ORÇAMENTOS -->
   <div id="panel-orcamentos" class="panel">
     <div class="stats">
-      <div class="stat"><div class="stat-val" id="orc-count">3</div><div class="stat-label">Total de orçamentos</div></div>
-      <div class="stat"><div class="stat-val dark" id="orc-pendentes">2</div><div class="stat-label">Aguardando aprovação</div></div>
-      <div class="stat"><div class="stat-val dark" id="orc-valor">R$ 14.800</div><div class="stat-label">Valor em aberto</div></div>
+      <div class="stat"><div class="stat-val" id="orc-count">0</div><div class="stat-label">Total de orçamentos</div></div>
+      <div class="stat"><div class="stat-val dark" id="orc-pendentes">0</div><div class="stat-label">Aguardando aprovação</div></div>
+      <div class="stat"><div class="stat-val dark" id="orc-valor">R$ 0</div><div class="stat-label">Valor em aberto</div></div>
     </div>
+    <div class="loading" id="load-orcs">Carregando...</div>
     <div id="orc-list"></div>
   </div>
 
@@ -254,56 +257,38 @@
       <span class="section-title" id="form-title">Novo orçamento</span>
       <button class="btn" onclick="showTab('orcamentos')">← Voltar</button>
     </div>
-
     <div class="form-card">
       <h3>Dados do cliente</h3>
       <div class="fg2">
-        <div class="field"><label>Cliente</label>
-          <select id="f-cliente">
-            <option>Raul Meneguetti</option><option>Taeko</option><option>Dr. Vagner</option>
-            <option>Sentinela</option><option>Paulino In Casa</option>
-          </select>
-        </div>
-        <div class="field"><label>Número do orçamento</label><input type="text" id="f-num" value="ORC-004"/></div>
-        <div class="field"><label>Data de emissão</label><input type="date" id="f-data" value="2026-03-15"/></div>
-        <div class="field"><label>Validade</label><input type="date" id="f-validade" value="2026-03-30"/></div>
+        <div class="field"><label>Cliente</label><select id="f-cliente"><option>Carregando...</option></select></div>
+        <div class="field"><label>Número do orçamento</label><input type="text" id="f-num" value="ORC-1006"/></div>
+        <div class="field"><label>Data de emissão</label><input type="date" id="f-data"/></div>
+        <div class="field"><label>Validade (4 dias)</label><input type="date" id="f-validade"/></div>
       </div>
     </div>
-
     <div class="form-card">
-      <h3>Itens do orçamento</h3>
-      <div class="item-header" style="grid-template-columns:1fr 1fr auto;">
-        <span class="col-h">Descrição do serviço</span><span class="col-h">Valor</span><span></span>
-      </div>
+      <h3>Serviços</h3>
+      <div class="item-header"><span class="col-h">Descrição do serviço</span><span class="col-h">Valor</span><span></span></div>
       <div id="itens-lista"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-top:12px;">
         <div class="field"><input type="text" id="i-desc" placeholder="Ex: Fabricação e instalação totem ACM"/></div>
         <div class="field"><input type="number" id="i-valor" placeholder="0,00" min="0" step="0.01"/></div>
-        <button class="btn btn-primary" onclick="addItem()" style="white-space:nowrap;">+ Add</button>
+        <button class="btn btn-primary" onclick="addItem()">+ Add</button>
       </div>
       <div class="total-box">
         <div class="total-row"><span>Subtotal</span><span id="subtotal">R$ 0,00</span></div>
-        <div class="total-row" style="align-items:center;gap:8px;">
-          <span>Desconto (%)</span>
-          <input type="number" id="desconto" value="0" min="0" max="100" step="1"
-            style="width:60px;padding:4px 8px;font-size:13px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text);text-align:center;"
-            oninput="calcTotal()"/>
-        </div>
+        <div class="total-row"><span>Desconto (%)</span><input type="number" id="desconto" value="0" min="0" max="100" step="1" style="width:60px;padding:4px 8px;font-size:13px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text);text-align:center;" oninput="calcTotal()"/></div>
         <div class="total-final"><span>Total</span><span id="total-final">R$ 0,00</span></div>
       </div>
     </div>
-
     <div class="form-card">
-      <h3>Observações e condições</h3>
-      <div class="field">
-        <textarea id="f-obs" placeholder="Ex: Prazo de entrega: 15 dias úteis. Pagamento: 50% entrada + 50% na entrega."></textarea>
-      </div>
+      <h3>Observações</h3>
+      <div class="field"><textarea id="f-obs" placeholder="Ex: Prazo de entrega: 15 dias úteis..."></textarea></div>
     </div>
-
     <div class="actions">
       <button class="btn btn-primary" onclick="gerarPDF()">&#128444; Visualizar / Imprimir PDF</button>
       <button class="btn btn-wpp" onclick="enviarWpp()">&#128172; Enviar por WhatsApp</button>
-      <button class="btn" onclick="salvarRascunho()">&#128190; Salvar rascunho</button>
+      <button class="btn" onclick="salvarOrcamento()">&#128190; Salvar</button>
     </div>
     <div class="toast" id="toast"></div>
   </div>
@@ -311,40 +296,19 @@
   <!-- PREVIEW PDF -->
   <div id="panel-preview" class="panel">
     <div class="section-header" id="print-no">
-      <span class="section-title">Pré-visualização do PDF</span>
+      <span class="section-title">Pré-visualização</span>
       <div style="display:flex;gap:10px;">
         <button class="btn" onclick="showTab('novo-orc')">← Editar</button>
         <button class="btn btn-primary" onclick="window.print()">&#128444; Imprimir</button>
         <button class="btn btn-wpp" onclick="enviarWpp()">&#128172; WhatsApp</button>
       </div>
     </div>
-    <div class="pdf-wrap" id="pdf-content">
-      <!-- Pré-visualização padrão -->
-      <div class="pdf-header">
-        <div><div class="pdf-co">CMT Projetos e Fachadas</div><div class="pdf-co-sub">CNPJ: 53.466.209/0001-01 · Franca, SP · Comercial: (16) 99649-2182</div></div>
-        <div><div class="pdf-badge">ORÇAMENTO</div><div class="pdf-badge-sub">Nº ORC-001 · 15/03/2026<br/>Válido até 30/03/2026</div></div>
-      </div>
-      <div class="pdf-cliente"><strong>Cliente:</strong> Raul Meneguetti &nbsp;|&nbsp; <strong>Tel:</strong> (16) 99131-8722</div>
-      <table class="pdf-tbl">
-        <thead><tr><th style="width:42%">Descrição</th><th>Qtd</th><th>Unid.</th><th>Valor unit.</th><th>Total</th></tr></thead>
-        <tbody>
-          <tr><td>Totem ACM Forjax – Fabricação e instalação</td><td>1</td><td>un</td><td>R$ 5.200,00</td><td>R$ 5.200,00</td></tr>
-          <tr><td>Letreiro Paulo XI em LED – Instalação</td><td>1</td><td>un</td><td>R$ 2.800,00</td><td>R$ 2.800,00</td></tr>
-          <tr><td>Translado e equipe</td><td>1</td><td>un</td><td>R$ 500,00</td><td>R$ 500,00</td></tr>
-        </tbody>
-      </table>
-      <div class="pdf-total"><div style="color:#555;font-size:13px;">Subtotal: <strong>R$ 8.500,00</strong></div><div class="pdf-total-final">Total: R$ 8.500,00</div></div>
-      <div class="pdf-obs"><strong>Observações:</strong><br/>Prazo de entrega: 15 dias úteis após aprovação. Pagamento: 50% na aprovação e 50% na entrega. Orçamento válido por 15 dias.</div>
-      <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em 15/03/2026</span></div>
-    </div>
+    <div class="pdf-wrap" id="pdf-content"></div>
   </div>
 
-
-  <!-- CADASTRO DE CLIENTES -->
+  <!-- CADASTRO -->
   <div id="panel-cadastro" class="panel">
-    <div class="section-header">
-      <span class="section-title">Cadastro de Clientes</span>
-    </div>
+    <div class="section-header"><span class="section-title">Cadastro de Clientes</span></div>
     <div class="form-card">
       <h3>Novo cliente</h3>
       <div class="fg2">
@@ -353,64 +317,74 @@
         <div class="field"><label>CPF ou CNPJ</label><input type="text" id="cad-doc" placeholder="Ex: 000.000.000-00"/></div>
         <div class="field"><label>Endereço</label><input type="text" id="cad-end" placeholder="Ex: Rua das Flores, 123 - Franca/SP"/></div>
       </div>
-      <div style="margin-top:16px;">
-        <button class="btn btn-primary" onclick="cadastrarCliente()">&#43; Cadastrar Cliente</button>
-      </div>
+      <div style="margin-top:16px;"><button class="btn btn-primary" onclick="cadastrarCliente()">+ Cadastrar</button></div>
       <div class="toast" id="toast-cad"></div>
     </div>
-
-    <div class="form-card" style="margin-top:8px;">
+    <div class="form-card">
       <h3>Clientes cadastrados</h3>
-      <div id="cad-lista">
-        <div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum cliente cadastrado ainda.</div>
-      </div>
+      <div id="cad-lista"><div class="loading">Carregando...</div></div>
     </div>
   </div>
 
   <!-- FINALIZADOS -->
   <div id="panel-finalizados" class="panel">
-    <div class="section-header">
-      <span class="section-title">Pedidos finalizados</span>
-    </div>
-    <div id="finalizados-grid" class="cards-grid">
+    <div class="section-header"><span class="section-title">Pedidos finalizados</span></div>
+    <div class="cards-grid" id="finalizados-grid">
       <div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;">Nenhum pedido finalizado ainda.</div>
     </div>
   </div>
 
 </div>
 
-<!-- MODAL STATUS -->
+<!-- MODAL PEDIDO -->
 <div class="modal-bg" id="modal-bg">
-  <div class="modal" style="position:relative;">
+  <div class="modal">
     <button class="modal-close" onclick="closeModal()">×</button>
-    <h2 id="modal-title">Atualizar status</h2>
-    <div class="modal-field">
-      <label>Status do pedido</label>
-      <select id="modal-status">
-        <option value="production">Em linha de produção</option>
-        <option value="installing">Saindo para instalação</option>
-        <option value="finished">Finalizado</option>
-      </select>
+    <h2 id="modal-title">Pedido</h2>
+
+    <!-- CREDENCIAIS DO CLIENTE -->
+    <div id="modal-cred" class="cred-box" style="margin-bottom:16px;display:none;">
+      <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:6px;">ACESSO DO CLIENTE</div>
+      <div>Login: <span id="cred-login"></span></div>
+      <div style="margin-top:4px;">Senha: <span id="cred-senha"></span></div>
+      <div style="margin-top:8px;">
+        <button class="btn btn-wpp" style="font-size:12px;padding:6px 12px;" onclick="enviarCredenciaisWpp()">&#128172; Enviar acesso ao cliente</button>
+      </div>
     </div>
-    <div class="modal-field">
-      <label>Observação (opcional)</label>
-      <input type="text" id="modal-obs" placeholder="Ex: previsão 20/03"/>
+
+    <!-- ETAPAS -->
+    <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;">ETAPAS DO PEDIDO</div>
+    <div class="etapas-wrap" id="etapas-wrap"></div>
+
+    <div style="display:flex;gap:8px;margin:14px 0 18px;">
+      <button class="btn btn-primary" style="flex:1;" onclick="avancarEtapa()">▶ Avançar etapa</button>
+      <button class="btn" style="flex:1;" onclick="voltarEtapa()">◀ Voltar etapa</button>
     </div>
+
+    <!-- POS VENDA -->
+    <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;">PÓS-VENDA / MENSAGENS AO CLIENTE</div>
+    <div class="posvenda-lista" id="posvenda-lista"></div>
+    <div class="modal-field">
+      <textarea id="posvenda-input" placeholder="Ex: Pedido pausado por falta de material. Retorno previsto em 2 dias." style="min-height:50px;"></textarea>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-bottom:16px;" onclick="enviarPosvenda()">&#128172; Enviar mensagem ao cliente</button>
+
     <div class="modal-actions">
-      <button class="btn" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="confirmarStatus()">Salvar</button>
+      <button class="btn" onclick="closeModal()">Fechar</button>
+      <button class="btn btn-wpp" onclick="enviarStatusWpp()">&#128172; Status via WhatsApp</button>
+      <button class="btn btn-red" onclick="finalizarPedido()">&#10003; Finalizar pedido</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL ORC DETALHE -->
+<!-- MODAL ORC -->
 <div class="modal-bg" id="orc-modal-bg">
-  <div class="modal" style="position:relative;max-width:480px;">
+  <div class="modal" style="max-width:480px;">
     <button class="modal-close" onclick="closeOrcModal()">×</button>
-    <h2 id="orc-modal-title">Orçamento ORC-001</h2>
+    <h2 id="orc-modal-title">Orçamento</h2>
     <div id="orc-modal-body"></div>
     <div class="modal-field" style="margin-top:14px;">
-      <label>Atualizar status do orçamento</label>
+      <label>Status</label>
       <select id="orc-modal-status">
         <option value="pending">Aguardando</option>
         <option value="sent">Enviado ao cliente</option>
@@ -427,380 +401,509 @@
   </div>
 </div>
 
-<script>
-// ======= CLIENTES CADASTRADOS =======
-let clientesCad = [];
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-function cadastrarCliente() {
+const firebaseConfig = {
+  apiKey: "AIzaSyC7wtESTv3r42I2FUiVztMtLhvxOAyr0GA",
+  authDomain: "cmt-acompanhamento.firebaseapp.com",
+  projectId: "cmt-acompanhamento",
+  storageBucket: "cmt-acompanhamento.firebasestorage.app",
+  messagingSenderId: "628198580319",
+  appId: "1:628198580319:web:9166d6628ca52994d53bea"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ======= ETAPAS =======
+const ETAPAS = [
+  'Liberado para expedição',
+  'Em montagem',
+  'Preparando para finalizar montagem',
+  'Montagem finalizada',
+  'Preparando para instalação',
+  'Em instalação',
+  'Finalizado'
+];
+
+// ======= ESTADO =======
+let pedidos = [];
+let orcamentos = [];
+let clientesCad = [];
+let currentPedidoId = null;
+let currentOrcId = null;
+let editingItens = [];
+let unsubPedidos = null;
+
+// ======= LOGIN =======
+window.fazerLogin = function() {
+  const user = document.getElementById('login-user').value.trim();
+  const senha = document.getElementById('login-senha').value;
+  if (user === 'admin' && senha === 'cmt2026') {
+    document.getElementById('login-screen').style.display = 'none';
+    inicializar();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('login-senha').value = '';
+  }
+};
+
+// ======= INIT =======
+function inicializar() {
+  listenPedidos();
+  listenOrcamentos();
+  listenClientes();
+}
+
+// ======= HELPERS =======
+function fmtMoney(v) { return 'R$ ' + Number(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+function fmtDate(s) { if (!s) return ''; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; }
+function fmtTS(ts) { if (!ts) return ''; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleString('pt-BR'); }
+function initials(nome) { return nome.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(); }
+function badgeClass(s) { return {installing:'badge-installing',production:'badge-production',pending:'badge-pending',sent:'badge-sent',approved:'badge-approved',rejected:'badge-rejected',finished:'badge-finished'}[s]||'badge-pending'; }
+function badgeLabel(s) { return {installing:'Saindo para instalação',production:'Em linha de produção',pending:'Aguardando',sent:'Enviado',approved:'Aprovado',rejected:'Recusado',finished:'Finalizado'}[s]||s; }
+function etapaStatus(etapaIdx) {
+  const total = ETAPAS.length - 1;
+  if (etapaIdx >= total) return 'installing';
+  if (etapaIdx >= 4) return 'installing';
+  if (etapaIdx >= 1) return 'production';
+  return 'production';
+}
+function progresso(etapaIdx) { return Math.round((etapaIdx / (ETAPAS.length - 1)) * 100); }
+
+// ======= REALTIME LISTENERS =======
+function listenPedidos() {
+  const q = query(collection(db, 'pedidos'), orderBy('criadoEm', 'desc'));
+  onSnapshot(q, snap => {
+    pedidos = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    renderClientes();
+    renderPedidos();
+    updateStats();
+  });
+}
+
+function listenOrcamentos() {
+  const q = query(collection(db, 'orcamentos'), orderBy('data', 'desc'));
+  onSnapshot(q, snap => {
+    orcamentos = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    renderOrcamentos();
+    atualizarSelectClientes();
+  });
+}
+
+function listenClientes() {
+  onSnapshot(collection(db, 'clientes'), snap => {
+    clientesCad = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    renderCadLista();
+    atualizarSelectClientes();
+  });
+}
+
+// ======= STATS =======
+function updateStats() {
+  const ativos = pedidos.filter(p => p.etapa < ETAPAS.length - 1);
+  const fins = pedidos.filter(p => p.etapa >= ETAPAS.length - 1);
+  document.getElementById('stat-total').textContent = pedidos.length;
+  document.getElementById('stat-andamento').textContent = ativos.length;
+  document.getElementById('stat-fin').textContent = fins.length;
+  document.getElementById('tab-clientes').textContent = `Clientes (${pedidos.length})`;
+  document.getElementById('tab-finalizados').textContent = `Finalizados (${fins.length})`;
+}
+
+// ======= RENDER CLIENTES =======
+function renderClientes() {
+  document.getElementById('load-clientes').style.display = 'none';
+  const ativos = pedidos.filter(p => (p.etapa || 0) < ETAPAS.length - 1);
+  document.getElementById('clientes-grid').innerHTML = ativos.map(p => clienteCard(p)).join('') || '<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum cliente ativo.</div>';
+}
+
+function renderPedidos() {
+  document.getElementById('load-pedidos').style.display = 'none';
+  const ativos = pedidos.filter(p => (p.etapa || 0) < ETAPAS.length - 1);
+  document.getElementById('pedidos-grid').innerHTML = ativos.map(p => clienteCard(p)).join('') || '<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum pedido ativo.</div>';
+}
+
+function clienteCard(p) {
+  const etapa = p.etapa || 0;
+  const prog = progresso(etapa);
+  const statusLabel = ETAPAS[etapa] || 'Em andamento';
+  const ini = initials(p.nome || '?');
+  return `<div class="client-card" onclick="openModal('${p.id}')">
+    <div class="card-head">
+      <div class="avatar">${ini}</div>
+      <div><div class="card-name">${p.nome}</div><div class="card-id">${p.codigo} · ${p.tel||''}</div></div>
+    </div>
+    <div class="card-desc">${p.desc||''}</div>
+    ${p.dataConversao ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">&#128197; Pedido em: ${p.dataConversao}</div>` : ''}
+    <span class="badge badge-production">${statusLabel}</span>
+    <div class="progress-bar"><div class="progress-fill" style="width:${prog}%"></div></div>
+  </div>`;
+}
+
+// ======= MODAL PEDIDO =======
+window.openModal = async function(id) {
+  currentPedidoId = id;
+  const p = pedidos.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('modal-title').textContent = `${p.nome} — ${p.codigo}`;
+
+  // Credenciais
+  if (p.loginCliente) {
+    document.getElementById('modal-cred').style.display = 'block';
+    document.getElementById('cred-login').textContent = p.loginCliente;
+    document.getElementById('cred-senha').textContent = p.senhaCliente;
+  } else {
+    document.getElementById('modal-cred').style.display = 'none';
+  }
+
+  renderEtapas(p.etapa || 0);
+  await renderPosvenda(id);
+  document.getElementById('modal-bg').classList.add('open');
+};
+
+window.closeModal = function() { document.getElementById('modal-bg').classList.remove('open'); };
+
+function renderEtapas(atual) {
+  document.getElementById('etapas-wrap').innerHTML = ETAPAS.map((e, i) => {
+    let cls = '';
+    if (i < atual) cls = 'done';
+    else if (i === atual) cls = 'current';
+    return `<div class="etapa-item">
+      <div class="etapa-dot ${cls}">${i < atual ? '✓' : i+1}</div>
+      <div class="etapa-label ${cls}">${e}</div>
+    </div>`;
+  }).join('');
+}
+
+window.avancarEtapa = async function() {
+  const p = pedidos.find(x => x.id === currentPedidoId);
+  if (!p) return;
+  const novaEtapa = Math.min((p.etapa || 0) + 1, ETAPAS.length - 1);
+  await updateDoc(doc(db, 'pedidos', currentPedidoId), { etapa: novaEtapa });
+  showToast(`✓ Avançou para: ${ETAPAS[novaEtapa]}`);
+  renderEtapas(novaEtapa);
+  if (novaEtapa === ETAPAS.length - 1) finalizarPedido();
+};
+
+window.voltarEtapa = async function() {
+  const p = pedidos.find(x => x.id === currentPedidoId);
+  if (!p) return;
+  const novaEtapa = Math.max((p.etapa || 0) - 1, 0);
+  await updateDoc(doc(db, 'pedidos', currentPedidoId), { etapa: novaEtapa });
+  showToast(`↩ Voltou para: ${ETAPAS[novaEtapa]}`);
+  renderEtapas(novaEtapa);
+};
+
+window.finalizarPedido = async function() {
+  if (!confirm('Finalizar este pedido?')) return;
+  await updateDoc(doc(db, 'pedidos', currentPedidoId), { etapa: ETAPAS.length - 1, finalizado: true });
+  closeModal();
+  showToast('Pedido finalizado!');
+};
+
+// ======= POS VENDA =======
+async function renderPosvenda(pedidoId) {
+  const snap = await getDocs(query(collection(db, 'pedidos', pedidoId, 'mensagens'), orderBy('criadoEm', 'asc')));
+  const msgs = snap.docs.map(d => d.data());
+  const el = document.getElementById('posvenda-lista');
+  el.innerHTML = msgs.length ? msgs.map(m => `
+    <div class="posvenda-item">
+      <div class="posvenda-data">${fmtTS(m.criadoEm)}</div>
+      <div class="posvenda-msg">${m.texto}</div>
+    </div>`).join('') : '<div style="color:var(--muted);font-size:12px;padding:8px;">Nenhuma mensagem ainda.</div>';
+  el.scrollTop = el.scrollHeight;
+}
+
+window.enviarPosvenda = async function() {
+  const texto = document.getElementById('posvenda-input').value.trim();
+  if (!texto) return;
+  const p = pedidos.find(x => x.id === currentPedidoId);
+  await addDoc(collection(db, 'pedidos', currentPedidoId, 'mensagens'), {
+    texto, criadoEm: serverTimestamp(), tipo: 'admin'
+  });
+  document.getElementById('posvenda-input').value = '';
+  await renderPosvenda(currentPedidoId);
+
+  // Envia via WhatsApp se tiver telefone
+  if (p && p.tel) {
+    const msg = encodeURIComponent(`CMT Projetos e Fachadas 🏗️\n\n*Atualização do seu pedido ${p.codigo}:*\n${texto}`);
+    window.open(`https://wa.me/55${p.tel}?text=${msg}`, '_blank');
+  }
+  showToast('Mensagem enviada!');
+};
+
+window.enviarStatusWpp = function() {
+  const p = pedidos.find(x => x.id === currentPedidoId);
+  if (!p) return;
+  const etapa = p.etapa || 0;
+  const link = `https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/cliente.html`;
+  const msg = encodeURIComponent(`CMT Projetos e Fachadas 🏗️\n\nOlá ${p.nome}! Atualização do seu pedido *${p.codigo}*:\n\n📌 Etapa atual: *${ETAPAS[etapa]}*\n\nAcompanhe em tempo real:\n${link}\n\nLogin: *${p.loginCliente||p.codigo}*\nSenha: *${p.senhaCliente||'cmt2026'}*`);
+  window.open(`https://wa.me/55${p.tel}?text=${msg}`, '_blank');
+};
+
+window.enviarCredenciaisWpp = function() {
+  const p = pedidos.find(x => x.id === currentPedidoId);
+  if (!p) return;
+  const link = `https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/cliente.html`;
+  const msg = encodeURIComponent(`CMT Projetos e Fachadas 🏗️\n\nOlá *${p.nome}*! Seu pedido foi cadastrado.\n\nAcompanhe o status em tempo real:\n🔗 ${link}\n\n👤 Login: *${p.loginCliente}*\n🔑 Senha: *${p.senhaCliente}*`);
+  window.open(`https://wa.me/55${p.tel}?text=${msg}`, '_blank');
+};
+
+// ======= ORÇAMENTOS =======
+function renderOrcamentos() {
+  document.getElementById('load-orcs').style.display = 'none';
+  const list = document.getElementById('orc-list');
+  if (!orcamentos.length) { list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;">Nenhum orçamento ainda.</div>'; return; }
+  list.innerHTML = orcamentos.map(o => `
+    <div class="orc-card" onclick="openOrcModal('${o.id}')">
+      <div class="avatar">${initials(o.nome||'?')}</div>
+      <div class="orc-info">
+        <div class="orc-name">${o.nome}</div>
+        <div class="orc-sub">${o.num} · ${o.desc||''}</div>
+      </div>
+      <div class="orc-right">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">&#128197; ${fmtDate(o.data)}</div>
+        <div class="orc-valor">${fmtMoney(o.valor||0)}</div>
+        <div style="margin-top:4px;"><span class="badge ${badgeClass(o.status)}">${badgeLabel(o.status)}</span></div>
+      </div>
+    </div>`).join('');
+  const abertos = orcamentos.filter(o => o.status !== 'approved' && o.status !== 'rejected');
+  document.getElementById('orc-count').textContent = orcamentos.length;
+  document.getElementById('orc-pendentes').textContent = abertos.filter(o => o.status === 'pending').length;
+  document.getElementById('orc-valor').textContent = fmtMoney(abertos.reduce((s,o)=>s+(o.valor||0),0));
+  document.getElementById('tab-orcamentos').textContent = `Orçamentos (${orcamentos.length})`;
+}
+
+window.openOrcModal = function(id) {
+  currentOrcId = id;
+  const o = orcamentos.find(x => x.id === id);
+  if (!o) return;
+  document.getElementById('orc-modal-title').textContent = `${o.num} — ${o.nome}`;
+  document.getElementById('orc-modal-status').value = o.status || 'pending';
+  document.getElementById('converter-btn').style.display = o.status === 'approved' ? 'inline-flex' : 'none';
+  document.getElementById('orc-modal-body').innerHTML = `
+    <div style="background:var(--surface2);border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:10px;">
+      <div><strong>Descrição:</strong> ${o.desc||''}</div>
+      <div style="margin-top:4px;"><strong>Data:</strong> ${fmtDate(o.data)} &nbsp;|&nbsp; <strong>Válido até:</strong> ${fmtDate(o.validade)}</div>
+      <div style="font-size:18px;font-weight:700;color:var(--brand);margin-top:8px;">${fmtMoney(o.valor||0)}</div>
+    </div>`;
+  document.getElementById('orc-modal-bg').classList.add('open');
+};
+
+window.closeOrcModal = function() { document.getElementById('orc-modal-bg').classList.remove('open'); };
+
+window.salvarStatusOrc = async function() {
+  const status = document.getElementById('orc-modal-status').value;
+  await updateDoc(doc(db, 'orcamentos', currentOrcId), { status });
+  document.getElementById('converter-btn').style.display = status === 'approved' ? 'inline-flex' : 'none';
+  closeOrcModal();
+  showToast('Status atualizado!');
+};
+
+window.wppFromModal = function() {
+  const o = orcamentos.find(x => x.id === currentOrcId);
+  if (!o) return;
+  const msg = encodeURIComponent(`Olá ${o.nome}! Segue o orçamento *${o.num}* da CMT Projetos e Fachadas.\n\nServiço: ${o.desc||''}\nValor total: *${fmtMoney(o.valor||0)}*\nVálido até: ${fmtDate(o.validade)}\n\nQualquer dúvida estamos à disposição! 🏗️`);
+  window.open(`https://wa.me/55${o.tel}?text=${msg}`, '_blank');
+  updateDoc(doc(db, 'orcamentos', currentOrcId), { status: 'sent' });
+  closeOrcModal();
+};
+
+window.converterPedido = async function() {
+  const o = orcamentos.find(x => x.id === currentOrcId);
+  if (!o) return;
+  const codigo = 'CMT-' + (1006 + pedidos.length);
+  const loginCliente = codigo.toLowerCase().replace('-','');
+  const senhaCliente = 'cmt' + Math.floor(1000 + Math.random() * 9000);
+  await addDoc(collection(db, 'pedidos'), {
+    nome: o.nome, codigo, tel: o.tel||'', desc: o.desc||'',
+    etapa: 0, loginCliente, senhaCliente,
+    dataConversao: new Date().toLocaleDateString('pt-BR'),
+    criadoEm: serverTimestamp()
+  });
+  await deleteDoc(doc(db, 'orcamentos', currentOrcId));
+  closeOrcModal();
+  showToast(`✓ Pedido ${codigo} criado! Login: ${loginCliente} | Senha: ${senhaCliente}`);
+  showTab('clientes');
+};
+
+// ======= CLIENTES CADASTRADOS =======
+window.cadastrarCliente = async function() {
   const nome = document.getElementById('cad-nome').value.trim();
   const tel = document.getElementById('cad-tel').value.trim().replace(/\D/g,'');
-  const doc = document.getElementById('cad-doc').value.trim();
+  const doc2 = document.getElementById('cad-doc').value.trim();
   const end = document.getElementById('cad-end').value.trim();
   if (!nome) { alert('Nome é obrigatório.'); return; }
-  clientesCad.push({ id: Date.now(), nome, tel, doc, end });
+  await addDoc(collection(db, 'clientes'), { nome, tel, doc: doc2, end, criadoEm: serverTimestamp() });
   document.getElementById('cad-nome').value = '';
   document.getElementById('cad-tel').value = '';
   document.getElementById('cad-doc').value = '';
   document.getElementById('cad-end').value = '';
-  renderCadLista();
-  atualizarSelectClientes();
-  const t = document.getElementById('toast-cad');
-  t.textContent = 'Cliente cadastrado com sucesso!';
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
+  showToastCad('Cliente cadastrado!');
+};
 
 function renderCadLista() {
   const el = document.getElementById('cad-lista');
-  if (!clientesCad.length) {
-    el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum cliente cadastrado ainda.</div>';
-    return;
-  }
+  if (!clientesCad.length) { el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum cliente cadastrado ainda.</div>'; return; }
   el.innerHTML = clientesCad.map(c => `
     <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);">
-      <div class="avatar" style="width:36px;height:36px;font-size:12px;">${c.nome.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase()}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">${c.nome}</div>
-        <div style="font-size:12px;color:var(--muted);">
-          ${c.tel ? '&#128222; ' + c.tel : ''}
-          ${c.doc ? ' &nbsp;·&nbsp; ' + c.doc : ''}
-          ${c.end ? '<br/>&#128205; ' + c.end : ''}
-        </div>
+      <div class="avatar" style="width:36px;height:36px;font-size:12px;">${initials(c.nome)}</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:600;">${c.nome}</div>
+        <div style="font-size:12px;color:var(--muted);">${c.tel?'&#128222; '+c.tel:''} ${c.doc?'· '+c.doc:''} ${c.end?'<br/>&#128205; '+c.end:''}</div>
       </div>
-      <button class="del-btn" onclick="removerCliente(${c.id})" title="Remover">×</button>
+      <button class="del-btn" onclick="removerCliente('${c.id}')">×</button>
     </div>`).join('');
 }
 
-function removerCliente(id) {
+window.removerCliente = async function(id) {
   if (!confirm('Remover este cliente?')) return;
-  clientesCad = clientesCad.filter(c => c.id !== id);
-  renderCadLista();
-  atualizarSelectClientes();
-}
+  await deleteDoc(doc(db, 'clientes', id));
+};
 
 function atualizarSelectClientes() {
   const sel = document.getElementById('f-cliente');
   if (!sel) return;
   const fixos = ['Raul Meneguetti','Taeko','Dr. Vagner','Sentinela','Paulino In Casa'];
-  const cadastrados = clientesCad.map(c => c.nome);
-  const todos = [...fixos, ...cadastrados];
+  const todos = [...fixos, ...clientesCad.map(c => c.nome)];
   const atual = sel.value;
   sel.innerHTML = todos.map(n => `<option value="${n}" ${n===atual?'selected':''}>${n}</option>`).join('');
 }
 
-// ======= DATA =======
-let pedidos = [
-  { id: 1, ini: 'RM', nome: 'Raul Meneguetti', codigo: 'CMT-1001', tel: '16991318722', desc: 'TOTEM FORJAX e PAULO XI', status: 'installing', prog: 80 },
-  { id: 2, ini: 'T',  nome: 'Taeko',           codigo: 'CMT-1002', tel: '16993924125', desc: 'MARQUISE EM ACM PRETO FOSCO E RIPA...', status: 'installing', prog: 80 },
-  { id: 3, ini: 'DV', nome: 'Dr. Vagner',       codigo: 'CMT-1003', tel: '18997269043', desc: 'ESTRUTURA DO REVESTIMENTO DO GUA...', status: 'production', prog: 40 },
-  { id: 4, ini: 'S',  nome: 'Sentinela',        codigo: 'CMT-1004', tel: '16993993443', desc: 'BERAL EM ACM COM RIPADO EM ACM E P...', status: 'installing', prog: 75 },
-  { id: 5, ini: 'PI', nome: 'Paulino In Casa',  codigo: 'CMT-1005', tel: '5516991628951', desc: 'Painel bandeira luminoso', status: 'production', prog: 30 },
-];
-
-let orcamentos = [
-  { id: 1, ini: 'RM', nome: 'Raul Meneguetti', num: 'ORC-001', tel: '16991318722', desc: 'Totem Forjax e Paulo XI', valor: 8500, status: 'pending', data: '2026-03-15', validade: '2026-03-30', itens: [{desc:'Totem ACM Forjax – Fabricação',qtd:1,unid:'un',valor:5200},{desc:'Letreiro Paulo XI LED',qtd:1,unid:'un',valor:2800},{desc:'Translado e equipe',qtd:1,unid:'un',valor:500}], obs: 'Prazo: 15 dias úteis. 50% entrada + 50% entrega.' },
-  { id: 2, ini: 'T',  nome: 'Taeko',           num: 'ORC-002', tel: '16993924125', desc: 'Marquise ACM Preto Fosco e Ripa', valor: 6300, status: 'sent', data: '2026-03-10', validade: '2026-03-25', itens: [{desc:'Marquise ACM Preto Fosco 4mm',qtd:18,unid:'m²',valor:320},{desc:'Ripado ACM',qtd:6,unid:'m',valor:95}], obs: 'Pagamento à vista.' },
-  { id: 3, ini: 'DV', nome: 'Dr. Vagner',       num: 'ORC-003', tel: '18997269043', desc: 'Estrutura Revestimento Guarda-corpo', valor: 12200, status: 'approved', data: '2026-03-01', validade: '2026-03-20', itens: [{desc:'Estrutura metálica revestimento',qtd:1,unid:'un',valor:8500},{desc:'ACM Guardacorpo 3mm',qtd:22,unid:'m²',valor:170}], obs: 'Aprovado pelo cliente em 12/03.' },
-];
-
-let currentPedidoId = null;
-let currentOrcId = null;
-let editingItens = [];
-
-// ======= STATUS HELPERS =======
-function badgeClass(s) {
-  return { installing: 'badge-installing', production: 'badge-production', pending: 'badge-pending', sent: 'badge-sent', approved: 'badge-approved', rejected: 'badge-rejected', finished: 'badge-finished' }[s] || 'badge-pending';
-}
-function badgeLabel(s) {
-  return { installing: 'Saindo para instalação', production: 'Em linha de produção', pending: 'Aguardando', sent: 'Enviado', approved: 'Aprovado', rejected: 'Recusado', finished: 'Finalizado' }[s] || s;
-}
-function fmtMoney(v) { return 'R$ ' + v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
-function fmtDate(s) { if (!s) return ''; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; }
-
-// ======= RENDER =======
-function renderClientes() {
-  const all = [...pedidos, ...orcamentos.filter(o => o.status === 'approved').map(o => ({
-    id: 'o'+o.id, ini: o.ini, nome: o.nome, codigo: o.num, tel: o.tel, desc: o.desc, status: 'pending', prog: 0, fromOrc: true
-  }))];
-  const ativos = pedidos;
-  document.getElementById('clientes-grid').innerHTML = ativos.map(p => clienteCard(p)).join('');
-}
-
-function clienteCard(p) {
-  const prog = p.prog || 0;
-  return `<div class="client-card" onclick="openModal(${p.id})">
-    <div class="card-head">
-      <div class="avatar">${p.ini}</div>
-      <div><div class="card-name">${p.nome}</div><div class="card-id">${p.codigo} · ${p.tel}</div></div>
-    </div>
-    <div class="card-desc">${p.desc}</div>
-    ${p.dataConversao ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">&#128197; Pedido em: ${p.dataConversao}</div>` : ''}
-    <span class="badge ${badgeClass(p.status)}">${badgeLabel(p.status)}</span>
-    <div class="progress-bar"><div class="progress-fill" style="width:${prog}%"></div></div>
-  </div>`;
-}
-
-function renderPedidos() {
-  document.getElementById('pedidos-grid').innerHTML = pedidos.map(p => clienteCard(p)).join('');
-}
-
-function renderOrcamentos() {
-  const list = document.getElementById('orc-list');
-  if (!orcamentos.length) { list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;">Nenhum orçamento ainda.</div>'; return; }
-  const sorted = [...orcamentos].sort((a, b) => new Date(b.data) - new Date(a.data));
-  list.innerHTML = sorted.map(o => `
-    <div class="orc-card" onclick="openOrcModal(${o.id})">
-      <div class="avatar">${o.ini}</div>
-      <div class="orc-info">
-        <div class="orc-name">${o.nome}</div>
-        <div class="orc-sub">${o.num} · ${o.desc}</div>
-      </div>
-      <div class="orc-right">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">&#128197; ${fmtDate(o.data)}</div>
-        <div class="orc-valor">${fmtMoney(o.valor)}</div>
-        <div style="margin-top:4px;"><span class="badge ${badgeClass(o.status)}">${badgeLabel(o.status)}</span></div>
-      </div>
-    </div>`).join('');
-
-  const abertos = orcamentos.filter(o => o.status !== 'approved' && o.status !== 'rejected');
-  const valorAberto = abertos.reduce((s, o) => s + o.valor, 0);
-  document.getElementById('orc-count').textContent = orcamentos.length;
-  document.getElementById('orc-pendentes').textContent = abertos.filter(o => o.status === 'pending').length;
-  document.getElementById('orc-valor').textContent = fmtMoney(valorAberto);
-  document.getElementById('tab-orcamentos').textContent = `Orçamentos (${orcamentos.length})`;
-}
-
-// ======= TABS =======
-function showTab(tab) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
-  document.getElementById('panel-' + tab).classList.add('active');
-  if (tab === 'clientes') renderClientes();
-  if (tab === 'cadastro') renderCadLista();
-  if (tab === 'pedidos') renderPedidos();
-  if (tab === 'orcamentos') renderOrcamentos();
-  if (tab === 'novo-orc') {
-    editingItens = [];
-    renderItens();
-    document.getElementById('form-title').textContent = 'Novo orçamento';
-    const hoje = new Date();
-    const toISO = d => d.toISOString().split('T')[0];
-    const validade = new Date(hoje); validade.setDate(validade.getDate() + 4);
-    document.getElementById('f-data').value = toISO(hoje);
-    document.getElementById('f-validade').value = toISO(validade);
-    document.getElementById('f-num').value = 'ORC-' + (1005 + orcamentos.length + 1);
-  }
-}
-
-// ======= PEDIDO MODAL =======
-function openModal(id) {
-  currentPedidoId = id;
-  const p = pedidos.find(x => x.id === id);
-  document.getElementById('modal-title').textContent = `${p.nome} — ${p.codigo}`;
-  document.getElementById('modal-status').value = p.status;
-  document.getElementById('modal-obs').value = '';
-  document.getElementById('modal-bg').classList.add('open');
-}
-function closeModal() { document.getElementById('modal-bg').classList.remove('open'); }
-function confirmarStatus() {
-  const p = pedidos.find(x => x.id === currentPedidoId);
-  const novoStatus = document.getElementById('modal-status').value;
-  p.status = novoStatus;
-  if (novoStatus === 'finished') {
-    pedidos = pedidos.filter(x => x.id !== currentPedidoId);
-  }
-  closeModal();
-  renderClientes();
-  renderPedidos();
-  showToast('Status atualizado com sucesso!');
-}
-
-// ======= ORC MODAL =======
-function openOrcModal(id) {
-  currentOrcId = id;
-  const o = orcamentos.find(x => x.id === id);
-  document.getElementById('orc-modal-title').textContent = `${o.num} — ${o.nome}`;
-  document.getElementById('orc-modal-status').value = o.status;
-  const btn = document.getElementById('converter-btn');
-  btn.style.display = o.status === 'approved' ? 'inline-flex' : 'none';
-  document.getElementById('orc-modal-body').innerHTML = `
-    <div style="background:var(--surface2);border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:10px;">
-      <div style="margin-bottom:4px;"><strong>Descrição:</strong> ${o.desc}</div>
-      <div style="margin-bottom:4px;"><strong>Data:</strong> ${fmtDate(o.data)} &nbsp;|&nbsp; <strong>Validade:</strong> ${fmtDate(o.validade)}</div>
-      <div style="font-size:18px;font-weight:700;color:var(--brand);margin-top:8px;">${fmtMoney(o.valor)}</div>
-    </div>`;
-  document.getElementById('orc-modal-bg').classList.add('open');
-}
-function closeOrcModal() { document.getElementById('orc-modal-bg').classList.remove('open'); }
-function salvarStatusOrc() {
-  const o = orcamentos.find(x => x.id === currentOrcId);
-  o.status = document.getElementById('orc-modal-status').value;
-  const btn = document.getElementById('converter-btn');
-  btn.style.display = o.status === 'approved' ? 'inline-flex' : 'none';
-  closeOrcModal();
-  renderOrcamentos();
-  showToast('Status do orçamento atualizado!');
-}
-function wppFromModal() {
-  const o = orcamentos.find(x => x.id === currentOrcId);
-  const msg = encodeURIComponent(`Olá ${o.nome}! Segue o orçamento ${o.num} da CMT Projetos e Fachadas.\n\nDescritivo: ${o.desc}\nValor total: ${fmtMoney(o.valor)}\nVálido até: ${fmtDate(o.validade)}\n\nQualquer dúvida estamos à disposição! 🏗️`);
-  window.open(`https://wa.me/${o.tel}?text=${msg}`, '_blank');
-  o.status = 'sent';
-  closeOrcModal();
-  renderOrcamentos();
-}
-function converterPedido() {
-  const o = orcamentos.find(x => x.id === currentOrcId);
-  const novoId = pedidos.length > 0 ? Math.max(...pedidos.map(p => p.id)) + 1 : 1;
-  const novoCodigo = 'CMT-' + (1000 + novoId + pedidos.length);
-  const dataConversao = new Date().toLocaleDateString('pt-BR');
-  pedidos.push({
-    id: novoId, ini: o.ini, nome: o.nome, codigo: novoCodigo,
-    tel: o.tel, desc: o.desc, status: 'production', prog: 10,
-    dataConversao: dataConversao
-  });
-  orcamentos = orcamentos.filter(x => x.id !== currentOrcId);
-  closeOrcModal();
-  renderOrcamentos();
-  renderClientes();
-  document.getElementById('tab-clientes').textContent = `Clientes (${pedidos.length})`;
-  showToast(`✓ Orçamento convertido em pedido ${novoCodigo}!`);
-  showTab('clientes');
-}
-
-// ======= ITENS =======
-function addItem() {
+// ======= ITENS ORÇAMENTO =======
+window.addItem = function() {
   const desc = document.getElementById('i-desc').value.trim();
   const valor = parseFloat(document.getElementById('i-valor').value) || 0;
-  if (!desc || valor <= 0) { alert('Preencha a descrição e o valor do serviço.'); return; }
+  if (!desc || valor <= 0) { alert('Preencha a descrição e o valor.'); return; }
   editingItens.push({ desc, valor });
   document.getElementById('i-desc').value = '';
   document.getElementById('i-valor').value = '';
   renderItens();
-}
-function removeItem(i) { editingItens.splice(i, 1); renderItens(); }
+};
+
+window.removeItem = function(i) { editingItens.splice(i, 1); renderItens(); };
+
 function renderItens() {
-  const c = document.getElementById('itens-lista');
-  c.innerHTML = editingItens.map((it, i) => `
+  document.getElementById('itens-lista').innerHTML = editingItens.map((it, i) => `
     <div class="item-row">
-      <span>${it.desc}</span>
-      <span>${fmtMoney(it.valor)}</span>
+      <span>${it.desc}</span><span>${fmtMoney(it.valor)}</span>
       <button class="del-btn" onclick="removeItem(${i})">×</button>
     </div>`).join('');
   calcTotal();
 }
-function calcTotal() {
+
+window.calcTotal = function() {
   const sub = editingItens.reduce((s, it) => s + it.valor, 0);
   const desc = parseFloat(document.getElementById('desconto').value) || 0;
   const total = sub * (1 - desc / 100);
   document.getElementById('subtotal').textContent = fmtMoney(sub);
   document.getElementById('total-final').textContent = fmtMoney(total);
-}
+};
 
-// ======= SAVE / RASCUNHO =======
-function salvarRascunho() {
+window.salvarOrcamento = async function() {
   const num = document.getElementById('f-num').value;
-  const cliente = document.getElementById('f-cliente').value;
-  const ini = cliente.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
-  const tel = '';
+  const clienteNome = document.getElementById('f-cliente').value;
+  const cliente = clientesCad.find(c => c.nome === clienteNome);
+  const tel = cliente ? cliente.tel : '';
   const sub = editingItens.reduce((s, it) => s + it.valor, 0);
   const desc = parseFloat(document.getElementById('desconto').value) || 0;
   const total = sub * (1 - desc / 100);
-  const existIdx = orcamentos.findIndex(o => o.num === num);
-  const orc = {
-    id: existIdx >= 0 ? orcamentos[existIdx].id : Date.now(),
-    ini, nome: cliente, num, tel,
-    desc: editingItens.map(i => i.desc).join(', ').substring(0, 50) || 'Sem itens',
+  await addDoc(collection(db, 'orcamentos'), {
+    num, nome: clienteNome, tel,
+    desc: editingItens.map(i=>i.desc).join(', ').substring(0,60)||'Sem itens',
     valor: total, status: 'pending',
     data: document.getElementById('f-data').value,
     validade: document.getElementById('f-validade').value,
-    itens: [...editingItens],
-    obs: document.getElementById('f-obs').value
-  };
-  if (existIdx >= 0) orcamentos[existIdx] = orc; else orcamentos.push(orc);
-  renderOrcamentos();
-  showToast('Orçamento salvo como rascunho!');
-}
+    itens: editingItens,
+    obs: document.getElementById('f-obs').value,
+    criadoEm: serverTimestamp()
+  });
+  editingItens = [];
+  renderItens();
+  showToast('Orçamento salvo!');
+  showTab('orcamentos');
+};
 
 // ======= PDF =======
-function gerarPDF() {
+window.gerarPDF = function() {
   const num = document.getElementById('f-num').value;
   const cliente = document.getElementById('f-cliente').value;
   const dt = document.getElementById('f-data').value;
   const dtv = document.getElementById('f-validade').value;
   const obs = document.getElementById('f-obs').value || 'Sem observações.';
-  const sub = editingItens.reduce((s, it) => s + it.valor, 0);
-  const desc = parseFloat(document.getElementById('desconto').value) || 0;
-  const total = sub * (1 - desc / 100);
+  const sub = editingItens.reduce((s,it)=>s+it.valor,0);
+  const desc = parseFloat(document.getElementById('desconto').value)||0;
+  const total = sub*(1-desc/100);
   const rows = editingItens.length
-    ? editingItens.map(it => `<tr><td>${it.desc}</td><td>${fmtMoney(it.valor)}</td></tr>`).join('')
-    : '<tr><td colspan="2" style="text-align:center;color:#999;">Nenhum serviço adicionado</td></tr>';
-
+    ? editingItens.map(it=>`<tr><td>${it.desc}</td><td>${fmtMoney(it.valor)}</td></tr>`).join('')
+    : '<tr><td colspan="2" style="text-align:center;color:#999;">Nenhum serviço</td></tr>';
   document.getElementById('pdf-content').innerHTML = `
     <div class="pdf-header">
       <div><div class="pdf-co">CMT Projetos e Fachadas</div><div class="pdf-co-sub">CNPJ: 53.466.209/0001-01 · Franca, SP · Comercial: (16) 99649-2182</div></div>
       <div><div class="pdf-badge">ORÇAMENTO</div><div class="pdf-badge-sub">Nº ${num} · ${fmtDate(dt)}<br/>Válido até ${fmtDate(dtv)}</div></div>
     </div>
     <div class="pdf-cliente"><strong>Cliente:</strong> ${cliente}</div>
-    <table class="pdf-tbl">
-      <thead><tr><th style="width:42%">Descrição</th><th>Qtd</th><th>Unid.</th><th>Valor unit.</th><th>Total</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <table class="pdf-tbl"><thead><tr><th style="width:70%">Descrição do serviço</th><th>Valor</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="pdf-total">
       <div style="color:#555;font-size:13px;">Subtotal: <strong>${fmtMoney(sub)}</strong></div>
-      ${desc > 0 ? `<div style="color:#555;font-size:13px;">Desconto (${desc}%): <strong>– ${fmtMoney(sub * desc / 100)}</strong></div>` : ''}
+      ${desc>0?`<div style="color:#555;font-size:13px;">Desconto (${desc}%): <strong>– ${fmtMoney(sub*desc/100)}</strong></div>`:''}
       <div class="pdf-total-final">Total: ${fmtMoney(total)}</div>
     </div>
     <div class="pdf-obs"><strong>Observações:</strong><br/>${obs}</div>
     <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${fmtDate(dt)}</span></div>`;
-
   showTab('preview');
-}
+};
 
-// ======= WHATSAPP =======
-function enviarWpp() {
-  const num = document.getElementById('f-num') ? document.getElementById('f-num').value : 'ORC';
-  const cliente = document.getElementById('f-cliente') ? document.getElementById('f-cliente').value : 'cliente';
-  const sub = editingItens.reduce((s, it) => s + it.valor, 0);
-  const desc = document.getElementById('desconto') ? parseFloat(document.getElementById('desconto').value) || 0 : 0;
-  const total = sub * (1 - desc / 100);
+window.enviarWpp = function() {
+  const cliente = document.getElementById('f-cliente').value;
+  const num = document.getElementById('f-num').value;
+  const sub = editingItens.reduce((s,it)=>s+it.valor,0);
+  const desc = parseFloat(document.getElementById('desconto').value)||0;
+  const total = sub*(1-desc/100);
   const msg = encodeURIComponent(`Olá ${cliente}! 🏗️\n\nSegue o orçamento *${num}* da CMT Projetos e Fachadas.\n\nValor total: *${fmtMoney(total)}*\n\nQualquer dúvida estamos à disposição!`);
-  window.open(`https://wa.me/?text=${msg}`, '_blank');
-  showToast('Abrindo WhatsApp...');
-}
+  window.open(`https://wa.me/?text=${msg}`,'_blank');
+};
+
+// ======= TABS =======
+window.showTab = function(tab) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('panel-'+tab).classList.add('active');
+  if (tab === 'novo-orc') {
+    editingItens = [];
+    renderItens();
+    const hoje = new Date();
+    const toISO = d => d.toISOString().split('T')[0];
+    const val = new Date(hoje); val.setDate(val.getDate()+4);
+    document.getElementById('f-data').value = toISO(hoje);
+    document.getElementById('f-validade').value = toISO(val);
+    document.getElementById('f-num').value = 'ORC-'+(1005+orcamentos.length+1);
+    atualizarSelectClientes();
+  }
+};
 
 // ======= TOAST =======
 function showToast(msg) {
   const t = document.getElementById('toast');
   if (!t) return;
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
 }
-
-function saveLink() {
-  showToast('Link salvo com sucesso!');
+function showToastCad(msg) {
+  const t = document.getElementById('toast-cad');
+  if (!t) return;
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
 }
+window.saveLink = function() { showToast('Link salvo!'); };
 
-
-// ======= LOGIN =======
-function fazerLogin() {
-  const senha = document.getElementById('login-senha').value;
-  if (senha === 'cmt2026') {
-    document.getElementById('login-screen').style.display = 'none';
-  } else {
-    document.getElementById('login-error').style.display = 'block';
-    document.getElementById('login-senha').value = '';
-    document.getElementById('login-senha').focus();
-  }
-}
+// ======= START =======
 document.getElementById('login-screen').style.display = 'flex';
-setTimeout(() => document.getElementById('login-senha').focus(), 100);
-
-// ======= INIT =======
-renderClientes();
-atualizarSelectClientes();
+setTimeout(()=>document.getElementById('login-user').focus(),100);
 </script>
 </body>
 </html>
