@@ -281,9 +281,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="btn" id="btn-voltar">◀ Voltar etapa</button>
     </div>
     <div style="display:flex;align-items:center;gap:10px;background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:18px;">
-      <span style="font-size:13px;color:var(--muted);white-space:nowrap;">&#128197; Previsão de entrega:</span>
-      <input type="text" id="previsao-input" placeholder="Ex: 20/03/2026" style="flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;"/>
-      <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;" id="btn-salvar-previsao">Salvar</button>
+      <span style="font-size:13px;color:var(--muted);white-space:nowrap;">&#128197; Previsão:</span>
+      <input type="text" id="previsao-input" placeholder="Ex: 20/03/2026 — salva ao digitar Enter" style="flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;"/>
     </div>
     <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;">PÓS-VENDA / MENSAGENS AO CLIENTE</div>
     <div class="posvenda-lista" id="posvenda-lista"></div>
@@ -317,6 +316,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
     <div class="modal-actions">
       <button class="btn" id="btn-fechar-orc">Fechar</button>
+      <button class="btn" id="btn-editar-orc">&#9998; Editar</button>
+      <button class="btn" id="btn-pdf-orc">&#128444; PDF</button>
       <button class="btn btn-wpp" id="btn-wpp-orc-modal">&#128172; WhatsApp</button>
       <button class="btn btn-green" id="btn-converter" style="display:none;">&#10003; Converter em Pedido</button>
       <button class="btn btn-primary" id="btn-salvar-orc-status">Salvar</button>
@@ -581,18 +582,25 @@ document.getElementById('btn-salvar-orc').addEventListener('click',async()=>{
   const dataVal=document.getElementById('f-data').value;
   const [y,m,d]=dataVal?dataVal.split('-'):['','',''];
   const dataFmt=dataVal?`${d}/${m}/${y}`:'';
-  await addDoc(collection(db,'orcamentos'),{
+  const editId=document.getElementById('f-num').dataset.editId;
+  const dados={
     num,nome:clienteNome,tel,
     desc:editingItens.map(i=>i.desc).join(', ').substring(0,60)||'Sem itens',
     valor:total,status:'pending',
     data:dataFmt,
     validade:fmtDate(document.getElementById('f-validade').value),
     itens:editingItens,
-    obs:document.getElementById('f-obs').value,
-    criadoEm:serverTimestamp()
-  });
+    obs:document.getElementById('f-obs').value
+  };
+  if(editId){
+    await updateDoc(doc(db,'orcamentos',editId),dados);
+    delete document.getElementById('f-num').dataset.editId;
+    showToast('Orçamento atualizado!');
+  } else {
+    await addDoc(collection(db,'orcamentos'),{...dados,criadoEm:serverTimestamp()});
+    showToast('Orçamento salvo!');
+  }
   editingItens=[];renderItens();
-  showToast('Orçamento salvo!');
   showTab('orcamentos');
 });
 
@@ -660,13 +668,7 @@ document.addEventListener('click',async e=>{
     renderItens();return;
   }
   // Salvar previsão
-  if(e.target.id==='btn-salvar-previsao'){
-    const data=document.getElementById('previsao-input').value.trim();
-    if(!data){showToast('Digite a previsão!');return;}
-    if(!currentPedidoId)return;
-    await updateDoc(doc(db,'pedidos',currentPedidoId),{previsaoEntrega:data});
-    showToast('📅 Previsão salva: '+data);return;
-  }
+
   // Avançar etapa
   if(e.target.id==='btn-avancar'){
     const p=pedidos.find(x=>x.id===currentPedidoId);if(!p)return;
@@ -723,6 +725,50 @@ document.addEventListener('click',async e=>{
   // Fechar modais
   if(e.target.id==='btn-close-modal'||e.target.id==='btn-fechar-modal')document.getElementById('modal-bg').classList.remove('open');
   if(e.target.id==='btn-close-orc'||e.target.id==='btn-fechar-orc')document.getElementById('orc-modal-bg').classList.remove('open');
+  // Editar orçamento
+  if(e.target.id==='btn-editar-orc'){
+    const o=orcamentos.find(x=>x.id===currentOrcId);if(!o)return;
+    document.getElementById('orc-modal-bg').classList.remove('open');
+    // Preenche o formulário com os dados do orçamento
+    showTab('novo-orc');
+    setTimeout(()=>{
+      document.getElementById('f-num').value=o.num||'';
+      document.getElementById('f-obs').value=o.obs||'';
+      // Preenche itens
+      editingItens=[...(o.itens||[])];
+      renderItens();
+      // Seleciona cliente
+      const sel=document.getElementById('f-cliente');
+      for(let i=0;i<sel.options.length;i++){
+        if(sel.options[i].value===o.nome){sel.selectedIndex=i;break;}
+      }
+      // Guarda id para atualizar ao salvar
+      document.getElementById('f-num').dataset.editId=currentOrcId;
+    },100);
+    return;
+  }
+  // PDF do orçamento salvo
+  if(e.target.id==='btn-pdf-orc'){
+    const o=orcamentos.find(x=>x.id===currentOrcId);if(!o)return;
+    document.getElementById('orc-modal-bg').classList.remove('open');
+    const rows=(o.itens&&o.itens.length)?o.itens.map(it=>`<tr><td>${it.desc}</td><td>${fmtMoney(it.valor)}</td></tr>`).join(''):'<tr><td colspan="2" style="text-align:center;color:#999;">Nenhum serviço</td></tr>';
+    const sub=(o.itens||[]).reduce((s,it)=>s+it.valor,0);
+    document.getElementById('pdf-content').innerHTML=`
+      <div class="pdf-header">
+        <div><div class="pdf-co">CMT Projetos e Fachadas</div><div class="pdf-co-sub">CNPJ: 53.466.209/0001-01 · Franca, SP · Comercial: (16) 99649-2182</div></div>
+        <div><div class="pdf-badge">ORÇAMENTO</div><div class="pdf-badge-sub">Nº ${o.num} · ${o.data||''}<br/>Válido até ${o.validade||''}</div></div>
+      </div>
+      <div class="pdf-cliente"><strong>Cliente:</strong> ${o.nome}</div>
+      <table class="pdf-tbl"><thead><tr><th style="width:70%">Descrição do serviço</th><th>Valor</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="pdf-total">
+        <div style="color:#555;font-size:13px;">Total: <strong>${fmtMoney(o.valor||0)}</strong></div>
+        <div class="pdf-total-final">Total: ${fmtMoney(o.valor||0)}</div>
+      </div>
+      ${o.obs?`<div class="pdf-obs"><strong>Observações:</strong><br/>${o.obs}</div>`:''}
+      <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${o.data||''}</span></div>`;
+    showTab('preview');
+    return;
+  }
   // ORC status
   if(e.target.id==='btn-salvar-orc-status'){
     const status=document.getElementById('orc-modal-status').value;
@@ -757,8 +803,18 @@ document.addEventListener('click',async e=>{
   }
 });
 
-document.getElementById('previsao-input').addEventListener('keydown',e=>{
-  if(e.key==='Enter')document.getElementById('btn-salvar-previsao').click();
+document.getElementById('previsao-input').addEventListener('keydown', async e=>{
+  if(e.key==='Enter'){
+    const data=e.target.value.trim();
+    if(!data||!currentPedidoId)return;
+    await updateDoc(doc(db,'pedidos',currentPedidoId),{previsaoEntrega:data});
+    showToast('📅 Previsão salva: '+data);
+  }
+});
+document.getElementById('previsao-input').addEventListener('blur', async e=>{
+  const data=e.target.value.trim();
+  if(!data||!currentPedidoId)return;
+  await updateDoc(doc(db,'pedidos',currentPedidoId),{previsaoEntrega:data});
 });
 
 // START
