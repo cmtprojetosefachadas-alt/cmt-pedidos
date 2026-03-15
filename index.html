@@ -614,11 +614,17 @@ window.voltarEtapa = async function() {
 
 window.salvarPrevisao = async function() {
   const data = document.getElementById('previsao-input').value;
-  if (!data) return;
+  if (!data) { showToast('Selecione uma data!'); return; }
   const [y,m,d] = data.split('-');
   const fmt = `${d}/${m}/${y}`;
-  await updateDoc(doc(db, 'pedidos', currentPedidoId), { previsaoEntrega: fmt });
-  showToast(`📅 Previsão salva: ${fmt}`);
+  try {
+    const ref = doc(db, 'pedidos', currentPedidoId);
+    await updateDoc(ref, { previsaoEntrega: fmt });
+    showToast('📅 Previsão salva: ' + fmt);
+  } catch(e) {
+    console.error(e);
+    showToast('Erro ao salvar. Tente novamente.');
+  }
 };
 
 window.finalizarPedido = async function() {
