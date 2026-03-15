@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Acompanhe seu Pedido - CMT</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root { --brand:#E05C1A; --navy:#1C2340; --bg:#F0EDE8; --surface:#fff; --text:#1a1a1a; --muted:#6b6b6b; --green:#0F6E56; --border:rgba(0,0,0,0.09); --radius:12px; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  .login-screen { min-height:100vh; background:var(--navy); display:flex; align-items:center; justify-content:center; padding:20px; }
+  .login-box { background:#fff; border-radius:16px; padding:36px 40px; width:100%; max-width:340px; text-align:center; }
+  .logo { width:52px; height:52px; background:var(--brand); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:#fff; margin:0 auto 16px; }
+  .login-title { font-size:17px; font-weight:700; color:var(--navy); margin-bottom:4px; }
+  .login-sub { font-size:12px; color:#888; margin-bottom:24px; }
+  .inp { width:100%; padding:11px 14px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:14px; font-family:'DM Sans',sans-serif; outline:none; margin-bottom:10px; transition:border-color 0.15s; }
+  .inp:focus { border-color:var(--brand); }
+  .btn-login { width:100%; padding:12px; background:var(--brand); color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; }
+  .err { color:#e02020; font-size:12px; margin-top:8px; display:none; }
+
+  .page { max-width:480px; margin:0 auto; padding:24px 16px; }
+  .header { background:var(--navy); padding:16px 20px; display:flex; align-items:center; gap:12px; }
+  .header-logo { width:36px; height:36px; background:var(--brand); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff; }
+  .header-title { color:#fff; font-size:14px; font-weight:600; }
+  .header-sub { color:rgba(255,255,255,0.6); font-size:12px; }
+
+  .card { background:var(--surface); border-radius:var(--radius); border:1px solid var(--border); padding:20px; margin-bottom:14px; }
+  .pedido-nome { font-size:18px; font-weight:700; color:var(--navy); margin-bottom:4px; }
+  .pedido-cod { font-size:12px; color:var(--muted); font-family:monospace; }
+  .pedido-desc { font-size:13px; color:var(--muted); margin-top:6px; }
+
+  .etapa-title { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:12px; }
+  .etapa-item { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+  .etapa-item:last-child { border:none; }
+  .dot { width:28px; height:28px; border-radius:50%; border:2px solid #ddd; background:#f5f5f5; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#aaa; flex-shrink:0; }
+  .dot.done { background:var(--green); border-color:var(--green); color:#fff; }
+  .dot.current { background:var(--brand); border-color:var(--brand); color:#fff; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(224,92,26,0.4)} 50%{box-shadow:0 0 0 8px rgba(224,92,26,0)} }
+  .etapa-label { font-size:13px; color:#aaa; flex:1; }
+  .etapa-label.done { color:var(--green); font-weight:500; }
+  .etapa-label.current { color:var(--brand); font-weight:700; }
+
+  .prog-bar { height:6px; background:#eee; border-radius:3px; margin:16px 0 4px; overflow:hidden; }
+  .prog-fill { height:100%; border-radius:3px; background:var(--brand); transition:width 0.6s ease; }
+  .prog-label { font-size:11px; color:var(--muted); text-align:right; }
+
+  .msg-item { background:#f8f8f8; border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+  .msg-data { font-size:11px; color:var(--muted); margin-bottom:3px; }
+  .msg-txt { font-size:13px; color:var(--text); }
+  .badge-current { display:inline-flex; align-items:center; gap:6px; background:#FEF3C7; color:#92400E; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600; margin-top:10px; }
+  .badge-current::before { content:''; width:8px; height:8px; border-radius:50%; background:#E05C1A; animation:pulse2 1.5s infinite; }
+  @keyframes pulse2 { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .loading { text-align:center; color:var(--muted); padding:40px; font-size:14px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN CLIENTE -->
+<div id="login-screen" class="login-screen">
+  <div class="login-box">
+    <div class="logo">CMT</div>
+    <div class="login-title">Acompanhe seu Pedido</div>
+    <div class="login-sub">CMT Projetos e Fachadas</div>
+    <input class="inp" type="text" id="c-login" placeholder="Seu login (ex: cmt1006)"/>
+    <input class="inp" type="password" id="c-senha" placeholder="Senha" onkeydown="if(event.key==='Enter')clienteLogin()"/>
+    <button class="btn-login" onclick="clienteLogin()">Entrar</button>
+    <div class="err" id="c-err">Login ou senha incorretos.</div>
+  </div>
+</div>
+
+<!-- PÁGINA DO CLIENTE -->
+<div id="cliente-page" style="display:none;">
+  <div class="header">
+    <div class="header-logo">CMT</div>
+    <div>
+      <div class="header-title">CMT Projetos e Fachadas</div>
+      <div class="header-sub">Acompanhamento de pedido</div>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="loading" id="load-cliente">Carregando seu pedido...</div>
+
+    <div id="pedido-info" style="display:none;">
+      <div class="card">
+        <div class="pedido-nome" id="cli-nome"></div>
+        <div class="pedido-cod" id="cli-cod"></div>
+        <div class="pedido-desc" id="cli-desc"></div>
+        <div id="cli-badge"></div>
+        <div class="prog-bar"><div class="prog-fill" id="cli-prog"></div></div>
+        <div class="prog-label" id="cli-prog-label"></div>
+      </div>
+
+      <div class="card">
+        <div class="etapa-title">Etapas do pedido</div>
+        <div id="cli-etapas"></div>
+      </div>
+
+      <div class="card" id="msgs-card" style="display:none;">
+        <div class="etapa-title">Mensagens da CMT</div>
+        <div id="cli-msgs"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, query, where, getDocs, onSnapshot, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC7wtESTv3r42I2FUiVztMtLhvxOAyr0GA",
+  authDomain: "cmt-acompanhamento.firebaseapp.com",
+  projectId: "cmt-acompanhamento",
+  storageBucket: "cmt-acompanhamento.firebasestorage.app",
+  messagingSenderId: "628198580319",
+  appId: "1:628198580319:web:9166d6628ca52994d53bea"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const ETAPAS = [
+  'Liberado para expedição',
+  'Em montagem',
+  'Preparando para finalizar montagem',
+  'Montagem finalizada',
+  'Preparando para instalação',
+  'Em instalação',
+  'Finalizado'
+];
+
+let pedidoId = null;
+
+function fmtTS(ts) {
+  if (!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleString('pt-BR');
+}
+
+window.clienteLogin = async function() {
+  const login = document.getElementById('c-login').value.trim().toLowerCase();
+  const senha = document.getElementById('c-senha').value.trim();
+  if (!login || !senha) return;
+
+  const q = query(collection(db, 'pedidos'), where('loginCliente', '==', login), where('senhaCliente', '==', senha));
+  const snap = await getDocs(q);
+
+  if (snap.empty) {
+    document.getElementById('c-err').style.display = 'block';
+    return;
+  }
+
+  const docSnap = snap.docs[0];
+  pedidoId = docSnap.id;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('cliente-page').style.display = 'block';
+  carregarPedido(pedidoId);
+};
+
+function carregarPedido(id) {
+  // Escuta em tempo real
+  onSnapshot(collection(db, 'pedidos').constructor ? 
+    Object.assign(collection(db, 'pedidos'), {}) : collection(db, 'pedidos'), 
+    () => {}
+  );
+
+  // Usa onSnapshot direto no documento
+  const { doc, onSnapshot: onSnap } = { 
+    doc: (db2, col, docId) => {
+      const ref = collection(db2, col);
+      ref._docId = docId;
+      return ref;
+    },
+    onSnapshot: null
+  };
+
+  // Simplificado - polling via onSnapshot na collection filtrando
+  const q = query(collection(db, 'pedidos'), where('loginCliente', '==', document.getElementById('c-login').value.trim().toLowerCase()));
+  onSnapshot(q, snap => {
+    if (snap.empty) return;
+    const p = { id: snap.docs[0].id, ...snap.docs[0].data() };
+    renderPedido(p);
+    carregarMensagens(p.id);
+  });
+}
+
+function renderPedido(p) {
+  document.getElementById('load-cliente').style.display = 'none';
+  document.getElementById('pedido-info').style.display = 'block';
+
+  const etapa = p.etapa || 0;
+  const prog = Math.round((etapa / (ETAPAS.length - 1)) * 100);
+
+  document.getElementById('cli-nome').textContent = p.nome;
+  document.getElementById('cli-cod').textContent = p.codigo;
+  document.getElementById('cli-desc').textContent = p.desc || '';
+  document.getElementById('cli-prog').style.width = prog + '%';
+  document.getElementById('cli-prog-label').textContent = prog + '% concluído';
+  document.getElementById('cli-badge').innerHTML = `<div class="badge-current">${ETAPAS[etapa]}</div>`;
+
+  document.getElementById('cli-etapas').innerHTML = ETAPAS.map((e, i) => {
+    let cls = '';
+    if (i < etapa) cls = 'done';
+    else if (i === etapa) cls = 'current';
+    return `<div class="etapa-item">
+      <div class="dot ${cls}">${i < etapa ? '✓' : i + 1}</div>
+      <div class="etapa-label ${cls}">${e}</div>
+    </div>`;
+  }).join('');
+}
+
+async function carregarMensagens(id) {
+  const q = query(collection(db, 'pedidos', id, 'mensagens'), orderBy('criadoEm', 'asc'));
+  onSnapshot(q, snap => {
+    const msgs = snap.docs.map(d => d.data());
+    const el = document.getElementById('cli-msgs');
+    const card = document.getElementById('msgs-card');
+    if (!msgs.length) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    el.innerHTML = msgs.map(m => `
+      <div class="msg-item">
+        <div class="msg-data">${fmtTS(m.criadoEm)}</div>
+        <div class="msg-txt">${m.texto}</div>
+      </div>`).join('');
+  });
+}
+</script>
+</body>
+</html>
