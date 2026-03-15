@@ -573,13 +573,14 @@ window.openModal = async function(id) {
   await renderPosvenda(id);
   document.getElementById('modal-bg').classList.add('open');
 
-  // Expose previsao saver to window
-  window._salvarPrevisao = async function() {
-    const data = document.getElementById('previsao-input').value.trim();
-    if (!data) { showToast('Digite a previsão!'); return; }
-    await updateDoc(doc(db, 'pedidos', currentPedidoId), { previsaoEntrega: data });
-    showToast('📅 Previsão salva: ' + data);
-  };
+};
+
+// Salvar previsao - definido no escopo do modulo
+window._salvarPrevisao = async function() {
+  const data = document.getElementById('previsao-input').value.trim();
+  if (!data) { showToast('Digite a previsão!'); return; }
+  await updateDoc(doc(db, 'pedidos', currentPedidoId), { previsaoEntrega: data });
+  showToast('📅 Previsão salva: ' + data);
 };
 
 window.closeModal = function() { document.getElementById('modal-bg').classList.remove('open'); };
@@ -615,19 +616,7 @@ window.voltarEtapa = async function() {
   renderEtapas(novaEtapa);
 };
 
-window.salvarPrevisao = async function() {
-  const data = document.getElementById('previsao-input').value;
-  if (!data) { showToast('Selecione uma data!'); return; }
-  const [y,m,d] = data.split('-');
-  const fmt = `${d}/${m}/${y}`;
-  try {
-    const ref = doc(db, 'pedidos', currentPedidoId);
-    await updateDoc(ref, { previsaoEntrega: fmt });
-    showToast('📅 Previsão salva: ' + fmt);
-  } catch(e) {
-    console.error(e);
-    showToast('Erro ao salvar. Tente novamente.');
-  }
+// previsao handled by window._salvarPrevisao
 };
 
 window.finalizarPedido = async function() {
