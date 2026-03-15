@@ -362,8 +362,8 @@
     </div>
     <div style="display:flex;align-items:center;gap:10px;background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:18px;">
       <span style="font-size:13px;color:var(--muted);white-space:nowrap;">📅 Previsão:</span>
-      <input type="text" id="previsao-input" placeholder="Ex: 20/03/2026" style="flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" onkeydown="if(event.key==='Enter') window._salvarPrevisao && window._salvarPrevisao()"/>
-      <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;" onclick="window._salvarPrevisao && window._salvarPrevisao()">Salvar</button>
+      <input type="text" id="previsao-input" placeholder="Ex: 20/03/2026" style="flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" onkeydown="if(event.key==='Enter') document.getElementById('btn-salvar-previsao').click()"/>
+      <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;" id="btn-salvar-previsao">Salvar</button>
     </div>
 
     <!-- POS VENDA -->
@@ -425,6 +425,21 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// Salvar previsao de entrega
+async function salvarPrevisaoFn() {
+  const input = document.getElementById('previsao-input');
+  const data = input ? input.value.trim() : '';
+  if (!data) { showToast('Digite a previsão!'); return; }
+  if (!currentPedidoId) return;
+  await updateDoc(doc(db, 'pedidos', currentPedidoId), { previsaoEntrega: data });
+  showToast('📅 Previsão salva: ' + data);
+}
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.id === 'btn-salvar-previsao') {
+    salvarPrevisaoFn();
+  }
+});
 
 // ======= ETAPAS =======
 const ETAPAS = [
@@ -575,13 +590,7 @@ window.openModal = async function(id) {
 
 };
 
-// Salvar previsao - definido no escopo do modulo
-window._salvarPrevisao = async function() {
-  const data = document.getElementById('previsao-input').value.trim();
-  if (!data) { showToast('Digite a previsão!'); return; }
-  await updateDoc(doc(db, 'pedidos', currentPedidoId), { previsaoEntrega: data });
-  showToast('📅 Previsão salva: ' + data);
-};
+
 
 window.closeModal = function() { document.getElementById('modal-bg').classList.remove('open'); };
 
