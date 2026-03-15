@@ -363,7 +363,7 @@
     <div style="display:flex;align-items:center;gap:10px;background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:18px;">
       <span style="font-size:13px;color:var(--muted);white-space:nowrap;">📅 Previsão de entrega:</span>
       <input type="date" id="previsao-input" style="flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;"/>
-      <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;" onclick="salvarPrevisao()">Salvar</button>
+      <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;" id="btn-previsao">Salvar</button>
     </div>
 
     <!-- POS VENDA -->
@@ -577,6 +577,20 @@ window.openModal = async function(id) {
   renderEtapas(p.etapa || 0);
   await renderPosvenda(id);
   document.getElementById('modal-bg').classList.add('open');
+
+  // Bind previsao save button
+  document.getElementById('btn-previsao').onclick = async function() {
+    const data = document.getElementById('previsao-input').value;
+    if (!data) { showToast('Selecione uma data!'); return; }
+    const [y,m,d] = data.split('-');
+    const fmt = d+'/'+m+'/'+y;
+    try {
+      await updateDoc(doc(db, 'pedidos', currentPedidoId), { previsaoEntrega: fmt });
+      showToast('📅 Previsão salva: ' + fmt);
+    } catch(e) {
+      showToast('Erro: ' + e.message);
+    }
+  };
 };
 
 window.closeModal = function() { document.getElementById('modal-bg').classList.remove('open'); };
