@@ -199,7 +199,10 @@ function renderPedido(p) {
   document.getElementById('cli-desc').textContent = p.desc || '';
   document.getElementById('cli-prog').style.width = prog + '%';
   document.getElementById('cli-prog-label').textContent = prog + '% concluído';
-  document.getElementById('cli-badge').innerHTML = `<div class="badge-current">${ETAPAS[etapa]}</div>`;
+  document.getElementById('cli-badge').innerHTML = `
+    <div class="badge-current">${ETAPAS[etapa]}</div>
+    ${p.previsaoEntrega ? `<div style="margin-top:8px;font-size:13px;color:var(--muted);">📅 Previsão de entrega: <strong style="color:var(--text);">${p.previsaoEntrega}</strong></div>` : ''}
+  `;
 
   document.getElementById('cli-etapas').innerHTML = ETAPAS.map((e, i) => {
     let cls = '';
