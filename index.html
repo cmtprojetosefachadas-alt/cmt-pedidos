@@ -6,278 +6,211 @@
 <title>CMT Projetos e Fachadas</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
-  :root {
-    --brand: #E05C1A; --brand-dark: #c44e14; --navy: #1C2340;
-    --bg: #F0EDE8; --surface: #FFFFFF; --surface2: #F7F5F2;
-    --border: rgba(0,0,0,0.09); --border2: rgba(0,0,0,0.15);
-    --text: #1a1a1a; --muted: #6b6b6b;
-    --green: #0F6E56; --green-bg: #E1F5EE; --green-text: #085041;
-    --amber: #854F0B; --amber-bg: #FAEEDA; --amber-text: #633806;
-    --blue: #185FA5; --blue-bg: #E6F1FB; --blue-text: #0C447C;
-    --red: #A32D2D; --red-bg: #FCEBEB; --red-text: #791F1F;
-    --gray-bg: #F1EFE8; --gray-text: #444441;
-    --shadow: 0 2px 12px rgba(0,0,0,0.07); --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
-    --radius: 12px; --radius-sm: 8px;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-
-  /* LOGIN */
-  .login-screen { position: fixed; inset: 0; background: var(--navy); display: flex; align-items: center; justify-content: center; z-index: 999; }
-  .login-box { background: #fff; border-radius: 16px; padding: 40px 44px; width: 360px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-  .login-logo { width: 56px; height: 56px; background: var(--brand); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #fff; margin: 0 auto 20px; }
-  .login-title { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
-  .login-sub { font-size: 13px; color: #888; margin-bottom: 28px; }
-  .login-input { width: 100%; padding: 11px 14px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.15s; text-align: center; letter-spacing: 3px; color: var(--navy); margin-bottom: 10px; }
-  .login-input:focus { border-color: var(--brand); }
-  .login-btn { width: 100%; padding: 12px; background: var(--brand); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s; }
-  .login-btn:hover { background: var(--brand-dark); }
-  .login-error { color: #e02020; font-size: 12px; margin-top: 10px; display: none; }
-
-  /* TOPBAR */
-  .topbar { background: var(--navy); padding: 14px 32px; display: flex; align-items: center; gap: 16px; }
-  .topbar-label { color: rgba(255,255,255,0.6); font-size: 12px; white-space: nowrap; }
-  .topbar-input { flex: 1; max-width: 480px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 8px 14px; color: #fff; font-size: 13px; font-family: 'DM Mono', monospace; outline: none; }
-  .topbar-input:focus { border-color: var(--brand); }
-  .topbar-btn { background: var(--brand); color: #fff; border: none; border-radius: 8px; padding: 9px 20px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
-  .topbar-btn:hover { background: var(--brand-dark); }
-
-  /* TABS */
-  .tabs-wrap { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; gap: 0; overflow-x: auto; }
-  .tab { padding: 14px 22px; font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 2.5px solid transparent; color: var(--muted); background: none; border-top: none; border-left: none; border-right: none; transition: all 0.15s; white-space: nowrap; }
-  .tab.active { color: var(--brand); border-bottom-color: var(--brand); }
-  .tab:hover:not(.active) { color: var(--text); }
-
-  .main { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
-  .panel { display: none; }
-  .panel.active { display: block; }
-
-  /* STATS */
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 28px; }
-  .stat { background: var(--surface); border-radius: var(--radius); padding: 20px 22px; border: 1px solid var(--border); }
-  .stat-val { font-size: 32px; font-weight: 600; color: var(--brand); line-height: 1; margin-bottom: 6px; }
-  .stat-val.dark { color: var(--text); }
-  .stat-label { font-size: 13px; color: var(--muted); }
-  .stat-link { font-size: 12px; color: var(--brand); cursor: pointer; }
-
-  /* CARDS */
-  .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .client-card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 18px 20px; cursor: pointer; transition: box-shadow 0.2s, transform 0.15s; }
-  .client-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
-  .card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-  .avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--navy); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #fff; flex-shrink: 0; }
-  .card-name { font-size: 14px; font-weight: 600; color: var(--text); }
-  .card-id { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
-  .card-desc { font-size: 12px; color: var(--muted); margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-  .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-  .badge-installing { background: #FEE2E2; color: #B91C1C; }
-  .badge-production { background: var(--amber-bg); color: var(--amber-text); }
-  .badge-pending { background: var(--gray-bg); color: var(--gray-text); }
-  .badge-sent { background: var(--blue-bg); color: var(--blue-text); }
-  .badge-approved { background: var(--green-bg); color: var(--green-text); }
-  .badge-rejected { background: var(--red-bg); color: var(--red-text); }
-  .badge-finished { background: #D1FAE5; color: #065F46; }
-  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; }
-  .progress-fill { height: 100%; border-radius: 2px; background: var(--brand); transition: width 0.4s; }
-
-  /* ORC */
-  .orc-card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px 20px; cursor: pointer; transition: box-shadow 0.2s; display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
-  .orc-card:hover { box-shadow: var(--shadow); }
-  .orc-info { flex: 1; min-width: 0; }
-  .orc-name { font-size: 14px; font-weight: 600; }
-  .orc-sub { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .orc-right { text-align: right; flex-shrink: 0; }
-  .orc-valor { font-size: 15px; font-weight: 600; color: var(--text); }
-
-  /* FORM */
-  .form-card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 22px 24px; margin-bottom: 16px; }
-  .form-card h3 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 16px; }
-  .fg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .field label { display: block; font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 5px; }
-  .field input, .field select, .field textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; background: var(--surface2); color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.15s; }
-  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--brand); }
-  .field textarea { resize: vertical; min-height: 72px; }
-  .item-header { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-bottom: 6px; }
-  .col-h { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
-  .item-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
-  .item-row span { font-size: 13px; color: var(--text); }
-  .del-btn { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 18px; padding: 2px 6px; border-radius: 4px; line-height: 1; }
-  .del-btn:hover { background: var(--red-bg); color: var(--red); }
-  .total-box { background: var(--surface2); border-radius: var(--radius-sm); padding: 16px 20px; margin-top: 16px; }
-  .total-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); padding: 3px 0; align-items: center; gap: 8px; }
-  .total-final { display: flex; justify-content: space-between; font-size: 18px; font-weight: 600; color: var(--text); border-top: 1px solid var(--border); padding-top: 12px; margin-top: 8px; }
-  .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
-  .btn { padding: 9px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--border2); background: var(--surface); color: var(--text); transition: all 0.15s; display: inline-flex; align-items: center; gap: 7px; font-family: 'DM Sans', sans-serif; }
-  .btn:hover { background: var(--surface2); }
-  .btn-primary { background: var(--brand); color: #fff; border-color: var(--brand); }
-  .btn-primary:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
-  .btn-green { background: var(--green); color: #fff; border-color: var(--green); }
-  .btn-green:hover { background: var(--green-text); }
-  .btn-wpp { background: #25D366; color: #fff; border-color: #25D366; }
-  .btn-wpp:hover { background: #1da851; }
-  .btn-red { background: var(--red); color: #fff; border-color: var(--red); }
-  .toast { display: none; background: var(--green); color: #fff; border-radius: var(--radius-sm); padding: 11px 18px; font-size: 13px; font-weight: 500; margin-top: 12px; }
-  .toast.show { display: block; animation: fadeIn 0.2s; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-
-  /* PDF */
-  .pdf-wrap { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 40px 44px; font-family: Georgia, serif; color: #222; }
-  .pdf-co { font-size: 20px; font-weight: 700; color: var(--navy); margin-bottom: 2px; }
-  .pdf-co-sub { font-size: 12px; color: #777; margin-bottom: 24px; }
-  .pdf-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
-  .pdf-badge { font-size: 18px; font-weight: 700; color: var(--navy); text-align: right; }
-  .pdf-badge-sub { font-size: 12px; color: #666; }
-  .pdf-cliente { background: #f5f5f5; padding: 12px 16px; border-radius: 6px; font-size: 13px; margin-bottom: 18px; }
-  .pdf-tbl { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; }
-  .pdf-tbl th { background: var(--navy); color: #fff; padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 600; }
-  .pdf-tbl td { padding: 8px 12px; border-bottom: 1px solid #eee; }
-  .pdf-tbl tr:nth-child(even) td { background: #f9f9f9; }
-  .pdf-total { text-align: right; font-size: 14px; margin-top: 4px; }
-  .pdf-total-final { font-size: 20px; font-weight: 700; color: var(--navy); }
-  .pdf-obs { font-size: 12px; color: #555; border-top: 1px solid #ddd; padding-top: 16px; margin-top: 16px; }
-  .pdf-footer { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-top: 28px; }
-  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-  .section-title { font-size: 18px; font-weight: 600; }
-
-  /* MODAL */
-  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: center; justify-content: center; }
-  .modal-bg.open { display: flex; }
-  .modal { background: var(--surface); border-radius: var(--radius); padding: 28px 30px; max-width: 600px; width: 95%; box-shadow: var(--shadow-lg); max-height: 90vh; overflow-y: auto; position: relative; }
-  .modal h2 { font-size: 17px; font-weight: 600; margin-bottom: 18px; }
-  .modal-field { margin-bottom: 12px; }
-  .modal-field label { font-size: 12px; color: var(--muted); font-weight: 500; display: block; margin-bottom: 4px; }
-  .modal-field select, .modal-field input, .modal-field textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; background: var(--surface2); color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; }
-  .modal-field textarea { resize: vertical; min-height: 60px; }
-  .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; flex-wrap: wrap; }
-  .modal-close { position: absolute; top: 16px; right: 20px; background: none; border: none; font-size: 22px; cursor: pointer; color: var(--muted); }
-
-  /* ETAPAS */
-  .etapas-wrap { margin: 16px 0; }
-  .etapa-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
-  .etapa-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border2); background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--muted); flex-shrink: 0; transition: all 0.3s; }
-  .etapa-dot.done { background: var(--green); border-color: var(--green); color: #fff; }
-  .etapa-dot.current { background: var(--brand); border-color: var(--brand); color: #fff; }
-  .etapa-label { font-size: 13px; color: var(--muted); flex: 1; }
-  .etapa-label.done { color: var(--green); font-weight: 500; }
-  .etapa-label.current { color: var(--brand); font-weight: 600; }
-  .etapa-btns { display: flex; gap: 6px; }
-  .etapa-btn { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--border2); background: var(--surface); color: var(--text); transition: all 0.15s; font-family: 'DM Sans', sans-serif; }
-  .etapa-btn:hover { background: var(--surface2); }
-  .etapa-btn.avancar { background: var(--brand); color: #fff; border-color: var(--brand); }
-  .etapa-btn.voltar { background: var(--surface2); color: var(--muted); }
-
-  /* POS VENDA */
-  .posvenda-lista { max-height: 180px; overflow-y: auto; margin-bottom: 10px; }
-  .posvenda-item { background: var(--surface2); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 12px; }
-  .posvenda-data { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-  .posvenda-msg { color: var(--text); }
-
-  /* CREDENCIAIS */
-  .cred-box { background: var(--navy); border-radius: 8px; padding: 12px 16px; color: #fff; font-size: 13px; margin: 10px 0; }
-  .cred-box span { font-family: 'DM Mono', monospace; background: rgba(255,255,255,0.15); padding: 2px 8px; border-radius: 4px; margin-left: 6px; }
-
-  /* LOADING */
-  .loading { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
-
-  @media print {
-    .topbar, .tabs-wrap, .actions, .section-header, #print-no { display: none !important; }
-    #panel-preview { display: block !important; }
-    .pdf-wrap { border: none; padding: 20px; }
-    body { background: #fff; }
-  }
+:root{--brand:#E05C1A;--brand-dark:#c44e14;--navy:#1C2340;--bg:#F0EDE8;--surface:#FFF;--surface2:#F7F5F2;--border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.15);--text:#1a1a1a;--muted:#6b6b6b;--green:#0F6E56;--green-bg:#E1F5EE;--green-text:#085041;--amber-bg:#FAEEDA;--amber-text:#633806;--blue-bg:#E6F1FB;--blue-text:#0C447C;--red:#A32D2D;--red-bg:#FCEBEB;--gray-bg:#F1EFE8;--gray-text:#444441;--shadow:0 2px 12px rgba(0,0,0,0.07);--shadow-lg:0 8px 32px rgba(0,0,0,0.12);--radius:12px;--radius-sm:8px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.login-screen{position:fixed;inset:0;background:var(--navy);display:flex;align-items:center;justify-content:center;z-index:999}
+.login-box{background:#fff;border-radius:16px;padding:40px 44px;width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+.login-logo{width:56px;height:56px;background:var(--brand);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;margin:0 auto 20px}
+.login-title{font-size:18px;font-weight:700;color:var(--navy);margin-bottom:4px}
+.login-sub{font-size:13px;color:#888;margin-bottom:24px}
+.login-input{width:100%;padding:11px 14px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.15s;margin-bottom:10px;text-align:center}
+.login-input:focus{border-color:var(--brand)}
+.login-btn{width:100%;padding:12px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+.login-btn:hover{background:var(--brand-dark)}
+.login-error{color:#e02020;font-size:12px;margin-top:10px;display:none}
+.topbar{background:var(--navy);padding:14px 32px;display:flex;align-items:center;gap:16px}
+.topbar-label{color:rgba(255,255,255,0.6);font-size:12px;white-space:nowrap}
+.topbar-input{flex:1;max-width:480px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 14px;color:#fff;font-size:13px;font-family:'DM Mono',monospace;outline:none}
+.topbar-btn{background:var(--brand);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
+.tabs-wrap{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;display:flex;gap:0;overflow-x:auto}
+.tab{padding:14px 22px;font-size:14px;font-weight:500;cursor:pointer;border-bottom:2.5px solid transparent;color:var(--muted);background:none;border-top:none;border-left:none;border-right:none;transition:all 0.15s;white-space:nowrap}
+.tab.active{color:var(--brand);border-bottom-color:var(--brand)}
+.tab:hover:not(.active){color:var(--text)}
+.main{max-width:1100px;margin:0 auto;padding:28px 24px}
+.panel{display:none}.panel.active{display:block}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}
+.stat{background:var(--surface);border-radius:var(--radius);padding:20px 22px;border:1px solid var(--border)}
+.stat-val{font-size:32px;font-weight:600;color:var(--brand);line-height:1;margin-bottom:6px}
+.stat-val.dark{color:var(--text)}
+.stat-label{font-size:13px;color:var(--muted)}
+.stat-link{font-size:12px;color:var(--brand);cursor:pointer}
+.cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.client-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:18px 20px;cursor:pointer;transition:box-shadow 0.2s,transform 0.15s}
+.client-card:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
+.card-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.avatar{width:42px;height:42px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#fff;flex-shrink:0}
+.card-name{font-size:14px;font-weight:600;color:var(--text)}
+.card-id{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace}
+.card-desc{font-size:12px;color:var(--muted);margin-bottom:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600}
+.badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge-production{background:var(--amber-bg);color:var(--amber-text)}
+.badge-pending{background:var(--gray-bg);color:var(--gray-text)}
+.badge-sent{background:var(--blue-bg);color:var(--blue-text)}
+.badge-approved{background:var(--green-bg);color:var(--green-text)}
+.badge-rejected{background:var(--red-bg);color:var(--red)}
+.badge-finished{background:#D1FAE5;color:#065F46}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden}
+.progress-fill{height:100%;border-radius:2px;background:var(--brand);transition:width 0.4s}
+.orc-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:16px 20px;cursor:pointer;transition:box-shadow 0.2s;display:flex;align-items:center;gap:14px;margin-bottom:10px}
+.orc-card:hover{box-shadow:var(--shadow)}
+.orc-info{flex:1;min-width:0}
+.orc-name{font-size:14px;font-weight:600}
+.orc-sub{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.orc-right{text-align:right;flex-shrink:0}
+.orc-valor{font-size:15px;font-weight:600;color:var(--text)}
+.form-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:22px 24px;margin-bottom:16px}
+.form-card h3{font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field label{display:block;font-size:12px;color:var(--muted);font-weight:500;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand)}
+.field textarea{resize:vertical;min-height:72px}
+.item-header{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:6px}
+.col-h{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.04em}
+.item-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.item-row span{font-size:13px;color:var(--text)}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;padding:2px 6px;border-radius:4px;line-height:1}
+.del-btn:hover{background:var(--red-bg);color:var(--red)}
+.total-box{background:var(--surface2);border-radius:var(--radius-sm);padding:16px 20px;margin-top:16px}
+.total-row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);padding:3px 0;align-items:center;gap:8px}
+.total-final{display:flex;justify-content:space-between;font-size:18px;font-weight:600;color:var(--text);border-top:1px solid var(--border);padding-top:12px;margin-top:8px}
+.actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+.btn{padding:9px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text);transition:all 0.15s;display:inline-flex;align-items:center;gap:7px;font-family:'DM Sans',sans-serif}
+.btn:hover{background:var(--surface2)}
+.btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn-primary:hover{background:var(--brand-dark);border-color:var(--brand-dark)}
+.btn-green{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-wpp{background:#25D366;color:#fff;border-color:#25D366}
+.btn-wpp:hover{background:#1da851}
+.btn-red{background:var(--red);color:#fff;border-color:var(--red)}
+.toast{display:none;background:var(--green);color:#fff;border-radius:var(--radius-sm);padding:11px 18px;font-size:13px;font-weight:500;margin-top:12px}
+.toast.show{display:block}
+.pdf-wrap{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:40px 44px;font-family:Georgia,serif;color:#222}
+.pdf-co{font-size:20px;font-weight:700;color:var(--navy);margin-bottom:2px}
+.pdf-co-sub{font-size:12px;color:#777;margin-bottom:24px}
+.pdf-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}
+.pdf-badge{font-size:18px;font-weight:700;color:var(--navy);text-align:right}
+.pdf-badge-sub{font-size:12px;color:#666}
+.pdf-cliente{background:#f5f5f5;padding:12px 16px;border-radius:6px;font-size:13px;margin-bottom:18px}
+.pdf-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.pdf-tbl th{background:var(--navy);color:#fff;padding:8px 12px;text-align:left;font-size:11px;font-weight:600}
+.pdf-tbl td{padding:8px 12px;border-bottom:1px solid #eee}
+.pdf-tbl tr:nth-child(even) td{background:#f9f9f9}
+.pdf-total{text-align:right;font-size:14px;margin-top:4px}
+.pdf-total-final{font-size:20px;font-weight:700;color:var(--navy)}
+.pdf-obs{font-size:12px;color:#555;border-top:1px solid #ddd;padding-top:16px;margin-top:16px}
+.pdf-footer{display:flex;justify-content:space-between;font-size:11px;color:#aaa;margin-top:28px}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.section-title{font-size:18px;font-weight:600}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:100;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius);padding:28px 30px;max-width:600px;width:95%;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto;position:relative}
+.modal h2{font-size:17px;font-weight:600;margin-bottom:18px}
+.modal-field{margin-bottom:12px}
+.modal-field label{font-size:12px;color:var(--muted);font-weight:500;display:block;margin-bottom:4px}
+.modal-field select,.modal-field input,.modal-field textarea{width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none}
+.modal-field textarea{resize:vertical;min-height:60px}
+.modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;flex-wrap:wrap}
+.modal-close{position:absolute;top:16px;right:20px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)}
+.etapas-wrap{margin:16px 0}
+.etapa-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.etapa-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border2);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);flex-shrink:0;transition:all 0.3s}
+.etapa-dot.done{background:var(--green);border-color:var(--green);color:#fff}
+.etapa-dot.current{background:var(--brand);border-color:var(--brand);color:#fff}
+.etapa-label{font-size:13px;color:var(--muted);flex:1}
+.etapa-label.done{color:var(--green);font-weight:500}
+.etapa-label.current{color:var(--brand);font-weight:600}
+.cred-box{background:var(--navy);border-radius:8px;padding:12px 16px;color:#fff;font-size:13px;margin-bottom:16px}
+.cred-box span{font-family:'DM Mono',monospace;background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:4px;margin-left:6px}
+.posvenda-lista{max-height:180px;overflow-y:auto;margin-bottom:10px}
+.posvenda-item{background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px}
+.posvenda-data{font-size:11px;color:var(--muted);margin-bottom:4px}
+.posvenda-msg{color:var(--text)}
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+@media print{.topbar,.tabs-wrap,.actions,.section-header,#print-no{display:none!important}#panel-preview{display:block!important}.pdf-wrap{border:none;padding:20px}body{background:#fff}}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
 <div class="login-screen" id="login-screen">
   <div class="login-box">
     <div class="login-logo">CMT</div>
     <div class="login-title">CMT Projetos e Fachadas</div>
     <div class="login-sub">Painel Administrativo</div>
-    <input class="login-input" type="text" id="login-user" placeholder="usuário" style="letter-spacing:normal;margin-bottom:10px;"/>
-    <input class="login-input" type="password" id="login-senha" placeholder="••••••••" onkeydown="if(event.key==='Enter')fazerLogin()"/>
-    <button class="login-btn" onclick="fazerLogin()">Entrar</button>
+    <input class="login-input" type="text" id="login-user" placeholder="usuário" style="letter-spacing:normal"/>
+    <input class="login-input" type="password" id="login-senha" placeholder="••••••••" id="login-senha"/>
+    <button class="login-btn" id="btn-login">Entrar</button>
     <div class="login-error" id="login-error">Usuário ou senha incorretos.</div>
   </div>
 </div>
 
-<!-- TOPBAR -->
 <div class="topbar">
-  <span class="topbar-label">&#128279; Link do sistema (WhatsApp):</span>
+  <span class="topbar-label">&#128279; Link do sistema:</span>
   <input class="topbar-input" id="sys-link" value="https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/cliente.html"/>
-  <button class="topbar-btn" onclick="saveLink()">Salvar link</button>
+  <button class="topbar-btn" id="btn-savelink">Salvar link</button>
 </div>
 
-<!-- TABS -->
 <div class="tabs-wrap">
-  <button class="tab active" id="tab-clientes" onclick="showTab('clientes')">Clientes</button>
-  <button class="tab" id="tab-pedidos" onclick="showTab('pedidos')">Pedidos</button>
-  <button class="tab" id="tab-orcamentos" onclick="showTab('orcamentos')">Orçamentos</button>
-  <button class="tab" id="tab-finalizados" onclick="showTab('finalizados')">Finalizados (0)</button>
-  <button class="tab" id="tab-cadastro" onclick="showTab('cadastro')">+ Cadastrar Cliente</button>
-  <button class="tab" id="tab-novo-orc" onclick="showTab('novo-orc')">+ Novo Orçamento</button>
+  <button class="tab active" id="tab-clientes">Clientes</button>
+  <button class="tab" id="tab-pedidos">Pedidos</button>
+  <button class="tab" id="tab-orcamentos">Orçamentos</button>
+  <button class="tab" id="tab-finalizados">Finalizados (0)</button>
+  <button class="tab" id="tab-cadastro">+ Cadastrar Cliente</button>
+  <button class="tab" id="tab-novo-orc">+ Novo Orçamento</button>
 </div>
 
 <div class="main">
-
-  <!-- CLIENTES -->
   <div id="panel-clientes" class="panel active">
     <div class="stats">
       <div class="stat"><div class="stat-val" id="stat-total">0</div><div class="stat-label">Total de clientes</div></div>
       <div class="stat"><div class="stat-val dark" id="stat-andamento">0</div><div class="stat-label">Em andamento</div></div>
-      <div class="stat"><div class="stat-val dark" id="stat-fin">0</div><div class="stat-label">Finalizados <span class="stat-link" onclick="showTab('finalizados')">— clique para ver →</span></div></div>
+      <div class="stat"><div class="stat-val dark" id="stat-fin">0</div><div class="stat-label">Finalizados <span class="stat-link" id="link-fin">— clique para ver →</span></div></div>
     </div>
-    <div class="loading" id="load-clientes">Carregando...</div>
-    <div class="cards-grid" id="clientes-grid"></div>
+    <div class="cards-grid" id="clientes-grid"><div class="loading">Carregando...</div></div>
   </div>
 
-  <!-- PEDIDOS -->
   <div id="panel-pedidos" class="panel">
     <div class="section-header"><span class="section-title">Pedidos em andamento</span></div>
-    <div class="loading" id="load-pedidos">Carregando...</div>
-    <div class="cards-grid" id="pedidos-grid"></div>
+    <div class="cards-grid" id="pedidos-grid"><div class="loading">Carregando...</div></div>
   </div>
 
-  <!-- ORÇAMENTOS -->
   <div id="panel-orcamentos" class="panel">
     <div class="stats">
-      <div class="stat"><div class="stat-val" id="orc-count">0</div><div class="stat-label">Total de orçamentos</div></div>
-      <div class="stat"><div class="stat-val dark" id="orc-pendentes">0</div><div class="stat-label">Aguardando aprovação</div></div>
+      <div class="stat"><div class="stat-val" id="orc-count">0</div><div class="stat-label">Total</div></div>
+      <div class="stat"><div class="stat-val dark" id="orc-pendentes">0</div><div class="stat-label">Aguardando</div></div>
       <div class="stat"><div class="stat-val dark" id="orc-valor">R$ 0</div><div class="stat-label">Valor em aberto</div></div>
     </div>
-    <div class="loading" id="load-orcs">Carregando...</div>
-    <div id="orc-list"></div>
+    <div id="orc-list"><div class="loading">Carregando...</div></div>
   </div>
 
-  <!-- NOVO ORÇAMENTO -->
   <div id="panel-novo-orc" class="panel">
     <div class="section-header">
-      <span class="section-title" id="form-title">Novo orçamento</span>
-      <button class="btn" onclick="showTab('orcamentos')">← Voltar</button>
+      <span class="section-title">Novo orçamento</span>
+      <button class="btn" id="btn-voltar-orc">← Voltar</button>
     </div>
     <div class="form-card">
       <h3>Dados do cliente</h3>
       <div class="fg2">
-        <div class="field"><label>Cliente</label><select id="f-cliente"><option>Carregando...</option></select></div>
-        <div class="field"><label>Número do orçamento</label><input type="text" id="f-num" value="ORC-1006"/></div>
+        <div class="field"><label>Cliente</label><select id="f-cliente"></select></div>
+        <div class="field"><label>Número</label><input type="text" id="f-num" value="ORC-1006"/></div>
         <div class="field"><label>Data de emissão</label><input type="date" id="f-data"/></div>
-        <div class="field"><label>Validade (4 dias)</label><input type="date" id="f-validade"/></div>
+        <div class="field"><label>Validade</label><input type="date" id="f-validade"/></div>
       </div>
     </div>
     <div class="form-card">
       <h3>Serviços</h3>
-      <div class="item-header"><span class="col-h">Descrição do serviço</span><span class="col-h">Valor</span><span></span></div>
+      <div class="item-header"><span class="col-h">Descrição</span><span class="col-h">Valor</span><span></span></div>
       <div id="itens-lista"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-top:12px;">
         <div class="field"><input type="text" id="i-desc" placeholder="Ex: Fabricação e instalação totem ACM"/></div>
         <div class="field"><input type="number" id="i-valor" placeholder="0,00" min="0" step="0.01"/></div>
-        <button class="btn btn-primary" onclick="addItem()">+ Add</button>
+        <button class="btn btn-primary" id="btn-additem">+ Add</button>
       </div>
       <div class="total-box">
         <div class="total-row"><span>Subtotal</span><span id="subtotal">R$ 0,00</span></div>
-        <div class="total-row"><span>Desconto (%)</span><input type="number" id="desconto" value="0" min="0" max="100" step="1" style="width:60px;padding:4px 8px;font-size:13px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text);text-align:center;" oninput="calcTotal()"/></div>
+        <div class="total-row"><span>Desconto (%)</span><input type="number" id="desconto" value="0" min="0" max="100" step="1" style="width:60px;padding:4px 8px;font-size:13px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text);text-align:center;" id="desconto"/></div>
         <div class="total-final"><span>Total</span><span id="total-final">R$ 0,00</span></div>
       </div>
     </div>
@@ -286,38 +219,36 @@
       <div class="field"><textarea id="f-obs" placeholder="Ex: Prazo de entrega: 15 dias úteis..."></textarea></div>
     </div>
     <div class="actions">
-      <button class="btn btn-primary" onclick="gerarPDF()">&#128444; Visualizar / Imprimir PDF</button>
-      <button class="btn btn-wpp" onclick="enviarWpp()">&#128172; Enviar por WhatsApp</button>
-      <button class="btn" onclick="salvarOrcamento()">&#128190; Salvar</button>
+      <button class="btn btn-primary" id="btn-pdf">&#128444; Visualizar / Imprimir PDF</button>
+      <button class="btn btn-wpp" id="btn-wpp-orc">&#128172; Enviar por WhatsApp</button>
+      <button class="btn" id="btn-salvar-orc">&#128190; Salvar</button>
     </div>
     <div class="toast" id="toast"></div>
   </div>
 
-  <!-- PREVIEW PDF -->
   <div id="panel-preview" class="panel">
     <div class="section-header" id="print-no">
       <span class="section-title">Pré-visualização</span>
       <div style="display:flex;gap:10px;">
-        <button class="btn" onclick="showTab('novo-orc')">← Editar</button>
-        <button class="btn btn-primary" onclick="window.print()">&#128444; Imprimir</button>
-        <button class="btn btn-wpp" onclick="enviarWpp()">&#128172; WhatsApp</button>
+        <button class="btn" id="btn-editar-pdf">← Editar</button>
+        <button class="btn btn-primary" id="btn-imprimir">&#128444; Imprimir</button>
+        <button class="btn btn-wpp" id="btn-wpp-pdf">&#128172; WhatsApp</button>
       </div>
     </div>
     <div class="pdf-wrap" id="pdf-content"></div>
   </div>
 
-  <!-- CADASTRO -->
   <div id="panel-cadastro" class="panel">
     <div class="section-header"><span class="section-title">Cadastro de Clientes</span></div>
     <div class="form-card">
       <h3>Novo cliente</h3>
       <div class="fg2">
-        <div class="field"><label>Nome completo *</label><input type="text" id="cad-nome" placeholder="Ex: João da Silva"/></div>
-        <div class="field"><label>Telefone / WhatsApp *</label><input type="text" id="cad-tel" placeholder="Ex: 16991234567"/></div>
-        <div class="field"><label>CPF ou CNPJ</label><input type="text" id="cad-doc" placeholder="Ex: 000.000.000-00"/></div>
-        <div class="field"><label>Endereço</label><input type="text" id="cad-end" placeholder="Ex: Rua das Flores, 123 - Franca/SP"/></div>
+        <div class="field"><label>Nome *</label><input type="text" id="cad-nome" placeholder="Ex: João da Silva"/></div>
+        <div class="field"><label>Telefone *</label><input type="text" id="cad-tel" placeholder="Ex: 16991234567"/></div>
+        <div class="field"><label>CPF ou CNPJ</label><input type="text" id="cad-doc" placeholder="000.000.000-00"/></div>
+        <div class="field"><label>Endereço</label><input type="text" id="cad-end" placeholder="Rua das Flores, 123"/></div>
       </div>
-      <div style="margin-top:16px;"><button class="btn btn-primary" onclick="cadastrarCliente()">+ Cadastrar</button></div>
+      <div style="margin-top:16px;"><button class="btn btn-primary" id="btn-cadastrar">+ Cadastrar</button></div>
       <div class="toast" id="toast-cad"></div>
     </div>
     <div class="form-card">
@@ -326,61 +257,45 @@
     </div>
   </div>
 
-  <!-- FINALIZADOS -->
   <div id="panel-finalizados" class="panel">
     <div class="section-header"><span class="section-title">Pedidos finalizados</span></div>
-    <div class="cards-grid" id="finalizados-grid">
-      <div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;">Nenhum pedido finalizado ainda.</div>
-    </div>
+    <div class="cards-grid" id="finalizados-grid"><div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;">Nenhum pedido finalizado ainda.</div></div>
   </div>
-
 </div>
 
 <!-- MODAL PEDIDO -->
 <div class="modal-bg" id="modal-bg">
   <div class="modal">
-    <button class="modal-close" onclick="closeModal()">×</button>
+    <button class="modal-close" id="btn-close-modal">×</button>
     <h2 id="modal-title">Pedido</h2>
-
-    <!-- CREDENCIAIS DO CLIENTE -->
-    <div id="modal-cred" class="cred-box" style="margin-bottom:16px;display:none;">
+    <div id="modal-cred" class="cred-box" style="display:none;">
       <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:6px;">ACESSO DO CLIENTE</div>
       <div>Login: <span id="cred-login"></span></div>
       <div style="margin-top:4px;">Senha: <span id="cred-senha"></span></div>
-      <div style="margin-top:8px;">
-        <button class="btn btn-wpp" style="font-size:12px;padding:6px 12px;" onclick="enviarCredenciaisWpp()">&#128172; Enviar acesso ao cliente</button>
-      </div>
+      <div style="margin-top:8px;"><button class="btn btn-wpp" style="font-size:12px;padding:6px 12px;" id="btn-enviar-cred">&#128172; Enviar acesso ao cliente</button></div>
     </div>
-
-    <!-- ETAPAS -->
     <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;">ETAPAS DO PEDIDO</div>
     <div class="etapas-wrap" id="etapas-wrap"></div>
-
-    <div style="display:flex;gap:8px;margin:14px 0 14px;">
-      <button class="btn btn-primary" style="flex:1;" onclick="avancarEtapa()">▶ Avançar etapa</button>
-      <button class="btn" style="flex:1;" onclick="voltarEtapa()">◀ Voltar etapa</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 14px;">
+      <button class="btn btn-primary" id="btn-avancar">▶ Avançar etapa</button>
+      <button class="btn" id="btn-voltar">◀ Voltar etapa</button>
     </div>
     <div style="display:flex;align-items:center;gap:10px;background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:18px;">
-      <span style="font-size:13px;color:var(--muted);white-space:nowrap;">📅 Previsão:</span>
-      <input type="text" id="previsao-input" placeholder="Ex: 20/03/2026" style="flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" onkeydown="if(event.key==='Enter') document.getElementById('btn-salvar-previsao').click()"/>
+      <span style="font-size:13px;color:var(--muted);white-space:nowrap;">&#128197; Previsão de entrega:</span>
+      <input type="text" id="previsao-input" placeholder="Ex: 20/03/2026" style="flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;"/>
       <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;" id="btn-salvar-previsao">Salvar</button>
     </div>
-
-    <!-- POS VENDA -->
     <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;">PÓS-VENDA / MENSAGENS AO CLIENTE</div>
     <div class="posvenda-lista" id="posvenda-lista"></div>
-    <div class="modal-field">
-      <textarea id="posvenda-input" placeholder="Ex: Pedido pausado por falta de material. Retorno previsto em 2 dias." style="min-height:50px;"></textarea>
-    </div>
+    <div class="modal-field"><textarea id="posvenda-input" placeholder="Ex: Pedido pausado por falta de material." style="min-height:50px;"></textarea></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-      <button class="btn btn-primary" onclick="salvarPosvenda()">&#128190; Salvar mensagem</button>
-      <button class="btn btn-wpp" onclick="enviarPosvenda()">&#128172; Enviar via WhatsApp</button>
+      <button class="btn btn-primary" id="btn-salvar-msg">&#128190; Salvar mensagem</button>
+      <button class="btn btn-wpp" id="btn-wpp-msg">&#128172; Enviar via WhatsApp</button>
     </div>
-
     <div class="modal-actions">
-      <button class="btn" onclick="closeModal()">Fechar</button>
-      <button class="btn btn-wpp" onclick="enviarStatusWpp()">&#128172; Status via WhatsApp</button>
-      <button class="btn btn-red" onclick="finalizarPedido()">&#10003; Finalizar pedido</button>
+      <button class="btn" id="btn-fechar-modal">Fechar</button>
+      <button class="btn btn-wpp" id="btn-status-wpp">&#128172; Status via WhatsApp</button>
+      <button class="btn btn-red" id="btn-finalizar">&#10003; Finalizar pedido</button>
     </div>
   </div>
 </div>
@@ -388,7 +303,7 @@
 <!-- MODAL ORC -->
 <div class="modal-bg" id="orc-modal-bg">
   <div class="modal" style="max-width:480px;">
-    <button class="modal-close" onclick="closeOrcModal()">×</button>
+    <button class="modal-close" id="btn-close-orc">×</button>
     <h2 id="orc-modal-title">Orçamento</h2>
     <div id="orc-modal-body"></div>
     <div class="modal-field" style="margin-top:14px;">
@@ -401,487 +316,208 @@
       </select>
     </div>
     <div class="modal-actions">
-      <button class="btn" onclick="closeOrcModal()">Fechar</button>
-      <button class="btn btn-wpp" onclick="wppFromModal()">&#128172; WhatsApp</button>
-      <button class="btn btn-green" id="converter-btn" onclick="converterPedido()" style="display:none;">&#10003; Converter em Pedido</button>
-      <button class="btn btn-primary" onclick="salvarStatusOrc()">Salvar</button>
+      <button class="btn" id="btn-fechar-orc">Fechar</button>
+      <button class="btn btn-wpp" id="btn-wpp-orc-modal">&#128172; WhatsApp</button>
+      <button class="btn btn-green" id="btn-converter" style="display:none;">&#10003; Converter em Pedido</button>
+      <button class="btn btn-primary" id="btn-salvar-orc-status">Salvar</button>
     </div>
   </div>
 </div>
 
-<!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyC7wtESTv3r42I2FUiVztMtLhvxOAyr0GA",
-  authDomain: "cmt-acompanhamento.firebaseapp.com",
-  projectId: "cmt-acompanhamento",
-  storageBucket: "cmt-acompanhamento.firebasestorage.app",
-  messagingSenderId: "628198580319",
-  appId: "1:628198580319:web:9166d6628ca52994d53bea"
-};
-
-const app = initializeApp(firebaseConfig);
+const app = initializeApp({
+  apiKey:"AIzaSyC7wtESTv3r42I2FUiVztMtLhvxOAyr0GA",
+  authDomain:"cmt-acompanhamento.firebaseapp.com",
+  projectId:"cmt-acompanhamento",
+  storageBucket:"cmt-acompanhamento.firebasestorage.app",
+  messagingSenderId:"628198580319",
+  appId:"1:628198580319:web:9166d6628ca52994d53bea"
+});
 const db = getFirestore(app);
 
+const ETAPAS = ['Liberado para expedição','Em montagem','Preparando para finalizar montagem','Montagem finalizada','Preparando para instalação','Em instalação','Finalizado'];
 
+let pedidos=[], orcamentos=[], clientes=[], currentPedidoId=null, currentOrcId=null, editingItens=[];
 
-// ======= ETAPAS =======
-const ETAPAS = [
-  'Liberado para expedição',
-  'Em montagem',
-  'Preparando para finalizar montagem',
-  'Montagem finalizada',
-  'Preparando para instalação',
-  'Em instalação',
-  'Finalizado'
-];
+// HELPERS
+const fmtMoney = v => 'R$ '+Number(v).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+const fmtDate = s => { if(!s)return''; const[y,m,d]=s.split('-'); return`${d}/${m}/${y}`; };
+const fmtTS = ts => { if(!ts)return''; const d=ts.toDate?ts.toDate():new Date(ts); return d.toLocaleString('pt-BR'); };
+const ini = n => n.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+const badgeClass = s => ({production:'badge-production',pending:'badge-pending',sent:'badge-sent',approved:'badge-approved',rejected:'badge-rejected',finished:'badge-finished'}[s]||'badge-pending');
+const badgeLabel = s => ({production:'Em produção',pending:'Aguardando',sent:'Enviado',approved:'Aprovado',rejected:'Recusado',finished:'Finalizado'}[s]||s);
+const prog = e => Math.round((e/(ETAPAS.length-1))*100);
 
-// ======= ESTADO =======
-let pedidos = [];
-let orcamentos = [];
-let clientesCad = [];
-let currentPedidoId = null;
-let currentOrcId = null;
-let editingItens = [];
-let unsubPedidos = null;
+function showToast(msg,id='toast'){const t=document.getElementById(id);if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
 
-// Salvar previsao - dentro do modulo, apos declarar variaveis
-document.addEventListener('click', async function(e) {
-  if (e.target && e.target.id === 'btn-salvar-previsao') {
-    const input = document.getElementById('previsao-input');
-    const data = input ? input.value.trim() : '';
-    if (!data) { showToast('Digite a previsão!'); return; }
-    if (!currentPedidoId) return;
-    await updateDoc(doc(db, 'pedidos', currentPedidoId), { previsaoEntrega: data });
-    showToast('📅 Previsão salva: ' + data);
+// TABS
+function showTab(tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('panel-'+tab).classList.add('active');
+  if(tab==='novo-orc'){
+    editingItens=[];renderItens();
+    const hoje=new Date();
+    const iso=d=>d.toISOString().split('T')[0];
+    const val=new Date(hoje);val.setDate(val.getDate()+4);
+    document.getElementById('f-data').value=iso(hoje);
+    document.getElementById('f-validade').value=iso(val);
+    document.getElementById('f-num').value='ORC-'+(1005+orcamentos.length+1);
+    atualizarSelectClientes();
   }
+}
+
+// LISTENERS
+onSnapshot(query(collection(db,'pedidos'),orderBy('criadoEm','desc')),snap=>{
+  pedidos=snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderClientes();renderPedidos();updateStats();
+});
+onSnapshot(query(collection(db,'orcamentos'),orderBy('criadoEm','desc')),snap=>{
+  orcamentos=snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderOrcamentos();atualizarSelectClientes();
+});
+onSnapshot(collection(db,'clientes'),snap=>{
+  clientes=snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderCadLista();atualizarSelectClientes();
 });
 
-
-
-// ======= LOGIN =======
-window.fazerLogin = function() {
-  const user = document.getElementById('login-user').value.trim();
-  const senha = document.getElementById('login-senha').value;
-  if (user === 'admin' && senha === 'cmt2026') {
-    document.getElementById('login-screen').style.display = 'none';
-    inicializar();
-  } else {
-    document.getElementById('login-error').style.display = 'block';
-    document.getElementById('login-senha').value = '';
-  }
-};
-
-// ======= INIT =======
-function inicializar() {
-  listenPedidos();
-  listenOrcamentos();
-  listenClientes();
+function updateStats(){
+  const ativos=pedidos.filter(p=>(p.etapa||0)<ETAPAS.length-1);
+  const fins=pedidos.filter(p=>(p.etapa||0)>=ETAPAS.length-1);
+  document.getElementById('stat-total').textContent=pedidos.length;
+  document.getElementById('stat-andamento').textContent=ativos.length;
+  document.getElementById('stat-fin').textContent=fins.length;
+  document.getElementById('tab-clientes').textContent=`Clientes (${pedidos.length})`;
+  document.getElementById('tab-finalizados').textContent=`Finalizados (${fins.length})`;
+  document.getElementById('tab-orcamentos').textContent=`Orçamentos (${orcamentos.length})`;
 }
 
-// ======= HELPERS =======
-function fmtMoney(v) { return 'R$ ' + Number(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
-function fmtDate(s) { if (!s) return ''; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; }
-function fmtTS(ts) { if (!ts) return ''; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleString('pt-BR'); }
-function initials(nome) { return nome.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(); }
-function badgeClass(s) { return {installing:'badge-installing',production:'badge-production',pending:'badge-pending',sent:'badge-sent',approved:'badge-approved',rejected:'badge-rejected',finished:'badge-finished'}[s]||'badge-pending'; }
-function badgeLabel(s) { return {installing:'Saindo para instalação',production:'Em linha de produção',pending:'Aguardando',sent:'Enviado',approved:'Aprovado',rejected:'Recusado',finished:'Finalizado'}[s]||s; }
-function etapaStatus(etapaIdx) {
-  const total = ETAPAS.length - 1;
-  if (etapaIdx >= total) return 'installing';
-  if (etapaIdx >= 4) return 'installing';
-  if (etapaIdx >= 1) return 'production';
-  return 'production';
-}
-function progresso(etapaIdx) { return Math.round((etapaIdx / (ETAPAS.length - 1)) * 100); }
-
-// ======= REALTIME LISTENERS =======
-function listenPedidos() {
-  const q = query(collection(db, 'pedidos'), orderBy('criadoEm', 'desc'));
-  onSnapshot(q, snap => {
-    pedidos = snap.docs.map(d => ({id: d.id, ...d.data()}));
-    renderClientes();
-    renderPedidos();
-    updateStats();
-  });
-}
-
-function listenOrcamentos() {
-  const q = query(collection(db, 'orcamentos'), orderBy('data', 'desc'));
-  onSnapshot(q, snap => {
-    orcamentos = snap.docs.map(d => ({id: d.id, ...d.data()}));
-    renderOrcamentos();
-    atualizarSelectClientes();
-  });
-}
-
-function listenClientes() {
-  onSnapshot(collection(db, 'clientes'), snap => {
-    clientesCad = snap.docs.map(d => ({id: d.id, ...d.data()}));
-    renderCadLista();
-    atualizarSelectClientes();
-  });
-}
-
-// ======= STATS =======
-function updateStats() {
-  const ativos = pedidos.filter(p => p.etapa < ETAPAS.length - 1);
-  const fins = pedidos.filter(p => p.etapa >= ETAPAS.length - 1);
-  document.getElementById('stat-total').textContent = pedidos.length;
-  document.getElementById('stat-andamento').textContent = ativos.length;
-  document.getElementById('stat-fin').textContent = fins.length;
-  document.getElementById('tab-clientes').textContent = `Clientes (${pedidos.length})`;
-  document.getElementById('tab-finalizados').textContent = `Finalizados (${fins.length})`;
-}
-
-// ======= RENDER CLIENTES =======
-function renderClientes() {
-  document.getElementById('load-clientes').style.display = 'none';
-  const ativos = pedidos.filter(p => (p.etapa || 0) < ETAPAS.length - 1);
-  document.getElementById('clientes-grid').innerHTML = ativos.map(p => clienteCard(p)).join('') || '<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum cliente ativo.</div>';
-}
-
-function renderPedidos() {
-  document.getElementById('load-pedidos').style.display = 'none';
-  const ativos = pedidos.filter(p => (p.etapa || 0) < ETAPAS.length - 1);
-  document.getElementById('pedidos-grid').innerHTML = ativos.map(p => clienteCard(p)).join('') || '<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum pedido ativo.</div>';
-}
-
-function clienteCard(p) {
-  const etapa = p.etapa || 0;
-  const prog = progresso(etapa);
-  const statusLabel = ETAPAS[etapa] || 'Em andamento';
-  const ini = initials(p.nome || '?');
-  return `<div class="client-card" onclick="openModal('${p.id}')">
-    <div class="card-head">
-      <div class="avatar">${ini}</div>
-      <div><div class="card-name">${p.nome}</div><div class="card-id">${p.codigo} · ${p.tel||''}</div></div>
-    </div>
+function clienteCard(p){
+  const etapa=p.etapa||0;
+  return`<div class="client-card" data-id="${p.id}" data-type="pedido">
+    <div class="card-head"><div class="avatar">${ini(p.nome||'?')}</div>
+    <div><div class="card-name">${p.nome}</div><div class="card-id">${p.codigo}·${p.tel||''}</div></div></div>
     <div class="card-desc">${p.desc||''}</div>
-    ${p.dataConversao ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">&#128197; Pedido em: ${p.dataConversao}</div>` : ''}
-    <span class="badge badge-production">${statusLabel}</span>
-    <div class="progress-bar"><div class="progress-fill" style="width:${prog}%"></div></div>
+    ${p.dataConversao?`<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">&#128197; ${p.dataConversao}</div>`:''}
+    ${p.previsaoEntrega?`<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">&#128336; Previsão: ${p.previsaoEntrega}</div>`:''}
+    <span class="badge badge-production">${ETAPAS[etapa]}</span>
+    <div class="progress-bar"><div class="progress-fill" style="width:${prog(etapa)}%"></div></div>
   </div>`;
 }
 
-// ======= MODAL PEDIDO =======
-window.openModal = async function(id) {
-  currentPedidoId = id;
-  const p = pedidos.find(x => x.id === id);
-  if (!p) return;
-  document.getElementById('modal-title').textContent = `${p.nome} — ${p.codigo}`;
-  // Preenche previsão se já tiver
-  document.getElementById('previsao-input').value = p.previsaoEntrega || '';
-
-  // Credenciais
-  if (p.loginCliente) {
-    document.getElementById('modal-cred').style.display = 'block';
-    document.getElementById('cred-login').textContent = p.loginCliente;
-    document.getElementById('cred-senha').textContent = p.senhaCliente;
-  } else {
-    document.getElementById('modal-cred').style.display = 'none';
-  }
-
-  renderEtapas(p.etapa || 0);
-  await renderPosvenda(id);
-  document.getElementById('modal-bg').classList.add('open');
-
-};
-
-
-
-window.closeModal = function() { document.getElementById('modal-bg').classList.remove('open'); };
-
-function renderEtapas(atual) {
-  document.getElementById('etapas-wrap').innerHTML = ETAPAS.map((e, i) => {
-    let cls = '';
-    if (i < atual) cls = 'done';
-    else if (i === atual) cls = 'current';
-    return `<div class="etapa-item">
-      <div class="etapa-dot ${cls}">${i < atual ? '✓' : i+1}</div>
-      <div class="etapa-label ${cls}">${e}</div>
-    </div>`;
-  }).join('');
+function renderClientes(){
+  const ativos=pedidos.filter(p=>(p.etapa||0)<ETAPAS.length-1);
+  document.getElementById('clientes-grid').innerHTML=ativos.map(clienteCard).join('')||'<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum cliente ativo.</div>';
+}
+function renderPedidos(){
+  const ativos=pedidos.filter(p=>(p.etapa||0)<ETAPAS.length-1);
+  document.getElementById('pedidos-grid').innerHTML=ativos.map(clienteCard).join('')||'<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum pedido ativo.</div>';
 }
 
-window.avancarEtapa = async function() {
-  const p = pedidos.find(x => x.id === currentPedidoId);
-  if (!p) return;
-  const novaEtapa = Math.min((p.etapa || 0) + 1, ETAPAS.length - 1);
-  await updateDoc(doc(db, 'pedidos', currentPedidoId), { etapa: novaEtapa });
-  showToast(`✓ Avançou para: ${ETAPAS[novaEtapa]}`);
-  renderEtapas(novaEtapa);
-  if (novaEtapa === ETAPAS.length - 1) finalizarPedido();
-};
-
-window.voltarEtapa = async function() {
-  const p = pedidos.find(x => x.id === currentPedidoId);
-  if (!p) return;
-  const novaEtapa = Math.max((p.etapa || 0) - 1, 0);
-  await updateDoc(doc(db, 'pedidos', currentPedidoId), { etapa: novaEtapa });
-  showToast(`↩ Voltou para: ${ETAPAS[novaEtapa]}`);
-  renderEtapas(novaEtapa);
-};
-
-// previsao handled by window._salvarPrevisao
-};
-
-window.finalizarPedido = async function() {
-  if (!confirm('Finalizar este pedido?')) return;
-  await updateDoc(doc(db, 'pedidos', currentPedidoId), { etapa: ETAPAS.length - 1, finalizado: true });
-  closeModal();
-  showToast('Pedido finalizado!');
-};
-
-// ======= POS VENDA =======
-async function renderPosvenda(pedidoId) {
-  const snap = await getDocs(query(collection(db, 'pedidos', pedidoId, 'mensagens'), orderBy('criadoEm', 'asc')));
-  const msgs = snap.docs.map(d => d.data());
-  const el = document.getElementById('posvenda-lista');
-  el.innerHTML = msgs.length ? msgs.map(m => `
-    <div class="posvenda-item">
-      <div class="posvenda-data">${fmtTS(m.criadoEm)}</div>
-      <div class="posvenda-msg">${m.texto}</div>
-    </div>`).join('') : '<div style="color:var(--muted);font-size:12px;padding:8px;">Nenhuma mensagem ainda.</div>';
-  el.scrollTop = el.scrollHeight;
-}
-
-window.salvarPosvenda = async function() {
-  const texto = document.getElementById('posvenda-input').value.trim();
-  if (!texto) return;
-  await addDoc(collection(db, 'pedidos', currentPedidoId, 'mensagens'), {
-    texto, criadoEm: serverTimestamp(), tipo: 'admin'
-  });
-  document.getElementById('posvenda-input').value = '';
-  await renderPosvenda(currentPedidoId);
-  showToast('Mensagem salva no histórico!');
-};
-
-window.enviarPosvenda = async function() {
-  const texto = document.getElementById('posvenda-input').value.trim();
-  if (!texto) return;
-  const p = pedidos.find(x => x.id === currentPedidoId);
-  await addDoc(collection(db, 'pedidos', currentPedidoId, 'mensagens'), {
-    texto, criadoEm: serverTimestamp(), tipo: 'admin'
-  });
-  document.getElementById('posvenda-input').value = '';
-  await renderPosvenda(currentPedidoId);
-  if (p && p.tel) {
-    const msg = encodeURIComponent(`CMT Projetos e Fachadas 🏗️\n\n*Atualização do seu pedido ${p.codigo}:*\n${texto}`);
-    window.open(`https://wa.me/55${p.tel}?text=${msg}`, '_blank');
-  }
-  showToast('Mensagem enviada via WhatsApp!');
-};
-
-window.enviarStatusWpp = function() {
-  const p = pedidos.find(x => x.id === currentPedidoId);
-  if (!p) return;
-  const etapa = p.etapa || 0;
-  const link = `https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/cliente.html`;
-  const msg = encodeURIComponent(`CMT Projetos e Fachadas 🏗️\n\nOlá ${p.nome}! Atualização do seu pedido *${p.codigo}*:\n\n📌 Etapa atual: *${ETAPAS[etapa]}*\n\nAcompanhe em tempo real:\n${link}\n\nLogin: *${p.loginCliente||p.codigo}*\nSenha: *${p.senhaCliente||'cmt2026'}*`);
-  window.open(`https://wa.me/55${p.tel}?text=${msg}`, '_blank');
-};
-
-window.enviarCredenciaisWpp = function() {
-  const p = pedidos.find(x => x.id === currentPedidoId);
-  if (!p) return;
-  const link = `https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/cliente.html`;
-  const msg = encodeURIComponent(`CMT Projetos e Fachadas 🏗️\n\nOlá *${p.nome}*! Seu pedido foi cadastrado.\n\nAcompanhe o status em tempo real:\n🔗 ${link}\n\n👤 Login: *${p.loginCliente}*\n🔑 Senha: *${p.senhaCliente}*`);
-  window.open(`https://wa.me/55${p.tel}?text=${msg}`, '_blank');
-};
-
-// ======= ORÇAMENTOS =======
-function renderOrcamentos() {
-  document.getElementById('load-orcs').style.display = 'none';
-  const list = document.getElementById('orc-list');
-  if (!orcamentos.length) { list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;">Nenhum orçamento ainda.</div>'; return; }
-  list.innerHTML = orcamentos.map(o => `
-    <div class="orc-card" onclick="openOrcModal('${o.id}')">
-      <div class="avatar">${initials(o.nome||'?')}</div>
-      <div class="orc-info">
-        <div class="orc-name">${o.nome}</div>
-        <div class="orc-sub">${o.num} · ${o.desc||''}</div>
-      </div>
+function renderOrcamentos(){
+  const list=document.getElementById('orc-list');
+  if(!orcamentos.length){list.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Nenhum orçamento ainda.</div>';return;}
+  list.innerHTML=orcamentos.map(o=>`
+    <div class="orc-card" data-id="${o.id}" data-type="orc">
+      <div class="avatar">${ini(o.nome||'?')}</div>
+      <div class="orc-info"><div class="orc-name">${o.nome}</div><div class="orc-sub">${o.num}·${o.desc||''}</div></div>
       <div class="orc-right">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">&#128197; ${fmtDate(o.data)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">&#128197; ${o.data||''}</div>
         <div class="orc-valor">${fmtMoney(o.valor||0)}</div>
         <div style="margin-top:4px;"><span class="badge ${badgeClass(o.status)}">${badgeLabel(o.status)}</span></div>
       </div>
     </div>`).join('');
-  const abertos = orcamentos.filter(o => o.status !== 'approved' && o.status !== 'rejected');
-  document.getElementById('orc-count').textContent = orcamentos.length;
-  document.getElementById('orc-pendentes').textContent = abertos.filter(o => o.status === 'pending').length;
-  document.getElementById('orc-valor').textContent = fmtMoney(abertos.reduce((s,o)=>s+(o.valor||0),0));
-  document.getElementById('tab-orcamentos').textContent = `Orçamentos (${orcamentos.length})`;
+  const ab=orcamentos.filter(o=>o.status!=='approved'&&o.status!=='rejected');
+  document.getElementById('orc-count').textContent=orcamentos.length;
+  document.getElementById('orc-pendentes').textContent=ab.filter(o=>o.status==='pending').length;
+  document.getElementById('orc-valor').textContent=fmtMoney(ab.reduce((s,o)=>s+(o.valor||0),0));
 }
 
-window.openOrcModal = function(id) {
-  currentOrcId = id;
-  const o = orcamentos.find(x => x.id === id);
-  if (!o) return;
-  document.getElementById('orc-modal-title').textContent = `${o.num} — ${o.nome}`;
-  document.getElementById('orc-modal-status').value = o.status || 'pending';
-  document.getElementById('converter-btn').style.display = o.status === 'approved' ? 'inline-flex' : 'none';
-  document.getElementById('orc-modal-body').innerHTML = `
-    <div style="background:var(--surface2);border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:10px;">
-      <div><strong>Descrição:</strong> ${o.desc||''}</div>
-      <div style="margin-top:4px;"><strong>Data:</strong> ${fmtDate(o.data)} &nbsp;|&nbsp; <strong>Válido até:</strong> ${fmtDate(o.validade)}</div>
-      <div style="font-size:18px;font-weight:700;color:var(--brand);margin-top:8px;">${fmtMoney(o.valor||0)}</div>
-    </div>`;
-  document.getElementById('orc-modal-bg').classList.add('open');
-};
-
-window.closeOrcModal = function() { document.getElementById('orc-modal-bg').classList.remove('open'); };
-
-window.salvarStatusOrc = async function() {
-  const status = document.getElementById('orc-modal-status').value;
-  await updateDoc(doc(db, 'orcamentos', currentOrcId), { status });
-  document.getElementById('converter-btn').style.display = status === 'approved' ? 'inline-flex' : 'none';
-  closeOrcModal();
-  showToast('Status atualizado!');
-};
-
-window.wppFromModal = function() {
-  const o = orcamentos.find(x => x.id === currentOrcId);
-  if (!o) return;
-  const msg = encodeURIComponent(`Olá ${o.nome}! Segue o orçamento *${o.num}* da CMT Projetos e Fachadas.\n\nServiço: ${o.desc||''}\nValor total: *${fmtMoney(o.valor||0)}*\nVálido até: ${fmtDate(o.validade)}\n\nQualquer dúvida estamos à disposição! 🏗️`);
-  window.open(`https://wa.me/55${o.tel}?text=${msg}`, '_blank');
-  updateDoc(doc(db, 'orcamentos', currentOrcId), { status: 'sent' });
-  closeOrcModal();
-};
-
-window.converterPedido = async function() {
-  const o = orcamentos.find(x => x.id === currentOrcId);
-  if (!o) return;
-  const codigo = 'CMT-' + (1006 + pedidos.length);
-  const loginCliente = codigo.toLowerCase().replace('-','');
-  const senhaCliente = 'cmt' + Math.floor(1000 + Math.random() * 9000);
-  await addDoc(collection(db, 'pedidos'), {
-    nome: o.nome, codigo, tel: o.tel||'', desc: o.desc||'',
-    etapa: 0, loginCliente, senhaCliente,
-    dataConversao: new Date().toLocaleDateString('pt-BR'),
-    criadoEm: serverTimestamp()
-  });
-  await deleteDoc(doc(db, 'orcamentos', currentOrcId));
-  closeOrcModal();
-  showToast(`✓ Pedido ${codigo} criado! Login: ${loginCliente} | Senha: ${senhaCliente}`);
-  showTab('clientes');
-};
-
-// ======= CLIENTES CADASTRADOS =======
-window.cadastrarCliente = async function() {
-  const nome = document.getElementById('cad-nome').value.trim();
-  const tel = document.getElementById('cad-tel').value.trim().replace(/\D/g,'');
-  const doc2 = document.getElementById('cad-doc').value.trim();
-  const end = document.getElementById('cad-end').value.trim();
-  if (!nome) { alert('Nome é obrigatório.'); return; }
-  await addDoc(collection(db, 'clientes'), { nome, tel, doc: doc2, end, criadoEm: serverTimestamp() });
-  document.getElementById('cad-nome').value = '';
-  document.getElementById('cad-tel').value = '';
-  document.getElementById('cad-doc').value = '';
-  document.getElementById('cad-end').value = '';
-  showToastCad('Cliente cadastrado!');
-};
-
-function renderCadLista() {
-  const el = document.getElementById('cad-lista');
-  if (!clientesCad.length) { el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum cliente cadastrado ainda.</div>'; return; }
-  el.innerHTML = clientesCad.map(c => `
-    <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);">
-      <div class="avatar" style="width:36px;height:36px;font-size:12px;">${initials(c.nome)}</div>
-      <div style="flex:1;">
-        <div style="font-size:14px;font-weight:600;">${c.nome}</div>
-        <div style="font-size:12px;color:var(--muted);">${c.tel?'&#128222; '+c.tel:''} ${c.doc?'· '+c.doc:''} ${c.end?'<br/>&#128205; '+c.end:''}</div>
-      </div>
-      <button class="del-btn" onclick="removerCliente('${c.id}')">×</button>
-    </div>`).join('');
+function atualizarSelectClientes(){
+  const sel=document.getElementById('f-cliente');
+  if(!sel)return;
+  const fixos=['Raul Meneguetti','Taeko','Dr. Vagner','Sentinela','Paulino In Casa'];
+  const todos=[...fixos,...clientes.map(c=>c.nome)];
+  const atual=sel.value;
+  sel.innerHTML=todos.map(n=>`<option value="${n}"${n===atual?' selected':''}>${n}</option>`).join('');
 }
 
-window.removerCliente = async function(id) {
-  if (!confirm('Remover este cliente?')) return;
-  await deleteDoc(doc(db, 'clientes', id));
-};
-
-function atualizarSelectClientes() {
-  const sel = document.getElementById('f-cliente');
-  if (!sel) return;
-  const fixos = ['Raul Meneguetti','Taeko','Dr. Vagner','Sentinela','Paulino In Casa'];
-  const todos = [...fixos, ...clientesCad.map(c => c.nome)];
-  const atual = sel.value;
-  sel.innerHTML = todos.map(n => `<option value="${n}" ${n===atual?'selected':''}>${n}</option>`).join('');
+// MODAL PEDIDO
+async function openModal(id){
+  currentPedidoId=id;
+  const p=pedidos.find(x=>x.id===id);
+  if(!p)return;
+  document.getElementById('modal-title').textContent=`${p.nome} — ${p.codigo}`;
+  if(p.loginCliente){
+    document.getElementById('modal-cred').style.display='block';
+    document.getElementById('cred-login').textContent=p.loginCliente;
+    document.getElementById('cred-senha').textContent=p.senhaCliente;
+  } else {
+    document.getElementById('modal-cred').style.display='none';
+  }
+  document.getElementById('previsao-input').value=p.previsaoEntrega||'';
+  renderEtapas(p.etapa||0);
+  await renderPosvenda(id);
+  document.getElementById('modal-bg').classList.add('open');
 }
 
-// ======= ITENS ORÇAMENTO =======
-window.addItem = function() {
-  const desc = document.getElementById('i-desc').value.trim();
-  const valor = parseFloat(document.getElementById('i-valor').value) || 0;
-  if (!desc || valor <= 0) { alert('Preencha a descrição e o valor.'); return; }
-  editingItens.push({ desc, valor });
-  document.getElementById('i-desc').value = '';
-  document.getElementById('i-valor').value = '';
-  renderItens();
-};
+function renderEtapas(atual){
+  document.getElementById('etapas-wrap').innerHTML=ETAPAS.map((e,i)=>{
+    let cls='';if(i<atual)cls='done';else if(i===atual)cls='current';
+    return`<div class="etapa-item"><div class="etapa-dot ${cls}">${i<atual?'✓':i+1}</div><div class="etapa-label ${cls}">${e}</div></div>`;
+  }).join('');
+}
 
-window.removeItem = function(i) { editingItens.splice(i, 1); renderItens(); };
+async function renderPosvenda(pedidoId){
+  const snap=await getDocs(query(collection(db,'pedidos',pedidoId,'mensagens'),orderBy('criadoEm','asc')));
+  const msgs=snap.docs.map(d=>d.data());
+  const el=document.getElementById('posvenda-lista');
+  el.innerHTML=msgs.length?msgs.map(m=>`<div class="posvenda-item"><div class="posvenda-data">${fmtTS(m.criadoEm)}</div><div class="posvenda-msg">${m.texto}</div></div>`).join(''):'<div style="color:var(--muted);font-size:12px;padding:8px;">Nenhuma mensagem ainda.</div>';
+  el.scrollTop=el.scrollHeight;
+}
 
-function renderItens() {
-  document.getElementById('itens-lista').innerHTML = editingItens.map((it, i) => `
-    <div class="item-row">
-      <span>${it.desc}</span><span>${fmtMoney(it.valor)}</span>
-      <button class="del-btn" onclick="removeItem(${i})">×</button>
-    </div>`).join('');
+// ITENS
+function renderItens(){
+  document.getElementById('itens-lista').innerHTML=editingItens.map((it,i)=>`
+    <div class="item-row"><span>${it.desc}</span><span>${fmtMoney(it.valor)}</span>
+    <button class="del-btn" data-idx="${i}" data-type="delitem">×</button></div>`).join('');
   calcTotal();
 }
+function calcTotal(){
+  const sub=editingItens.reduce((s,it)=>s+it.valor,0);
+  const desc=parseFloat(document.getElementById('desconto').value)||0;
+  const total=sub*(1-desc/100);
+  document.getElementById('subtotal').textContent=fmtMoney(sub);
+  document.getElementById('total-final').textContent=fmtMoney(total);
+}
 
-window.calcTotal = function() {
-  const sub = editingItens.reduce((s, it) => s + it.valor, 0);
-  const desc = parseFloat(document.getElementById('desconto').value) || 0;
-  const total = sub * (1 - desc / 100);
-  document.getElementById('subtotal').textContent = fmtMoney(sub);
-  document.getElementById('total-final').textContent = fmtMoney(total);
-};
+function renderCadLista(){
+  const el=document.getElementById('cad-lista');
+  if(!clientes.length){el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum cliente cadastrado ainda.</div>';return;}
+  el.innerHTML=clientes.map(c=>`
+    <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);">
+      <div class="avatar" style="width:36px;height:36px;font-size:12px;">${ini(c.nome)}</div>
+      <div style="flex:1;"><div style="font-size:14px;font-weight:600;">${c.nome}</div>
+      <div style="font-size:12px;color:var(--muted);">${c.tel?'&#128222; '+c.tel:''} ${c.doc?'· '+c.doc:''}</div></div>
+      <button class="del-btn" data-id="${c.id}" data-type="delcliente">×</button>
+    </div>`).join('');
+}
 
-window.salvarOrcamento = async function() {
-  const num = document.getElementById('f-num').value;
-  const clienteNome = document.getElementById('f-cliente').value;
-  const cliente = clientesCad.find(c => c.nome === clienteNome);
-  const tel = cliente ? cliente.tel : '';
-  const sub = editingItens.reduce((s, it) => s + it.valor, 0);
-  const desc = parseFloat(document.getElementById('desconto').value) || 0;
-  const total = sub * (1 - desc / 100);
-  await addDoc(collection(db, 'orcamentos'), {
-    num, nome: clienteNome, tel,
-    desc: editingItens.map(i=>i.desc).join(', ').substring(0,60)||'Sem itens',
-    valor: total, status: 'pending',
-    data: document.getElementById('f-data').value,
-    validade: document.getElementById('f-validade').value,
-    itens: editingItens,
-    obs: document.getElementById('f-obs').value,
-    criadoEm: serverTimestamp()
-  });
-  editingItens = [];
-  renderItens();
-  showToast('Orçamento salvo!');
-  showTab('orcamentos');
-};
-
-// ======= PDF =======
-window.gerarPDF = function() {
-  const num = document.getElementById('f-num').value;
-  const cliente = document.getElementById('f-cliente').value;
-  const dt = document.getElementById('f-data').value;
-  const dtv = document.getElementById('f-validade').value;
-  const obs = document.getElementById('f-obs').value || 'Sem observações.';
-  const sub = editingItens.reduce((s,it)=>s+it.valor,0);
-  const desc = parseFloat(document.getElementById('desconto').value)||0;
-  const total = sub*(1-desc/100);
-  const rows = editingItens.length
-    ? editingItens.map(it=>`<tr><td>${it.desc}</td><td>${fmtMoney(it.valor)}</td></tr>`).join('')
-    : '<tr><td colspan="2" style="text-align:center;color:#999;">Nenhum serviço</td></tr>';
-  document.getElementById('pdf-content').innerHTML = `
+function gerarPDFHTML(){
+  const num=document.getElementById('f-num').value;
+  const cliente=document.getElementById('f-cliente').value;
+  const dt=document.getElementById('f-data').value;
+  const dtv=document.getElementById('f-validade').value;
+  const obs=document.getElementById('f-obs').value||'Sem observações.';
+  const sub=editingItens.reduce((s,it)=>s+it.valor,0);
+  const desc=parseFloat(document.getElementById('desconto').value)||0;
+  const total=sub*(1-desc/100);
+  const rows=editingItens.length?editingItens.map(it=>`<tr><td>${it.desc}</td><td>${fmtMoney(it.valor)}</td></tr>`).join(''):'<tr><td colspan="2" style="text-align:center;color:#999;">Nenhum serviço</td></tr>';
+  document.getElementById('pdf-content').innerHTML=`
     <div class="pdf-header">
       <div><div class="pdf-co">CMT Projetos e Fachadas</div><div class="pdf-co-sub">CNPJ: 53.466.209/0001-01 · Franca, SP · Comercial: (16) 99649-2182</div></div>
       <div><div class="pdf-badge">ORÇAMENTO</div><div class="pdf-badge-sub">Nº ${num} · ${fmtDate(dt)}<br/>Válido até ${fmtDate(dtv)}</div></div>
@@ -895,55 +531,238 @@ window.gerarPDF = function() {
     </div>
     <div class="pdf-obs"><strong>Observações:</strong><br/>${obs}</div>
     <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${fmtDate(dt)}</span></div>`;
-  showTab('preview');
-};
+}
 
-window.enviarWpp = function() {
-  const cliente = document.getElementById('f-cliente').value;
-  const num = document.getElementById('f-num').value;
-  const sub = editingItens.reduce((s,it)=>s+it.valor,0);
-  const desc = parseFloat(document.getElementById('desconto').value)||0;
-  const total = sub*(1-desc/100);
-  const msg = encodeURIComponent(`Olá ${cliente}! 🏗️\n\nSegue o orçamento *${num}* da CMT Projetos e Fachadas.\n\nValor total: *${fmtMoney(total)}*\n\nQualquer dúvida estamos à disposição!`);
-  window.open(`https://wa.me/?text=${msg}`,'_blank');
-};
+function getWppMsg(){
+  const cliente=document.getElementById('f-cliente').value;
+  const num=document.getElementById('f-num').value;
+  const sub=editingItens.reduce((s,it)=>s+it.valor,0);
+  const desc=parseFloat(document.getElementById('desconto').value)||0;
+  const total=sub*(1-desc/100);
+  return encodeURIComponent(`Olá ${cliente}! 🏗️\n\nSegue o orçamento *${num}* da CMT Projetos e Fachadas.\n\nValor total: *${fmtMoney(total)}*\n\nQualquer dúvida estamos à disposição!`);
+}
 
-// ======= TABS =======
-window.showTab = function(tab) {
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
-  document.getElementById('panel-'+tab).classList.add('active');
-  if (tab === 'novo-orc') {
-    editingItens = [];
-    renderItens();
-    const hoje = new Date();
-    const toISO = d => d.toISOString().split('T')[0];
-    const val = new Date(hoje); val.setDate(val.getDate()+4);
-    document.getElementById('f-data').value = toISO(hoje);
-    document.getElementById('f-validade').value = toISO(val);
-    document.getElementById('f-num').value = 'ORC-'+(1005+orcamentos.length+1);
-    atualizarSelectClientes();
+// EVENT LISTENERS - tudo aqui dentro do module
+document.getElementById('btn-login').addEventListener('click',()=>{
+  const user=document.getElementById('login-user').value.trim();
+  const senha=document.getElementById('login-senha').value;
+  if(user==='admin'&&senha==='cmt2026'){
+    document.getElementById('login-screen').style.display='none';
+  } else {
+    document.getElementById('login-error').style.display='block';
+    document.getElementById('login-senha').value='';
   }
-};
+});
+document.getElementById('login-senha').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-login').click();});
+document.getElementById('btn-savelink').addEventListener('click',()=>showToast('Link salvo!'));
 
-// ======= TOAST =======
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  if (!t) return;
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),3500);
-}
-function showToastCad(msg) {
-  const t = document.getElementById('toast-cad');
-  if (!t) return;
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),3000);
-}
-window.saveLink = function() { showToast('Link salvo!'); };
+// TABS
+['clientes','pedidos','orcamentos','finalizados','cadastro','novo-orc'].forEach(t=>{
+  document.getElementById('tab-'+t).addEventListener('click',()=>showTab(t));
+});
+document.getElementById('link-fin').addEventListener('click',()=>showTab('finalizados'));
+document.getElementById('btn-voltar-orc').addEventListener('click',()=>showTab('orcamentos'));
+document.getElementById('btn-editar-pdf').addEventListener('click',()=>showTab('novo-orc'));
+document.getElementById('btn-imprimir').addEventListener('click',()=>window.print());
 
-// ======= START =======
-document.getElementById('login-screen').style.display = 'flex';
+// PDF e WPP
+document.getElementById('btn-pdf').addEventListener('click',()=>{gerarPDFHTML();showTab('preview');});
+document.getElementById('btn-wpp-orc').addEventListener('click',()=>window.open('https://wa.me/?text='+getWppMsg(),'_blank'));
+document.getElementById('btn-wpp-pdf').addEventListener('click',()=>window.open('https://wa.me/?text='+getWppMsg(),'_blank'));
+
+document.getElementById('btn-salvar-orc').addEventListener('click',async()=>{
+  const num=document.getElementById('f-num').value;
+  const clienteNome=document.getElementById('f-cliente').value;
+  const c=clientes.find(x=>x.nome===clienteNome);
+  const tel=c?c.tel:'';
+  const sub=editingItens.reduce((s,it)=>s+it.valor,0);
+  const desc=parseFloat(document.getElementById('desconto').value)||0;
+  const total=sub*(1-desc/100);
+  const dataVal=document.getElementById('f-data').value;
+  const [y,m,d]=dataVal?dataVal.split('-'):['','',''];
+  const dataFmt=dataVal?`${d}/${m}/${y}`:'';
+  await addDoc(collection(db,'orcamentos'),{
+    num,nome:clienteNome,tel,
+    desc:editingItens.map(i=>i.desc).join(', ').substring(0,60)||'Sem itens',
+    valor:total,status:'pending',
+    data:dataFmt,
+    validade:fmtDate(document.getElementById('f-validade').value),
+    itens:editingItens,
+    obs:document.getElementById('f-obs').value,
+    criadoEm:serverTimestamp()
+  });
+  editingItens=[];renderItens();
+  showToast('Orçamento salvo!');
+  showTab('orcamentos');
+});
+
+document.getElementById('desconto').addEventListener('input',calcTotal);
+
+// CADASTRAR CLIENTE
+document.getElementById('btn-cadastrar').addEventListener('click',async()=>{
+  const nome=document.getElementById('cad-nome').value.trim();
+  const tel=document.getElementById('cad-tel').value.trim().replace(/\D/g,'');
+  const docv=document.getElementById('cad-doc').value.trim();
+  const end=document.getElementById('cad-end').value.trim();
+  if(!nome){alert('Nome é obrigatório.');return;}
+  await addDoc(collection(db,'clientes'),{nome,tel,doc:docv,end,criadoEm:serverTimestamp()});
+  document.getElementById('cad-nome').value='';
+  document.getElementById('cad-tel').value='';
+  document.getElementById('cad-doc').value='';
+  document.getElementById('cad-end').value='';
+  showToast('Cliente cadastrado!','toast-cad');
+});
+
+// DELEGAR CLICKS
+document.addEventListener('click',async e=>{
+  // Del item orçamento
+  if(e.target.dataset.type==='delitem'){
+    editingItens.splice(parseInt(e.target.dataset.idx),1);renderItens();return;
+  }
+  // Del cliente
+  if(e.target.dataset.type==='delcliente'){
+    if(!confirm('Remover este cliente?'))return;
+    await deleteDoc(doc(db,'clientes',e.target.dataset.id));return;
+  }
+  // Abrir pedido
+  if(e.target.closest('[data-type="pedido"]')){
+    const el=e.target.closest('[data-type="pedido"]');
+    if(el)openModal(el.dataset.id);return;
+  }
+  // Abrir orc
+  if(e.target.closest('[data-type="orc"]')){
+    const el=e.target.closest('[data-type="orc"]');
+    if(el){
+      currentOrcId=el.dataset.id;
+      const o=orcamentos.find(x=>x.id===currentOrcId);
+      if(!o)return;
+      document.getElementById('orc-modal-title').textContent=`${o.num} — ${o.nome}`;
+      document.getElementById('orc-modal-status').value=o.status||'pending';
+      document.getElementById('btn-converter').style.display=o.status==='approved'?'inline-flex':'none';
+      document.getElementById('orc-modal-body').innerHTML=`
+        <div style="background:var(--surface2);border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:10px;">
+          <div><strong>Descrição:</strong> ${o.desc||''}</div>
+          <div style="margin-top:4px;"><strong>Data:</strong> ${o.data||''} &nbsp;|&nbsp; <strong>Válido até:</strong> ${o.validade||''}</div>
+          <div style="font-size:18px;font-weight:700;color:var(--brand);margin-top:8px;">${fmtMoney(o.valor||0)}</div>
+        </div>`;
+      document.getElementById('orc-modal-bg').classList.add('open');
+    }
+    return;
+  }
+  // Add item
+  if(e.target.id==='btn-additem'){
+    const desc=document.getElementById('i-desc').value.trim();
+    const valor=parseFloat(document.getElementById('i-valor').value)||0;
+    if(!desc||valor<=0){alert('Preencha a descrição e o valor.');return;}
+    editingItens.push({desc,valor});
+    document.getElementById('i-desc').value='';
+    document.getElementById('i-valor').value='';
+    renderItens();return;
+  }
+  // Salvar previsão
+  if(e.target.id==='btn-salvar-previsao'){
+    const data=document.getElementById('previsao-input').value.trim();
+    if(!data){showToast('Digite a previsão!');return;}
+    if(!currentPedidoId)return;
+    await updateDoc(doc(db,'pedidos',currentPedidoId),{previsaoEntrega:data});
+    showToast('📅 Previsão salva: '+data);return;
+  }
+  // Avançar etapa
+  if(e.target.id==='btn-avancar'){
+    const p=pedidos.find(x=>x.id===currentPedidoId);if(!p)return;
+    const nova=Math.min((p.etapa||0)+1,ETAPAS.length-1);
+    await updateDoc(doc(db,'pedidos',currentPedidoId),{etapa:nova});
+    renderEtapas(nova);showToast('✓ '+ETAPAS[nova]);return;
+  }
+  // Voltar etapa
+  if(e.target.id==='btn-voltar'){
+    const p=pedidos.find(x=>x.id===currentPedidoId);if(!p)return;
+    const nova=Math.max((p.etapa||0)-1,0);
+    await updateDoc(doc(db,'pedidos',currentPedidoId),{etapa:nova});
+    renderEtapas(nova);showToast('↩ '+ETAPAS[nova]);return;
+  }
+  // Salvar mensagem
+  if(e.target.id==='btn-salvar-msg'){
+    const texto=document.getElementById('posvenda-input').value.trim();
+    if(!texto)return;
+    await addDoc(collection(db,'pedidos',currentPedidoId,'mensagens'),{texto,criadoEm:serverTimestamp(),tipo:'admin'});
+    document.getElementById('posvenda-input').value='';
+    await renderPosvenda(currentPedidoId);
+    showToast('Mensagem salva!');return;
+  }
+  // Enviar msg wpp
+  if(e.target.id==='btn-wpp-msg'){
+    const texto=document.getElementById('posvenda-input').value.trim();
+    if(!texto)return;
+    const p=pedidos.find(x=>x.id===currentPedidoId);
+    await addDoc(collection(db,'pedidos',currentPedidoId,'mensagens'),{texto,criadoEm:serverTimestamp(),tipo:'admin'});
+    document.getElementById('posvenda-input').value='';
+    await renderPosvenda(currentPedidoId);
+    if(p&&p.tel)window.open('https://wa.me/55'+p.tel+'?text='+encodeURIComponent('CMT Projetos e Fachadas 🏗️\n\n*Atualização do pedido '+p.codigo+':*\n'+texto),'_blank');
+    showToast('Mensagem enviada!');return;
+  }
+  // Enviar credenciais
+  if(e.target.id==='btn-enviar-cred'){
+    const p=pedidos.find(x=>x.id===currentPedidoId);if(!p)return;
+    const link='https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/cliente.html';
+    window.open('https://wa.me/55'+p.tel+'?text='+encodeURIComponent('CMT Projetos e Fachadas 🏗️\n\nOlá *'+p.nome+'*! Seu pedido foi cadastrado.\n\nAcompanhe em tempo real:\n🔗 '+link+'\n\n👤 Login: *'+p.loginCliente+'*\n🔑 Senha: *'+p.senhaCliente+'*'),'_blank');return;
+  }
+  // Status wpp
+  if(e.target.id==='btn-status-wpp'){
+    const p=pedidos.find(x=>x.id===currentPedidoId);if(!p)return;
+    const link='https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/cliente.html';
+    window.open('https://wa.me/55'+p.tel+'?text='+encodeURIComponent('CMT Projetos e Fachadas 🏗️\n\nOlá '+p.nome+'! Atualização do pedido *'+p.codigo+'*:\n\n📌 *'+ETAPAS[p.etapa||0]+'*\n\n🔗 '+link+'\nLogin: *'+p.loginCliente+'* | Senha: *'+p.senhaCliente+'*'),'_blank');return;
+  }
+  // Finalizar
+  if(e.target.id==='btn-finalizar'){
+    if(!confirm('Finalizar este pedido?'))return;
+    await updateDoc(doc(db,'pedidos',currentPedidoId),{etapa:ETAPAS.length-1,finalizado:true});
+    document.getElementById('modal-bg').classList.remove('open');
+    showToast('Pedido finalizado!');return;
+  }
+  // Fechar modais
+  if(e.target.id==='btn-close-modal'||e.target.id==='btn-fechar-modal')document.getElementById('modal-bg').classList.remove('open');
+  if(e.target.id==='btn-close-orc'||e.target.id==='btn-fechar-orc')document.getElementById('orc-modal-bg').classList.remove('open');
+  // ORC status
+  if(e.target.id==='btn-salvar-orc-status'){
+    const status=document.getElementById('orc-modal-status').value;
+    await updateDoc(doc(db,'orcamentos',currentOrcId),{status});
+    document.getElementById('btn-converter').style.display=status==='approved'?'inline-flex':'none';
+    document.getElementById('orc-modal-bg').classList.remove('open');
+    showToast('Status atualizado!');return;
+  }
+  // WPP orc modal
+  if(e.target.id==='btn-wpp-orc-modal'){
+    const o=orcamentos.find(x=>x.id===currentOrcId);if(!o)return;
+    window.open('https://wa.me/55'+o.tel+'?text='+encodeURIComponent('Olá '+o.nome+'! Segue o orçamento *'+o.num+'* da CMT Projetos e Fachadas.\n\nServiço: '+o.desc+'\nValor: *'+fmtMoney(o.valor||0)+'*\nVálido até: '+o.validade+'\n\nQualquer dúvida estamos à disposição! 🏗️'),'_blank');
+    await updateDoc(doc(db,'orcamentos',currentOrcId),{status:'sent'});
+    document.getElementById('orc-modal-bg').classList.remove('open');return;
+  }
+  // Converter pedido
+  if(e.target.id==='btn-converter'){
+    const o=orcamentos.find(x=>x.id===currentOrcId);if(!o)return;
+    const codigo='CMT-'+(1006+pedidos.length);
+    const loginCliente=codigo.toLowerCase().replace('-','');
+    const senhaCliente='cmt'+Math.floor(1000+Math.random()*9000);
+    await addDoc(collection(db,'pedidos'),{
+      nome:o.nome,codigo,tel:o.tel||'',desc:o.desc||'',
+      etapa:0,loginCliente,senhaCliente,
+      dataConversao:new Date().toLocaleDateString('pt-BR'),
+      criadoEm:serverTimestamp()
+    });
+    await deleteDoc(doc(db,'orcamentos',currentOrcId));
+    document.getElementById('orc-modal-bg').classList.remove('open');
+    showToast('✓ Pedido '+codigo+' criado! Login: '+loginCliente+' | Senha: '+senhaCliente);
+    showTab('clientes');return;
+  }
+});
+
+document.getElementById('previsao-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter')document.getElementById('btn-salvar-previsao').click();
+});
+
+// START
+document.getElementById('login-screen').style.display='flex';
 setTimeout(()=>document.getElementById('login-user').focus(),100);
 </script>
 </body>
