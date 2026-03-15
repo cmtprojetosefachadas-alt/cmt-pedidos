@@ -286,7 +286,7 @@
       <div class="field"><textarea id="f-obs" placeholder="Ex: Prazo de entrega: 15 dias úteis..."></textarea></div>
     </div>
     <div class="actions">
-      <button class="btn btn-primary" onclick="gerarPDF()">&#128444; Visualizar / Imprimir PDF</button>
+      <button class="btn btn-primary" onclick="gerarPDFmodule()">&#128444; Visualizar / Imprimir PDF</button>
       <button class="btn btn-wpp" onclick="enviarWpp()">&#128172; Enviar por WhatsApp</button>
       <button class="btn" onclick="salvarOrcamento()">&#128190; Salvar</button>
     </div>
@@ -426,20 +426,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Salvar previsao de entrega
-async function salvarPrevisaoFn() {
-  const input = document.getElementById('previsao-input');
-  const data = input ? input.value.trim() : '';
-  if (!data) { showToast('Digite a previsão!'); return; }
-  if (!currentPedidoId) return;
-  await updateDoc(doc(db, 'pedidos', currentPedidoId), { previsaoEntrega: data });
-  showToast('📅 Previsão salva: ' + data);
-}
-document.addEventListener('click', function(e) {
-  if (e.target && e.target.id === 'btn-salvar-previsao') {
-    salvarPrevisaoFn();
-  }
-});
+
 
 // ======= ETAPAS =======
 const ETAPAS = [
@@ -460,6 +447,48 @@ let currentPedidoId = null;
 let currentOrcId = null;
 let editingItens = [];
 let unsubPedidos = null;
+
+// Salvar previsao - dentro do modulo, apos declarar variaveis
+document.addEventListener('click', async function(e) {
+  if (e.target && e.target.id === 'btn-salvar-previsao') {
+    const input = document.getElementById('previsao-input');
+    const data = input ? input.value.trim() : '';
+    if (!data) { showToast('Digite a previsão!'); return; }
+    if (!currentPedidoId) return;
+    await updateDoc(doc(db, 'pedidos', currentPedidoId), { previsaoEntrega: data });
+    showToast('📅 Previsão salva: ' + data);
+  }
+});
+
+// Fix gerarPDF - needs access to showTab inside module
+window.gerarPDFmodule = function() {
+  const num = document.getElementById('f-num').value;
+  const cliente = document.getElementById('f-cliente').value;
+  const dt = document.getElementById('f-data').value;
+  const dtv = document.getElementById('f-validade').value;
+  const obs = document.getElementById('f-obs').value || 'Sem observações.';
+  const sub = editingItens.reduce((s,it)=>s+it.valor,0);
+  const desc = parseFloat(document.getElementById('desconto').value)||0;
+  const total = sub*(1-desc/100);
+  const rows = editingItens.length
+    ? editingItens.map(it=>`<tr><td>${it.desc}</td><td>${fmtMoney(it.valor)}</td></tr>`).join('')
+    : '<tr><td colspan="2" style="text-align:center;color:#999;">Nenhum serviço</td></tr>';
+  document.getElementById('pdf-content').innerHTML = `
+    <div class="pdf-header">
+      <div><div class="pdf-co">CMT Projetos e Fachadas</div><div class="pdf-co-sub">CNPJ: 53.466.209/0001-01 · Franca, SP · Comercial: (16) 99649-2182</div></div>
+      <div><div class="pdf-badge">ORÇAMENTO</div><div class="pdf-badge-sub">Nº ${num} · ${fmtDate(dt)}<br/>Válido até ${fmtDate(dtv)}</div></div>
+    </div>
+    <div class="pdf-cliente"><strong>Cliente:</strong> ${cliente}</div>
+    <table class="pdf-tbl"><thead><tr><th style="width:70%">Descrição do serviço</th><th>Valor</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="pdf-total">
+      <div style="color:#555;font-size:13px;">Subtotal: <strong>${fmtMoney(sub)}</strong></div>
+      ${desc>0?`<div style="color:#555;font-size:13px;">Desconto (${desc}%): <strong>– ${fmtMoney(sub*desc/100)}</strong></div>`:''}
+      <div class="pdf-total-final">Total: ${fmtMoney(total)}</div>
+    </div>
+    <div class="pdf-obs"><strong>Observações:</strong><br/>${obs}</div>
+    <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${fmtDate(dt)}</span></div>`;
+  showTab('preview');
+};
 
 // ======= LOGIN =======
 window.fazerLogin = function() {
