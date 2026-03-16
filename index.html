@@ -402,14 +402,16 @@ function updateStats(){
 
 function clienteCard(p){
   const etapa=p.etapa||0;
+  const finalizado=p.finalizado===true||Number(etapa)>=ETAPAS.length-1;
   return`<div class="client-card" data-id="${p.id}" data-type="pedido">
     <div class="card-head"><div class="avatar">${ini(p.nome||'?')}</div>
     <div><div class="card-name">${p.nome}</div><div class="card-id">${p.codigo}·${p.tel||''}</div></div></div>
     <div class="card-desc">${p.desc||''}</div>
     ${p.dataConversao?`<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">&#128197; ${p.dataConversao}</div>`:''}
     ${p.previsaoEntrega?`<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">&#128336; Previsão: ${p.previsaoEntrega}</div>`:''}
-    <span class="badge badge-production">${ETAPAS[etapa]}</span>
+    <span class="badge ${finalizado?'badge-finished':'badge-production'}">${ETAPAS[etapa]}</span>
     <div class="progress-bar"><div class="progress-fill" style="width:${prog(etapa)}%"></div></div>
+    ${finalizado?`<button class="btn" data-id="${p.id}" data-type="reativar" style="margin-top:10px;font-size:12px;padding:5px 12px;width:100%;">↩ Reativar pedido</button>`:''}
   </div>`;
 }
 
@@ -730,6 +732,14 @@ document.addEventListener('click',async e=>{
     await updateDoc(doc(db,'pedidos',currentPedidoId),{etapa:ETAPAS.length-1,finalizado:true});
     document.getElementById('modal-bg').classList.remove('open');
     showToast('Pedido finalizado!');return;
+  }
+  // Reativar pedido
+  if(e.target.dataset.type==='reativar'){
+    e.stopPropagation();
+    if(!confirm('Reativar este pedido?'))return;
+    await updateDoc(doc(db,'pedidos',e.target.dataset.id),{etapa:ETAPAS.length-2,finalizado:false});
+    showToast('✓ Pedido reativado!');
+    return;
   }
   // Fechar modais
   if(e.target.id==='btn-close-modal'||e.target.id==='btn-fechar-modal')document.getElementById('modal-bg').classList.remove('open');
