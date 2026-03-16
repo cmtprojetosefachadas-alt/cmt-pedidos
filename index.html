@@ -634,6 +634,15 @@ document.getElementById('btn-cadastrar').addEventListener('click',async()=>{
 
 // DELEGAR CLICKS
 document.addEventListener('click',async e=>{
+  // Reativar pedido - PRIMEIRO antes de qualquer outro handler
+  if(e.target.dataset.type==='reativar'){
+    e.stopPropagation();
+    e.preventDefault();
+    if(!confirm('Reativar este pedido?'))return;
+    await updateDoc(doc(db,'pedidos',e.target.dataset.id),{etapa:5,finalizado:false});
+    showToast('✓ Pedido reativado!');
+    return;
+  }
   // Del item orçamento
   if(e.target.dataset.type==='delitem'){
     editingItens.splice(parseInt(e.target.dataset.idx),1);renderItens();return;
@@ -732,16 +741,6 @@ document.addEventListener('click',async e=>{
     await updateDoc(doc(db,'pedidos',currentPedidoId),{etapa:ETAPAS.length-1,finalizado:true});
     document.getElementById('modal-bg').classList.remove('open');
     showToast('Pedido finalizado!');return;
-  }
-  // Reativar pedido
-  if(e.target.dataset.type==='reativar'){
-    e.stopPropagation();
-    if(!confirm('Reativar este pedido?'))return;
-    const reativId=e.target.dataset.id;
-    const refReativ=doc(db,'pedidos',reativId);
-    await updateDoc(refReativ,{etapa:5,finalizado:false});
-    showToast('✓ Pedido reativado!');
-    return;
   }
   // Fechar modais
   if(e.target.id==='btn-close-modal'||e.target.id==='btn-fechar-modal')document.getElementById('modal-bg').classList.remove('open');
