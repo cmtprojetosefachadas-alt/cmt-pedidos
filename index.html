@@ -541,7 +541,7 @@ function gerarPDFHTML(){
       ${desc>0?`<div style="color:#555;font-size:13px;">Desconto (${desc}%): <strong>– ${fmtMoney(sub*desc/100)}</strong></div>`:''}
       <div class="pdf-total-final">Total: ${fmtMoney(total)}</div>
     </div>
-    <div class="pdf-obs"><strong>Observações:</strong><br/>${obs}</div>
+    <div class="pdf-obs"><strong>Observações:</strong><br/>${obs.replace(/\n/g,'<br/>')}</div>
     <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${fmtDate(dt)}</span></div>`;
 }
 
@@ -776,7 +776,7 @@ document.addEventListener('click',async e=>{
         <div style="color:#555;font-size:13px;">Total: <strong>${fmtMoney(o.valor||0)}</strong></div>
         <div class="pdf-total-final">Total: ${fmtMoney(o.valor||0)}</div>
       </div>
-      ${o.obs?`<div class="pdf-obs"><strong>Observações:</strong><br/>${o.obs}</div>`:''}
+      ${o.obs?`<div class="pdf-obs"><strong>Observações:</strong><br/>${o.obs.replace(/\n/g,'<br/>')}</div>`:''}
       <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${o.data||''}</span></div>`;
     showTab('preview');
     return;
