@@ -411,7 +411,7 @@ function clienteCard(p){
     ${p.previsaoEntrega?`<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">&#128336; Previsão: ${p.previsaoEntrega}</div>`:''}
     <span class="badge ${finalizado?'badge-finished':'badge-production'}">${ETAPAS[etapa]}</span>
     <div class="progress-bar"><div class="progress-fill" style="width:${prog(etapa)}%"></div></div>
-    ${finalizado?`<button class="btn" data-id="${p.id}" data-type="reativar" style="margin-top:10px;font-size:12px;padding:5px 12px;width:100%;">↩ Reativar pedido</button>`:''}
+    ${finalizado?`<button class="btn" onclick="event.stopPropagation();reativarPedido('${p.id}')" style="margin-top:10px;font-size:12px;padding:5px 12px;width:100%;">↩ Reativar pedido</button>`:''}
   </div>`;
 }
 
@@ -634,15 +634,7 @@ document.getElementById('btn-cadastrar').addEventListener('click',async()=>{
 
 // DELEGAR CLICKS
 document.addEventListener('click',async e=>{
-  // Reativar pedido - PRIMEIRO antes de qualquer outro handler
-  if(e.target.dataset.type==='reativar'){
-    e.stopPropagation();
-    e.preventDefault();
-    if(!confirm('Reativar este pedido?'))return;
-    await updateDoc(doc(db,'pedidos',e.target.dataset.id),{etapa:5,finalizado:false});
-    showToast('✓ Pedido reativado!');
-    return;
-  }
+
   // Del item orçamento
   if(e.target.dataset.type==='delitem'){
     editingItens.splice(parseInt(e.target.dataset.idx),1);renderItens();return;
@@ -836,6 +828,13 @@ document.getElementById('previsao-input').addEventListener('blur', async e=>{
   if(!data||!currentPedidoId)return;
   await updateDoc(doc(db,'pedidos',currentPedidoId),{previsaoEntrega:data});
 });
+
+// Expoe reativar globalmente
+window.reativarPedido = async function(id) {
+  if(!confirm('Reativar este pedido?'))return;
+  await updateDoc(doc(db,'pedidos',id),{etapa:5,finalizado:false});
+  showToast('✓ Pedido reativado!');
+};
 
 // START
 document.getElementById('login-screen').style.display='flex';
