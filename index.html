@@ -737,7 +737,9 @@ document.addEventListener('click',async e=>{
   if(e.target.dataset.type==='reativar'){
     e.stopPropagation();
     if(!confirm('Reativar este pedido?'))return;
-    await updateDoc(doc(db,'pedidos',e.target.dataset.id),{etapa:ETAPAS.length-2,finalizado:false});
+    const reativId=e.target.dataset.id;
+    const refReativ=doc(db,'pedidos',reativId);
+    await updateDoc(refReativ,{etapa:5,finalizado:false});
     showToast('✓ Pedido reativado!');
     return;
   }
