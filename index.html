@@ -291,6 +291,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <span style="font-size:13px;color:var(--muted);white-space:nowrap;">&#128197; Previsão:</span>
       <input type="text" id="previsao-input" placeholder="Ex: 20/03/2026 — salva ao digitar Enter" style="flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;"/>
     </div>
+    <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;">FOTOS DO PROJETO</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
+      <div>
+        <div id="foto1-preview" style="width:100%;height:120px;background:var(--surface2);border:1px dashed var(--border2);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:12px;color:var(--muted);" onclick="document.getElementById('foto1-input').click()">
+          📷 Foto 1
+        </div>
+        <input type="file" id="foto1-input" accept="image/*" style="display:none"/>
+      </div>
+      <div>
+        <div id="foto2-preview" style="width:100%;height:120px;background:var(--surface2);border:1px dashed var(--border2);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:12px;color:var(--muted);" onclick="document.getElementById('foto2-input').click()">
+          📷 Foto 2
+        </div>
+        <input type="file" id="foto2-input" accept="image/*" style="display:none"/>
+      </div>
+    </div>
     <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;">PÓS-VENDA / MENSAGENS AO CLIENTE</div>
     <div class="posvenda-lista" id="posvenda-lista"></div>
     <div class="modal-field"><textarea id="posvenda-input" placeholder="Ex: Pedido pausado por falta de material." style="min-height:50px;"></textarea></div>
@@ -418,6 +433,10 @@ function clienteCard(p){
     ${p.previsaoEntrega?`<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">&#128336; Previsão: ${p.previsaoEntrega}</div>`:''}
     <span class="badge ${finalizado?'badge-finished':'badge-production'}">${ETAPAS[etapa]}</span>
     <div class="progress-bar"><div class="progress-fill" style="width:${prog(etapa)}%"></div></div>
+    ${(p.foto1||p.foto2)?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;">
+      ${p.foto1?`<img src="${p.foto1}" style="width:100%;height:80px;object-fit:cover;border-radius:6px;"/>`:'' }
+      ${p.foto2?`<img src="${p.foto2}" style="width:100%;height:80px;object-fit:cover;border-radius:6px;"/>`:'' }
+    </div>`:''}
     ${finalizado?`<button class="btn" onclick="event.stopPropagation();reativarPedido('${p.id}')" style="margin-top:10px;font-size:12px;padding:5px 12px;width:100%;">↩ Reativar pedido</button>`:''}
   </div>`;
 }
@@ -570,6 +589,11 @@ async function openModal(id){
     document.getElementById('modal-cred').style.display='none';
   }
   document.getElementById('previsao-input').value=p.previsaoEntrega||'';
+  // Carregar fotos
+  const f1=document.getElementById('foto1-preview');
+  const f2=document.getElementById('foto2-preview');
+  f1.innerHTML=p.foto1?`<img src="${p.foto1}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"/>`:'<span style="font-size:12px;color:var(--muted);">📷 Foto 1</span>';
+  f2.innerHTML=p.foto2?`<img src="${p.foto2}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"/>`:'<span style="font-size:12px;color:var(--muted);">📷 Foto 2</span>';
   renderEtapas(p.etapa||0);
   await renderPosvenda(id);
   document.getElementById('modal-bg').classList.add('open');
@@ -640,7 +664,19 @@ function gerarPDFHTML(){
       <div class="pdf-total-final">Total: ${fmtMoney(total)}</div>
     </div>
     <div class="pdf-obs"><strong>Observações:</strong><br/>${obs.replace(/\n/g,'<br/>')}</div>
-    <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${fmtDate(dt)}</span></div>`;
+    <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${fmtDate(dt)}</span></div>
+    <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
+      <div style="text-align:center;width:45%;">
+        <div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;">
+          <strong>CMT Projetos e Fachadas</strong><br/>CNPJ: 53.466.209/0001-01
+        </div>
+      </div>
+      <div style="text-align:center;width:45%;">
+        <div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;">
+          <strong>Cliente: ${cliente}</strong><br/>Assinatura
+        </div>
+      </div>
+    </div>\``;
 }
 
 function getWppMsg(){
@@ -729,6 +765,27 @@ document.getElementById('btn-cadastrar').addEventListener('click',async()=>{
   document.getElementById('cad-end').value='';
   showToast('Cliente cadastrado!','toast-cad');
 });
+
+// FOTOS
+function setupFotoInput(inputId, previewId) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  input.addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file || !currentPedidoId) return;
+    const reader = new FileReader();
+    reader.onload = async function(ev) {
+      const base64 = ev.target.result;
+      document.getElementById(previewId).innerHTML = `<img src="${base64}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"/>`;
+      const field = inputId === 'foto1-input' ? 'foto1' : 'foto2';
+      await updateDoc(doc(db, 'pedidos', currentPedidoId), { [field]: base64 });
+      showToast('📷 Foto salva!');
+    };
+    reader.readAsDataURL(file);
+  });
+}
+setupFotoInput('foto1-input', 'foto1-preview');
+setupFotoInput('foto2-input', 'foto2-preview');
 
 // DELEGAR CLICKS
 document.addEventListener('click',async e=>{
@@ -875,7 +932,11 @@ document.addEventListener('click',async e=>{
         <div class="pdf-total-final">Total: ${fmtMoney(o.valor||0)}</div>
       </div>
       ${o.obs?`<div class="pdf-obs"><strong>Observações:</strong><br/>${o.obs.replace(/\n/g,'<br/>')}</div>`:''}
-      <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${o.data||''}</span></div>`;
+      <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${o.data||''}</span></div>
+      <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
+        <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>CMT Projetos e Fachadas</strong><br/>CNPJ: 53.466.209/0001-01</div></div>
+        <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>Cliente: ${o.nome}</strong><br/>Assinatura</div></div>
+      </div>\`;
     showTab('preview');
     return;
   }
