@@ -158,6 +158,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <button class="tab" id="tab-orcamentos">Orçamentos</button>
   <button class="tab" id="tab-finalizados">Finalizados (0)</button>
   <button class="tab" id="tab-cadastro">+ Cadastrar Cliente</button>
+  <button class="tab" id="tab-faturamento">💰 Faturamento</button>
   <button class="tab" id="tab-novo-orc">+ Novo Orçamento</button>
 </div>
 
@@ -261,6 +262,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="section-header"><span class="section-title">Pedidos finalizados</span></div>
     <div class="cards-grid" id="finalizados-grid"><div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;">Nenhum pedido finalizado ainda.</div></div>
   </div>
+  <!-- FATURAMENTO -->
+  <div id="panel-faturamento" class="panel">
+    <div class="section-header"><span class="section-title">Faturamento por mês</span></div>
+    <div id="fat-content"></div>
+  </div>
+
 </div>
 
 <!-- MODAL PEDIDO -->
@@ -378,7 +385,7 @@ function showTab(tab){
 // LISTENERS
 onSnapshot(query(collection(db,'pedidos'),orderBy('criadoEm','desc')),snap=>{
   pedidos=snap.docs.map(d=>({id:d.id,...d.data()}));
-  renderClientes();renderPedidos();renderFinalizados();updateStats();
+  renderClientes();renderPedidos();renderFinalizados();renderFaturamento();updateStats();
 });
 onSnapshot(collection(db,'orcamentos'),snap=>{
   orcamentos=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -425,6 +432,63 @@ function renderFinalizados(){
   if(!el)return;
   el.innerHTML=fins.map(clienteCard).join('')||'<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;">Nenhum pedido finalizado ainda.</div>';
 }
+function renderFaturamento(){
+  const el=document.getElementById('fat-content');
+  if(!el)return;
+  
+  // Agrupar pedidos por mês
+  const grupos={};
+  pedidos.forEach(p=>{
+    const mes=p.mes||(p.dataConversao?p.dataConversao.substring(3):'Sem data');
+    if(!grupos[mes])grupos[mes]={pedidos:[],total:0};
+    grupos[mes].pedidos.push(p);
+    grupos[mes].total+=(p.valor||0);
+  });
+
+  // Ordenar meses do mais recente para o mais antigo
+  const mesesOrdenados=Object.keys(grupos).sort((a,b)=>{
+    const [ma,ya]=a.split('/').reverse();
+    const [mb,yb]=b.split('/').reverse();
+    return (yb+mb)-(ya+ma);
+  });
+
+  if(!mesesOrdenados.length){
+    el.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Nenhum dado de faturamento ainda.</div>';
+    return;
+  }
+
+  el.innerHTML=mesesOrdenados.map(mes=>{
+    const g=grupos[mes];
+    const [mm,yy]=mes.split('/');
+    const nomeMes=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||mes;
+    return`<div style="background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:16px;overflow:hidden;">
+      <div style="background:var(--navy);padding:14px 20px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        <div style="color:#fff;font-size:15px;font-weight:600;">📅 ${nomeMes} ${yy||''}</div>
+        <div style="color:#fff;font-size:13px;">${g.pedidos.length} pedido${g.pedidos.length>1?'s':''} · <strong>${fmtMoney(g.total)}</strong></div>
+      </div>
+      <div style="display:none;">
+        ${g.pedidos.map(p=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div class="avatar" style="width:36px;height:36px;font-size:11px;">${ini(p.nome||'?')}</div>
+              <div>
+                <div style="font-size:13px;font-weight:600;">${p.nome}</div>
+                <div style="font-size:11px;color:var(--muted);">${p.codigo} · ${p.desc||''}</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:14px;font-weight:600;color:var(--brand);">${fmtMoney(p.valor||0)}</div>
+              <div style="font-size:11px;color:var(--muted);">${p.dataConversao||''}</div>
+            </div>
+          </div>`).join('')}
+        <div style="padding:12px 20px;background:var(--surface2);display:flex;justify-content:flex-end;">
+          <span style="font-size:14px;font-weight:600;">Total: ${fmtMoney(g.total)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function renderPedidos(){
   const ativos=pedidos.filter(p=>Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
   document.getElementById('pedidos-grid').innerHTML=ativos.map(clienteCard).join('')||'<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum pedido ativo.</div>';
@@ -433,16 +497,50 @@ function renderPedidos(){
 function renderOrcamentos(){
   const list=document.getElementById('orc-list');
   if(!orcamentos.length){list.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Nenhum orçamento ainda.</div>';return;}
-  list.innerHTML=orcamentos.map(o=>`
-    <div class="orc-card" data-id="${o.id}" data-type="orc">
+  
+  // Agrupar por mês
+  const grupos={};
+  orcamentos.forEach(o=>{
+    const mes=o.data?o.data.substring(3):'Sem data';
+    if(!grupos[mes])grupos[mes]={orcs:[],total:0};
+    grupos[mes].orcs.push(o);
+    if(o.status!=='rejected')grupos[mes].total+=(o.valor||0);
+  });
+  const mesesOrdenados=Object.keys(grupos).sort((a,b)=>{
+    const[ma,ya]=a.split('/');const[mb,yb]=b.split('/');
+    return(yb+mb)-(ya+ma);
+  });
+
+  list.innerHTML=mesesOrdenados.map(mes=>{
+    const g=grupos[mes];
+    const[mm,yy]=mes.split('/');
+    const nomeMes=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||mes;
+    return`<div style="margin-bottom:8px;">
+      <div style="background:var(--navy);border-radius:8px 8px 0 0;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        <span style="color:#fff;font-size:14px;font-weight:600;">📅 ${nomeMes} ${yy||''}</span>
+        <span style="color:#fff;font-size:12px;">${g.orcs.length} orçamento${g.orcs.length>1?'s':''} · <strong>${fmtMoney(g.total)}</strong></span>
+      </div>
+      <div>
+        ${g.orcs.map(o=>`
+    <div class="orc-card" style="border-radius:0;margin-bottom:0;border-top:none;" data-id="${o.id}" data-type="orc">
       <div class="avatar">${ini(o.nome||'?')}</div>
       <div class="orc-info"><div class="orc-name">${o.nome}</div><div class="orc-sub">${o.num}·${o.desc||''}</div></div>
       <div class="orc-right">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">&#128197; ${o.data||''}</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">📅 ${o.data||''}</div>
         <div class="orc-valor">${fmtMoney(o.valor||0)}</div>
         <div style="margin-top:4px;"><span class="badge ${badgeClass(o.status)}">${badgeLabel(o.status)}</span></div>
       </div>
-    </div>`).join('');
+    </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Stats
+  const orcAbertos=orcamentos.filter(o=>o.status!=='approved'&&o.status!=='rejected');
+  document.getElementById('orc-count').textContent=orcamentos.length;
+  document.getElementById('orc-pendentes').textContent=orcAbertos.filter(o=>o.status==='pending').length;
+  document.getElementById('orc-valor').textContent=fmtMoney(orcAbertos.reduce((s,o)=>s+(o.valor||0),0));
+
   const ab=orcamentos.filter(o=>o.status!=='approved'&&o.status!=='rejected');
   document.getElementById('orc-count').textContent=orcamentos.length;
   document.getElementById('orc-pendentes').textContent=ab.filter(o=>o.status==='pending').length;
@@ -569,7 +667,7 @@ document.getElementById('login-senha').addEventListener('keydown',e=>{if(e.key==
 document.getElementById('btn-savelink').addEventListener('click',()=>showToast('Link salvo!'));
 
 // TABS
-['clientes','pedidos','orcamentos','finalizados','cadastro','novo-orc'].forEach(t=>{
+['clientes','pedidos','orcamentos','finalizados','cadastro','novo-orc','faturamento'].forEach(t=>{
   document.getElementById('tab-'+t).addEventListener('click',()=>showTab(t));
 });
 document.getElementById('link-fin').addEventListener('click',()=>showTab('finalizados'));
@@ -805,6 +903,8 @@ document.addEventListener('click',async e=>{
     await addDoc(collection(db,'pedidos'),{
       nome:o.nome,codigo,tel:o.tel||'',desc:o.desc||'',
       etapa:0,loginCliente,senhaCliente,
+      valor:o.valor||0,
+      mes:new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}),
       dataConversao:new Date().toLocaleDateString('pt-BR'),
       criadoEm:serverTimestamp()
     });
