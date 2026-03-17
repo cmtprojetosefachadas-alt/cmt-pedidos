@@ -293,16 +293,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
     <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;">FOTOS DO PROJETO</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
-      <div>
+      <div style="position:relative;">
         <div id="foto1-preview" style="width:100%;height:120px;background:var(--surface2);border:1px dashed var(--border2);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:12px;color:var(--muted);" onclick="document.getElementById('foto1-input').click()">
           📷 Foto 1
         </div>
+        <button id="btn-del-foto1" onclick="deletarFoto('foto1')" style="display:none;position:absolute;top:4px;right:4px;background:rgba(180,0,0,0.8);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;line-height:1;z-index:2;">×</button>
         <input type="file" id="foto1-input" accept="image/*" style="display:none"/>
       </div>
-      <div>
+      <div style="position:relative;">
         <div id="foto2-preview" style="width:100%;height:120px;background:var(--surface2);border:1px dashed var(--border2);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:12px;color:var(--muted);" onclick="document.getElementById('foto2-input').click()">
           📷 Foto 2
         </div>
+        <button id="btn-del-foto2" onclick="deletarFoto('foto2')" style="display:none;position:absolute;top:4px;right:4px;background:rgba(180,0,0,0.8);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;line-height:1;z-index:2;">×</button>
         <input type="file" id="foto2-input" accept="image/*" style="display:none"/>
       </div>
     </div>
@@ -592,8 +594,12 @@ async function openModal(id){
   // Carregar fotos
   const f1=document.getElementById('foto1-preview');
   const f2=document.getElementById('foto2-preview');
+  const d1=document.getElementById('btn-del-foto1');
+  const d2=document.getElementById('btn-del-foto2');
   f1.innerHTML=p.foto1?`<img src="${p.foto1}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"/>`:'<span style="font-size:12px;color:var(--muted);">📷 Foto 1</span>';
   f2.innerHTML=p.foto2?`<img src="${p.foto2}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"/>`:'<span style="font-size:12px;color:var(--muted);">📷 Foto 2</span>';
+  if(d1)d1.style.display=p.foto1?'block':'none';
+  if(d2)d2.style.display=p.foto2?'block':'none';
   renderEtapas(p.etapa||0);
   await renderPosvenda(id);
   document.getElementById('modal-bg').classList.add('open');
@@ -779,6 +785,8 @@ function setupFotoInput(inputId, previewId) {
       document.getElementById(previewId).innerHTML = `<img src="${base64}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"/>`;
       const field = inputId === 'foto1-input' ? 'foto1' : 'foto2';
       await updateDoc(doc(db, 'pedidos', currentPedidoId), { [field]: base64 });
+      const delBtn = document.getElementById(inputId==='foto1-input'?'btn-del-foto1':'btn-del-foto2');
+      if(delBtn) delBtn.style.display='block';
       showToast('📷 Foto salva!');
     };
     reader.readAsDataURL(file);
@@ -991,6 +999,17 @@ document.getElementById('previsao-input').addEventListener('blur', async e=>{
 });
 
 // Expoe reativar globalmente
+window.deletarFoto = async function(field) {
+  if(!confirm('Remover esta foto?'))return;
+  if(!currentPedidoId)return;
+  await updateDoc(doc(db,'pedidos',currentPedidoId),{[field]:''});
+  const previewId = field==='foto1'?'foto1-preview':'foto2-preview';
+  const delBtnId = field==='foto1'?'btn-del-foto1':'btn-del-foto2';
+  document.getElementById(previewId).innerHTML=`<span style="font-size:12px;color:var(--muted);">📷 ${field==='foto1'?'Foto 1':'Foto 2'}</span>`;
+  document.getElementById(delBtnId).style.display='none';
+  showToast('Foto removida!');
+};
+
 window.reativarPedido = async function(id) {
   if(!confirm('Reativar este pedido?'))return;
   await updateDoc(doc(db,'pedidos',id),{etapa:5,finalizado:false});
