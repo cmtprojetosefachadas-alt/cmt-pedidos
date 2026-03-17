@@ -89,6 +89,7 @@
         <div class="pedido-cod" id="cli-cod"></div>
         <div class="pedido-desc" id="cli-desc"></div>
         <div id="cli-badge"></div>
+      <div id="cli-fotos" style="display:none;"></div>
         <div class="prog-bar"><div class="prog-fill" id="cli-prog"></div></div>
         <div class="prog-label" id="cli-prog-label"></div>
       </div>
@@ -197,6 +198,18 @@ function renderPedido(p) {
   document.getElementById('cli-nome').textContent = p.nome;
   document.getElementById('cli-cod').textContent = p.codigo;
   document.getElementById('cli-desc').textContent = p.desc || '';
+  // Fotos
+  const fotosEl = document.getElementById('cli-fotos');
+  if (p.foto1 || p.foto2) {
+    fotosEl.style.display = 'block';
+    fotosEl.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+        ${p.foto1 ? `<img src="${p.foto1}" style="width:100%;height:160px;object-fit:cover;border-radius:8px;"/>` : ''}
+        ${p.foto2 ? `<img src="${p.foto2}" style="width:100%;height:160px;object-fit:cover;border-radius:8px;"/>` : ''}
+      </div>`;
+  } else {
+    fotosEl.style.display = 'none';
+  }
   document.getElementById('cli-prog').style.width = prog + '%';
   document.getElementById('cli-prog-label').textContent = prog + '% concluído';
   document.getElementById('cli-badge').innerHTML = `
