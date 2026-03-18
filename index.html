@@ -153,6 +153,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 
 <div class="tabs-wrap">
+  <button class="tab" id="tab-visao">📊 Visão Geral</button>
   <button class="tab active" id="tab-clientes">Clientes</button>
   <button class="tab" id="tab-pedidos">Pedidos</button>
   <button class="tab" id="tab-orcamentos">Orçamentos</button>
@@ -163,6 +164,69 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 
 <div class="main">
+  <!-- VISÃO GERAL -->
+  <div id="panel-visao" class="panel">
+    <div class="section-header">
+      <span class="section-title">📊 Visão Geral</span>
+      <span id="visao-mes" style="font-size:13px;color:var(--muted);"></span>
+    </div>
+
+    <div class="stats" style="margin-bottom:16px;">
+      <div class="stat" style="cursor:default;">
+        <div style="font-size:16px;margin-bottom:6px;">📋</div>
+        <div class="stat-val" id="vg-orc-qtd" style="font-size:24px;">0</div>
+        <div class="stat-label">Orçamentos pendentes</div>
+        <div style="font-size:12px;color:var(--brand);margin-top:4px;" id="vg-orc-val">R$ 0</div>
+      </div>
+      <div class="stat" style="cursor:default;">
+        <div style="font-size:16px;margin-bottom:6px;">⚙️</div>
+        <div class="stat-val dark" id="vg-and-qtd" style="font-size:24px;">0</div>
+        <div class="stat-label">Em andamento</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">pedidos rodando</div>
+      </div>
+      <div class="stat" style="cursor:pointer;" id="vg-fat-card">
+        <div style="font-size:16px;margin-bottom:6px;">✅</div>
+        <div class="stat-val" id="vg-fat-val" style="font-size:24px;color:var(--green);">R$ 0</div>
+        <div class="stat-label">Faturados no mês</div>
+        <div style="font-size:12px;color:var(--green);margin-top:4px;" id="vg-fat-qtd">0 entregues — ver relatório →</div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <span style="font-size:14px;font-weight:600;">🎯 Meta mensal</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:13px;color:var(--muted);">Meta: R$</span>
+          <input type="text" id="meta-input" placeholder="Ex: 50000" style="width:140px;padding:7px 12px;border:1px solid var(--border2);border-radius:8px;font-size:14px;font-weight:500;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" oninput="atualizarMeta()"/>
+          <button class="btn btn-primary" style="padding:7px 14px;font-size:12px;" id="btn-salvar-meta">Salvar</button>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:8px;">
+        <span>Faturado: <strong id="meta-fat">R$ 0</strong></span>
+        <span style="font-weight:600;color:var(--brand);" id="meta-pct">0%</span>
+      </div>
+      <div style="height:12px;background:var(--surface2);border-radius:6px;overflow:hidden;margin-bottom:8px;">
+        <div id="meta-bar" style="height:100%;border-radius:6px;background:var(--brand);width:0%;transition:width 0.5s ease;"></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);text-align:right;" id="meta-msg">Digite sua meta mensal</div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px;">
+        <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Falta para a meta</div>
+          <div style="font-size:14px;font-weight:600;color:var(--brand);" id="meta-falta">—</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Em negociação</div>
+          <div style="font-size:14px;font-weight:600;" id="meta-neg">R$ 0</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Potencial total</div>
+          <div style="font-size:14px;font-weight:600;color:var(--green);" id="meta-pot">R$ 0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="panel-clientes" class="panel active">
     <div class="stats">
       <div class="stat"><div class="stat-val" id="stat-total">0</div><div class="stat-label">Total de clientes</div></div>
@@ -268,6 +332,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div id="fat-content"></div>
   </div>
 
+</div>
+
+<!-- MODAL RELATÓRIO FATURAMENTO -->
+<div class="modal-bg" id="relatorio-bg">
+  <div class="modal" style="max-width:680px;">
+    <button class="modal-close" id="btn-close-relatorio">×</button>
+    <h2 id="relatorio-title">Relatório de Faturamento</h2>
+    <div id="relatorio-body"></div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-fechar-relatorio">Fechar</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir</button>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL PEDIDO -->
@@ -387,6 +464,7 @@ function showTab(tab){
   if(tabEl)tabEl.classList.add('active');
   if(panelEl)panelEl.classList.add('active');
   if(tab==='finalizados')renderFinalizados();
+  if(tab==='visao')renderVisaoGeral();
   if(tab==='novo-orc'){
     editingItens=[];renderItens();
     const hoje=new Date();
@@ -402,11 +480,11 @@ function showTab(tab){
 // LISTENERS
 onSnapshot(query(collection(db,'pedidos'),orderBy('criadoEm','desc')),snap=>{
   pedidos=snap.docs.map(d=>({id:d.id,...d.data()}));
-  renderClientes();renderPedidos();renderFinalizados();renderFaturamento();updateStats();
+  renderClientes();renderPedidos();renderFinalizados();renderFaturamento();renderVisaoGeral();updateStats();
 });
 onSnapshot(collection(db,'orcamentos'),snap=>{
   orcamentos=snap.docs.map(d=>({id:d.id,...d.data()}));
-  renderOrcamentos();atualizarSelectClientes();updateStats();
+  renderOrcamentos();atualizarSelectClientes();updateStats();renderVisaoGeral();
 });
 onSnapshot(collection(db,'clientes'),snap=>{
   clientes=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -709,7 +787,7 @@ document.getElementById('login-senha').addEventListener('keydown',e=>{if(e.key==
 document.getElementById('btn-savelink').addEventListener('click',()=>showToast('Link salvo!'));
 
 // TABS
-['clientes','pedidos','orcamentos','finalizados','cadastro','novo-orc','faturamento'].forEach(t=>{
+['visao','clientes','pedidos','orcamentos','finalizados','cadastro','novo-orc','faturamento'].forEach(t=>{
   document.getElementById('tab-'+t).addEventListener('click',()=>showTab(t));
 });
 document.getElementById('link-fin').addEventListener('click',()=>showTab('finalizados'));
@@ -898,6 +976,7 @@ document.addEventListener('click',async e=>{
     showToast('Pedido finalizado!');return;
   }
   // Fechar modais
+  if(e.target.id==='btn-close-relatorio'||e.target.id==='btn-fechar-relatorio')document.getElementById('relatorio-bg').classList.remove('open');
   if(e.target.id==='btn-close-modal'||e.target.id==='btn-fechar-modal')document.getElementById('modal-bg').classList.remove('open');
   if(e.target.id==='btn-close-orc'||e.target.id==='btn-fechar-orc')document.getElementById('orc-modal-bg').classList.remove('open');
   // Editar orçamento
@@ -1015,6 +1094,131 @@ window.reativarPedido = async function(id) {
   await updateDoc(doc(db,'pedidos',id),{etapa:5,finalizado:false});
   showToast('✓ Pedido reativado!');
 };
+
+// VISÃO GERAL
+function renderVisaoGeral() {
+  const mesAtual = new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const mesNum = new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+  const el = document.getElementById('visao-mes');
+  if(el) el.textContent = mesAtual.charAt(0).toUpperCase() + mesAtual.slice(1);
+
+  // Orçamentos pendentes
+  const orcPend = orcamentos.filter(o=>o.status!=='approved'&&o.status!=='rejected');
+  const orcVal = orcPend.reduce((s,o)=>s+(o.valor||0),0);
+  const elOrcQtd = document.getElementById('vg-orc-qtd');
+  const elOrcVal = document.getElementById('vg-orc-val');
+  if(elOrcQtd) elOrcQtd.textContent = orcPend.length;
+  if(elOrcVal) elOrcVal.textContent = fmtMoney(orcVal);
+
+  // Em andamento
+  const emAnd = pedidos.filter(p=>Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
+  const elAndQtd = document.getElementById('vg-and-qtd');
+  if(elAndQtd) elAndQtd.textContent = emAnd.length;
+
+  // Faturados no mês
+  const fatMes = pedidos.filter(p=>(p.finalizado===true||Number(p.etapa||0)>=ETAPAS.length-1)&&(p.mes===mesNum||p.dataConversao&&p.dataConversao.substring(3)===mesNum));
+  const fatVal = fatMes.reduce((s,p)=>s+(p.valor||0),0);
+  const elFatVal = document.getElementById('vg-fat-val');
+  const elFatQtd = document.getElementById('vg-fat-qtd');
+  if(elFatVal) elFatVal.textContent = fmtMoney(fatVal);
+  if(elFatQtd) elFatQtd.textContent = fatMes.length + ' entregues — ver relatório →';
+
+  // Meta
+  atualizarMeta();
+
+  // Breakdown
+  const negEl = document.getElementById('meta-neg');
+  const potEl = document.getElementById('meta-pot');
+  if(negEl) negEl.textContent = fmtMoney(orcVal);
+  if(potEl) potEl.textContent = fmtMoney(fatVal + orcVal);
+}
+
+function atualizarMeta() {
+  const input = document.getElementById('meta-input');
+  if(!input) return;
+  const raw = input.value.replace(/\./g,'').replace(',','.');
+  const meta = parseFloat(raw) || 0;
+
+  const mesNum = new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+  const fatMes = pedidos.filter(p=>(p.finalizado===true||Number(p.etapa||0)>=ETAPAS.length-1)&&(p.mes===mesNum||p.dataConversao&&p.dataConversao.substring(3)===mesNum));
+  const fatVal = fatMes.reduce((s,p)=>s+(p.valor||0),0);
+
+  const pct = meta > 0 ? Math.min(Math.round((fatVal/meta)*100),100) : 0;
+  const falta = meta > 0 ? Math.max(meta-fatVal,0) : 0;
+
+  const barEl = document.getElementById('meta-bar');
+  const pctEl = document.getElementById('meta-pct');
+  const fatEl = document.getElementById('meta-fat');
+  const faltaEl = document.getElementById('meta-falta');
+  const msgEl = document.getElementById('meta-msg');
+
+  if(barEl){ barEl.style.width=pct+'%'; barEl.style.background=pct>=100?'var(--green)':'var(--brand)'; }
+  if(pctEl) pctEl.textContent = pct+'%';
+  if(fatEl) fatEl.textContent = fmtMoney(fatVal);
+  if(faltaEl) faltaEl.textContent = meta > 0 ? fmtMoney(falta) : '—';
+  if(msgEl) msgEl.textContent = meta <= 0 ? 'Digite sua meta mensal' : pct>=100 ? '🎉 Meta atingida!' : 'Faltam '+fmtMoney(falta)+' para atingir a meta';
+}
+
+// Salvar meta no Firebase
+document.getElementById('btn-salvar-meta').addEventListener('click', async () => {
+  const val = document.getElementById('meta-input').value;
+  await updateDoc(doc(db,'config','meta'), {meta: val}).catch(async ()=>{
+    const {setDoc} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await setDoc(doc(db,'config','meta'),{meta: val});
+  });
+  showToast('🎯 Meta salva!');
+});
+
+// Carregar meta salva
+(async()=>{
+  try {
+    const snap = await getDocs(collection(db,'config'));
+    snap.forEach(d=>{ if(d.id==='meta'&&d.data().meta){ document.getElementById('meta-input').value=d.data().meta; atualizarMeta(); } });
+  } catch(e){}
+})();
+
+// Card faturados click → relatório
+document.getElementById('vg-fat-card').addEventListener('click', () => {
+  const mesNum = new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+  const mesNome = new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const fatMes = pedidos.filter(p=>(p.finalizado===true||Number(p.etapa||0)>=ETAPAS.length-1)&&(p.mes===mesNum||p.dataConversao&&p.dataConversao.substring(3)===mesNum));
+  const fatVal = fatMes.reduce((s,p)=>s+(p.valor||0),0);
+
+  document.getElementById('relatorio-title').textContent = 'Relatório — ' + mesNome.charAt(0).toUpperCase()+mesNome.slice(1);
+  document.getElementById('relatorio-body').innerHTML = `
+    <div style="background:var(--surface2);border-radius:8px;padding:14px 18px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;color:var(--muted);">${fatMes.length} pedido${fatMes.length!==1?'s':''} finalizado${fatMes.length!==1?'s':''}</span>
+        <span style="font-size:20px;font-weight:600;color:var(--green);">${fmtMoney(fatVal)}</span>
+      </div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="background:var(--navy);color:#fff;">
+          <th style="padding:10px 14px;text-align:left;border-radius:8px 0 0 0;">Cliente</th>
+          <th style="padding:10px 14px;text-align:left;">Pedido</th>
+          <th style="padding:10px 14px;text-align:left;">Descrição</th>
+          <th style="padding:10px 14px;text-align:right;border-radius:0 8px 0 0;">Valor</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${fatMes.map((p,i)=>`
+          <tr style="background:${i%2===0?'#fff':'var(--surface2)'};">
+            <td style="padding:10px 14px;font-weight:500;">${p.nome}</td>
+            <td style="padding:10px 14px;font-family:monospace;font-size:12px;">${p.codigo}</td>
+            <td style="padding:10px 14px;color:var(--muted);">${p.desc||'—'}</td>
+            <td style="padding:10px 14px;text-align:right;font-weight:600;color:var(--green);">${fmtMoney(p.valor||0)}</td>
+          </tr>`).join('')}
+      </tbody>
+      <tfoot>
+        <tr style="border-top:2px solid var(--border2);">
+          <td colspan="3" style="padding:12px 14px;font-weight:600;">Total faturado</td>
+          <td style="padding:12px 14px;text-align:right;font-size:16px;font-weight:700;color:var(--green);">${fmtMoney(fatVal)}</td>
+        </tr>
+      </tfoot>
+    </table>`;
+  document.getElementById('relatorio-bg').classList.add('open');
+});
 
 // START
 document.getElementById('login-screen').style.display='flex';
