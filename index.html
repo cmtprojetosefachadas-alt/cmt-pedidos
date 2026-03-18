@@ -1132,7 +1132,67 @@ function getMesNome(mesNum) {
 }
 
 function imprimirVisao() {
-  window.print();
+  const sel = document.getElementById('visao-mes-sel');
+  const mesNum = sel ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+  const mesNome = getMesNome(mesNum);
+  const fatMes = window._fatMes || [];
+  const fatVal = window._fatVal || 0;
+  const orcPend = orcamentos.filter(o=>o.status!=='approved'&&o.status!=='rejected'&&(o.data&&o.data.substring(3)===mesNum||!o.data));
+  const orcVal = orcPend.reduce((s,o)=>s+(o.valor||0),0);
+  const emAnd = pedidos.filter(p=>Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
+  const metaVal = document.getElementById('meta-input')?.value || '0';
+  const meta = parseFloat(metaVal.replace(/\./g,'').replace(',','.')) || 0;
+  const pct = meta > 0 ? Math.min(Math.round((fatVal/meta)*100),100) : 0;
+
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+  <title>Visão Geral — ${mesNome}</title>
+  <style>
+    body{font-family:'DM Sans',sans-serif;padding:32px;color:#1a1a1a;background:#fff;}
+    h1{font-size:20px;color:#1C2340;margin-bottom:4px;}
+    .sub{font-size:13px;color:#6b6b6b;margin-bottom:24px;}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+    .card{border:1px solid #ddd;border-radius:10px;padding:16px 20px;}
+    .card-label{font-size:11px;color:#6b6b6b;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;}
+    .card-val{font-size:26px;font-weight:600;color:#1a1a1a;}
+    .card-sub{font-size:12px;color:#6b6b6b;margin-top:4px;}
+    .orange{color:#E05C1A;} .green{color:#0F6E56;} .blue{color:#185FA5;}
+    .meta-box{border:1px solid #ddd;border-radius:10px;padding:18px 22px;margin-bottom:20px;}
+    .bar-bg{height:10px;background:#f0ede8;border-radius:5px;overflow:hidden;margin:10px 0;}
+    .bar-fill{height:100%;border-radius:5px;background:#E05C1A;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th{background:#1C2340;color:#fff;padding:9px 14px;text-align:left;}
+    td{padding:9px 14px;border-bottom:1px solid #eee;}
+    tr:nth-child(even) td{background:#f9f9f9;}
+    tfoot td{font-weight:700;font-size:15px;border-top:2px solid #ddd;}
+    .footer{margin-top:30px;font-size:11px;color:#aaa;display:flex;justify-content:space-between;}
+    @media print{body{padding:16px;}}
+  </style></head><body>
+  <h1>CMT Projetos e Fachadas — Visão Geral</h1>
+  <div class="sub">${mesNome} · Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+  <div class="grid">
+    <div class="card"><div class="card-label">Orçamentos pendentes</div><div class="card-val blue">${orcPend.length}</div><div class="card-sub">${fmtMoney(orcVal)} em negociação</div></div>
+    <div class="card"><div class="card-label">Em andamento</div><div class="card-val orange">${emAnd.length}</div><div class="card-sub">pedidos rodando</div></div>
+    <div class="card"><div class="card-label">Faturados no mês</div><div class="card-val green">${fmtMoney(fatVal)}</div><div class="card-sub">${fatMes.length} entregues</div></div>
+  </div>
+  <div class="meta-box">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+      <strong>Meta mensal: ${fmtMoney(meta)}</strong>
+      <strong style="color:#E05C1A;">${pct}% atingido</strong>
+    </div>
+    <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${pct>=100?'#0F6E56':'#E05C1A'};"></div></div>
+    <div style="font-size:12px;color:#6b6b6b;">${pct>=100?'🎉 Meta atingida!':'Faltam '+fmtMoney(Math.max(meta-fatVal,0))+' para atingir a meta'}</div>
+  </div>
+  ${fatMes.length?`<h2 style="font-size:15px;margin-bottom:12px;">Pedidos faturados</h2>
+  <table>
+    <thead><tr><th>Cliente</th><th>Pedido</th><th>Descrição</th><th style="text-align:right;">Valor</th></tr></thead>
+    <tbody>${fatMes.map((p,i)=>`<tr><td>${p.nome}</td><td style="font-family:monospace;font-size:12px;">${p.codigo}</td><td>${p.desc||'—'}</td><td style="text-align:right;font-weight:600;color:#0F6E56;">${fmtMoney(p.valor||0)}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="3">Total faturado</td><td style="text-align:right;color:#0F6E56;">${fmtMoney(fatVal)}</td></tr></tfoot>
+  </table>`:'<p style="color:#6b6b6b;font-size:13px;">Nenhum pedido faturado neste mês.</p>'}
+  <div class="footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>CNPJ: 53.466.209/0001-01</span></div>
+  </body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(),500);
 }
 
 function renderVisaoGeral() {
