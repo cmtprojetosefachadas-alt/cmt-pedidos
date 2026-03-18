@@ -168,7 +168,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div id="panel-visao" class="panel">
     <div class="section-header">
       <span class="section-title">📊 Visão Geral</span>
-      <span id="visao-mes" style="font-size:13px;color:var(--muted);"></span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <select id="visao-mes-sel" style="padding:6px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" onchange="renderVisaoGeral()"></select>
+        <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;" onclick="imprimirVisao()">🖨️ Imprimir</button>
+      </div>
     </div>
 
     <div class="stats" style="margin-bottom:16px;">
@@ -428,7 +431,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc, setDoc, onSnapshot, serverTimestamp, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey:"AIzaSyC7wtESTv3r42I2FUiVztMtLhvxOAyr0GA",
@@ -1096,14 +1099,49 @@ window.reativarPedido = async function(id) {
 };
 
 // VISÃO GERAL
-function renderVisaoGeral() {
-  const mesAtual = new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-  const mesNum = new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
-  const el = document.getElementById('visao-mes');
-  if(el) el.textContent = mesAtual.charAt(0).toUpperCase() + mesAtual.slice(1);
+function popularMeses() {
+  const sel = document.getElementById('visao-mes-sel');
+  if(!sel) return;
+  const meses = new Set();
+  const hoje = new Date();
+  // Adiciona últimos 6 meses
+  for(let i=0;i<6;i++){
+    const d = new Date(hoje.getFullYear(), hoje.getMonth()-i, 1);
+    meses.add(d.toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
+  }
+  pedidos.forEach(p=>{ if(p.mes) meses.add(p.mes); if(p.dataConversao) meses.add(p.dataConversao.substring(3)); });
+  orcamentos.forEach(o=>{ if(o.data) meses.add(o.data.substring(3)); });
+  const atual = new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+  const sorted = [...meses].sort((a,b)=>{
+    const [ma,ya]=a.split('/'); const [mb,yb]=b.split('/');
+    return (yb+mb)-(ya+ma);
+  });
+  const currentVal = sel.value || atual;
+  sel.innerHTML = sorted.map(m=>{
+    const [mm,yy]=m.split('/');
+    const nome=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||m;
+    return `<option value="${m}" ${m===currentVal?'selected':''}>${nome} ${yy}</option>`;
+  }).join('');
+  if(!sel.value) sel.value = atual;
+}
 
-  // Orçamentos pendentes
-  const orcPend = orcamentos.filter(o=>o.status!=='approved'&&o.status!=='rejected');
+function getMesNome(mesNum) {
+  const [mm,yy]=mesNum.split('/');
+  const nome=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||mesNum;
+  return nome+' '+yy;
+}
+
+function imprimirVisao() {
+  window.print();
+}
+
+function renderVisaoGeral() {
+  popularMeses();
+  const sel = document.getElementById('visao-mes-sel');
+  const mesNum = sel ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+
+  // Orçamentos pendentes (filtrado pelo mês selecionado)
+  const orcPend = orcamentos.filter(o=>o.status!=='approved'&&o.status!=='rejected'&&(o.data&&o.data.substring(3)===mesNum||!o.data));
   const orcVal = orcPend.reduce((s,o)=>s+(o.valor||0),0);
   const elOrcQtd = document.getElementById('vg-orc-qtd');
   const elOrcVal = document.getElementById('vg-orc-val');
@@ -1122,6 +1160,8 @@ function renderVisaoGeral() {
   const elFatQtd = document.getElementById('vg-fat-qtd');
   if(elFatVal) elFatVal.textContent = fmtMoney(fatVal);
   if(elFatQtd) elFatQtd.textContent = fatMes.length + ' entregues — ver relatório →';
+  // Guarda para o relatório
+  window._fatMes = fatMes; window._fatVal = fatVal; window._mesNome = getMesNome(mesNum);
 
   // Meta
   atualizarMeta();
@@ -1162,18 +1202,28 @@ function atualizarMeta() {
 // Salvar meta no Firebase
 document.getElementById('btn-salvar-meta').addEventListener('click', async () => {
   const val = document.getElementById('meta-input').value;
-  await updateDoc(doc(db,'config','meta'), {meta: val}).catch(async ()=>{
-    const {setDoc} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    await setDoc(doc(db,'config','meta'),{meta: val});
-  });
-  showToast('🎯 Meta salva!');
+  const mesAtual = new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+  try {
+    await setDoc(doc(db,'config','meta-'+mesAtual.replace('/','_')), {meta: val, mes: mesAtual});
+    showToast('🎯 Meta salva: R$ '+val);
+    atualizarMeta();
+  } catch(e) {
+    showToast('Erro ao salvar meta');
+    console.error(e);
+  }
 });
 
 // Carregar meta salva
 (async()=>{
   try {
+    const mesAtual = document.getElementById('visao-mes-sel')?.value || new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
     const snap = await getDocs(collection(db,'config'));
-    snap.forEach(d=>{ if(d.id==='meta'&&d.data().meta){ document.getElementById('meta-input').value=d.data().meta; atualizarMeta(); } });
+    snap.forEach(d=>{
+      if(d.data().meta && (d.id==='meta'||d.id==='meta-'+mesAtual.replace('/','_'))){
+        document.getElementById('meta-input').value=d.data().meta;
+        atualizarMeta();
+      }
+    });
   } catch(e){}
 })();
 
