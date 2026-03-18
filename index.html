@@ -341,6 +341,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 </div>
 
+<!-- MODAL EDITAR CLIENTE -->
+<div class="modal-bg" id="edit-cliente-bg">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" id="btn-close-edit-cliente">×</button>
+    <h2>Editar cliente</h2>
+    <input type="hidden" id="edit-cliente-id"/>
+    <div class="modal-field"><label>Nome *</label><input type="text" id="edit-nome" placeholder="Nome completo"/></div>
+    <div class="modal-field"><label>Telefone</label><input type="text" id="edit-tel" placeholder="Ex: 16991234567"/></div>
+    <div class="modal-field"><label>CPF ou CNPJ</label><input type="text" id="edit-doc" placeholder="000.000.000-00"/></div>
+    <div class="modal-field"><label>Endereço</label><input type="text" id="edit-end" placeholder="Rua das Flores, 123"/></div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-cancelar-edit-cliente">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-edit-cliente">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL RELATÓRIO FATURAMENTO -->
 <div class="modal-bg" id="relatorio-bg">
   <div class="modal" style="max-width:680px;">
@@ -726,8 +743,11 @@ function renderCadLista(){
   el.innerHTML=clientes.map(c=>`
     <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);">
       <div class="avatar" style="width:36px;height:36px;font-size:12px;">${ini(c.nome)}</div>
-      <div style="flex:1;"><div style="font-size:14px;font-weight:600;">${c.nome}</div>
-      <div style="font-size:12px;color:var(--muted);">${c.tel?'&#128222; '+c.tel:''} ${c.doc?'· '+c.doc:''}</div></div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:600;">${c.nome}</div>
+        <div style="font-size:12px;color:var(--muted);">${c.tel?'📞 '+c.tel:''} ${c.doc?'· '+c.doc:''} ${c.end?'<br/>📍 '+c.end:''}</div>
+      </div>
+      <button class="btn" style="font-size:11px;padding:4px 10px;" data-id="${c.id}" data-type="editcliente">✏️ Editar</button>
       <button class="del-btn" data-id="${c.id}" data-type="delcliente">×</button>
     </div>`).join('');
 }
@@ -892,6 +912,18 @@ document.addEventListener('click',async e=>{
     if(!confirm('Remover este cliente?'))return;
     await deleteDoc(doc(db,'clientes',e.target.dataset.id));return;
   }
+  // Editar cliente
+  if(e.target.dataset.type==='editcliente'){
+    const c=clientes.find(x=>x.id===e.target.dataset.id);
+    if(!c)return;
+    document.getElementById('edit-cliente-id').value=c.id;
+    document.getElementById('edit-nome').value=c.nome||'';
+    document.getElementById('edit-tel').value=c.tel||'';
+    document.getElementById('edit-doc').value=c.doc||'';
+    document.getElementById('edit-end').value=c.end||'';
+    document.getElementById('edit-cliente-bg').classList.add('open');
+    return;
+  }
   // Abrir pedido
   if(e.target.closest('[data-type="pedido"]')){
     const el=e.target.closest('[data-type="pedido"]');
@@ -984,6 +1016,21 @@ document.addEventListener('click',async e=>{
   }
   // Fechar modais
   if(e.target.id==='btn-close-relatorio'||e.target.id==='btn-fechar-relatorio')document.getElementById('relatorio-bg').classList.remove('open');
+  if(e.target.id==='btn-close-edit-cliente'||e.target.id==='btn-cancelar-edit-cliente')document.getElementById('edit-cliente-bg').classList.remove('open');
+  if(e.target.id==='btn-salvar-edit-cliente'){
+    const id=document.getElementById('edit-cliente-id').value;
+    const nome=document.getElementById('edit-nome').value.trim();
+    if(!nome){alert('Nome é obrigatório.');return;}
+    await updateDoc(doc(db,'clientes',id),{
+      nome,
+      tel:document.getElementById('edit-tel').value.trim(),
+      doc:document.getElementById('edit-doc').value.trim(),
+      end:document.getElementById('edit-end').value.trim()
+    });
+    document.getElementById('edit-cliente-bg').classList.remove('open');
+    showToast('Cliente atualizado!');
+    return;
+  }
   if(e.target.id==='btn-close-modal'||e.target.id==='btn-fechar-modal')document.getElementById('modal-bg').classList.remove('open');
   if(e.target.id==='btn-close-orc'||e.target.id==='btn-fechar-orc')document.getElementById('orc-modal-bg').classList.remove('open');
   // Editar orçamento
