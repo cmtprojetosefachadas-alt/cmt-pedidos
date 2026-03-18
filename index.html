@@ -213,10 +213,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
       <div style="font-size:12px;color:var(--muted);text-align:right;" id="meta-msg">Digite sua meta mensal</div>
 
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px;">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px;">
         <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Falta para a meta</div>
           <div style="font-size:14px;font-weight:600;color:var(--brand);" id="meta-falta">—</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Em andamento</div>
+          <div style="font-size:14px;font-weight:600;color:var(--brand);" id="meta-and">R$ 0</div>
         </div>
         <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Em negociação</div>
@@ -1227,10 +1231,13 @@ function renderVisaoGeral() {
   atualizarMeta();
 
   // Breakdown
+  const andVal = emAnd.reduce((s,p)=>s+(p.valor||0),0);
   const negEl = document.getElementById('meta-neg');
   const potEl = document.getElementById('meta-pot');
+  const andEl = document.getElementById('meta-and');
   if(negEl) negEl.textContent = fmtMoney(orcVal);
-  if(potEl) potEl.textContent = fmtMoney(fatVal + orcVal);
+  if(andEl) andEl.textContent = fmtMoney(andVal);
+  if(potEl) potEl.textContent = fmtMoney(fatVal + andVal + orcVal);
 }
 
 function atualizarMeta() {
