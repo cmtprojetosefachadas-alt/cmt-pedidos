@@ -380,7 +380,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:6px;">ACESSO DO CLIENTE</div>
       <div>Login: <span id="cred-login"></span></div>
       <div style="margin-top:4px;">Senha: <span id="cred-senha"></span></div>
-      <div style="margin-top:8px;"><button class="btn btn-wpp" style="font-size:12px;padding:6px 12px;" id="btn-enviar-cred">&#128172; Enviar acesso ao cliente</button></div>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <input type="text" id="cred-tel" placeholder="Telefone do cliente" style="flex:1;min-width:160px;padding:5px 10px;border-radius:6px;border:none;font-size:13px;background:rgba(255,255,255,0.15);color:#fff;font-family:'DM Sans',sans-serif;outline:none;"/>
+        <button class="btn" style="font-size:12px;padding:5px 10px;background:rgba(255,255,255,0.2);color:#fff;border-color:rgba(255,255,255,0.3);" id="btn-salvar-tel">💾 Tel</button>
+        <button class="btn btn-wpp" style="font-size:12px;padding:6px 12px;" id="btn-enviar-cred">&#128172; Enviar acesso</button>
+      </div>
     </div>
     <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;">ETAPAS DO PEDIDO</div>
     <div class="etapas-wrap" id="etapas-wrap"></div>
@@ -693,6 +697,8 @@ async function openModal(id){
     document.getElementById('modal-cred').style.display='none';
   }
   document.getElementById('previsao-input').value=p.previsaoEntrega||'';
+  const credTel=document.getElementById('cred-tel');
+  if(credTel) credTel.value=p.tel||'';
   // Carregar fotos
   const f1=document.getElementById('foto1-preview');
   const f2=document.getElementById('foto2-preview');
@@ -996,6 +1002,13 @@ document.addEventListener('click',async e=>{
     showToast('Mensagem enviada!');return;
   }
   // Enviar credenciais
+  if(e.target.id==='btn-salvar-tel'){
+    const novoTel=document.getElementById('cred-tel').value.trim().replace(/\D/g,'');
+    if(!novoTel||!currentPedidoId)return;
+    await updateDoc(doc(db,'pedidos',currentPedidoId),{tel:novoTel});
+    showToast('📞 Telefone atualizado!');
+    return;
+  }
   if(e.target.id==='btn-enviar-cred'){
     const p=pedidos.find(x=>x.id===currentPedidoId);if(!p)return;
     const link='https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/cliente.html';
