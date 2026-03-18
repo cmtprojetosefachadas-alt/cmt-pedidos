@@ -992,20 +992,22 @@ document.addEventListener('click',async e=>{
     await addDoc(collection(db,'pedidos',currentPedidoId,'mensagens'),{texto,criadoEm:serverTimestamp(),tipo:'admin'});
     document.getElementById('posvenda-input').value='';
     await renderPosvenda(currentPedidoId);
-    if(p&&p.tel)window.open('https://wa.me/55'+p.tel+'?text='+encodeURIComponent('CMT Projetos e Fachadas 🏗️\n\n*Atualização do pedido '+p.codigo+':*\n'+texto),'_blank');
+    if(p&&p.tel){const telMsg=p.tel.replace(/\D/g,'');window.open('https://wa.me/55'+telMsg+'?text='+encodeURIComponent('CMT Projetos e Fachadas 🏗️\n\n*Atualização do pedido '+p.codigo+':*\n'+texto),'_blank');}
     showToast('Mensagem enviada!');return;
   }
   // Enviar credenciais
   if(e.target.id==='btn-enviar-cred'){
     const p=pedidos.find(x=>x.id===currentPedidoId);if(!p)return;
     const link='https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/cliente.html';
-    window.open('https://wa.me/55'+p.tel+'?text='+encodeURIComponent('CMT Projetos e Fachadas 🏗️\n\nOlá *'+p.nome+'*! Seu pedido foi cadastrado.\n\nAcompanhe em tempo real:\n🔗 '+link+'\n\n👤 Login: *'+p.loginCliente+'*\n🔑 Senha: *'+p.senhaCliente+'*'),'_blank');return;
+    const telCred=p.tel?p.tel.replace(/\D/g,''):'';
+    window.open('https://wa.me/55'+telCred+'?text='+encodeURIComponent('CMT Projetos e Fachadas 🏗️\n\nOlá *'+p.nome+'*! Seu pedido foi cadastrado.\n\nAcompanhe em tempo real:\n🔗 '+link+'\n\n👤 Login: *'+p.loginCliente+'*\n🔑 Senha: *'+p.senhaCliente+'*'),'_blank');return;
   }
   // Status wpp
   if(e.target.id==='btn-status-wpp'){
     const p=pedidos.find(x=>x.id===currentPedidoId);if(!p)return;
     const link='https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/cliente.html';
-    window.open('https://wa.me/55'+p.tel+'?text='+encodeURIComponent('CMT Projetos e Fachadas 🏗️\n\nOlá '+p.nome+'! Atualização do pedido *'+p.codigo+'*:\n\n📌 *'+ETAPAS[p.etapa||0]+'*\n\n🔗 '+link+'\nLogin: *'+p.loginCliente+'* | Senha: *'+p.senhaCliente+'*'),'_blank');return;
+    const telSt=p.tel?p.tel.replace(/\D/g,''):'';
+    window.open('https://wa.me/55'+telSt+'?text='+encodeURIComponent('CMT Projetos e Fachadas 🏗️\n\nOlá '+p.nome+'! Atualização do pedido *'+p.codigo+'*:\n\n📌 *'+ETAPAS[p.etapa||0]+'*\n\n🔗 '+link+'\nLogin: *'+p.loginCliente+'* | Senha: *'+p.senhaCliente+'*'),'_blank');return;
   }
   // Finalizar
   if(e.target.id==='btn-finalizar'){
@@ -1092,7 +1094,8 @@ document.addEventListener('click',async e=>{
   // WPP orc modal
   if(e.target.id==='btn-wpp-orc-modal'){
     const o=orcamentos.find(x=>x.id===currentOrcId);if(!o)return;
-    window.open('https://wa.me/55'+o.tel+'?text='+encodeURIComponent('Olá '+o.nome+'! Segue o orçamento *'+o.num+'* da CMT Projetos e Fachadas.\n\nServiço: '+o.desc+'\nValor: *'+fmtMoney(o.valor||0)+'*\nVálido até: '+o.validade+'\n\nQualquer dúvida estamos à disposição! 🏗️'),'_blank');
+    const telOrc=o.tel?o.tel.replace(/\D/g,''):'';
+    window.open('https://wa.me/55'+telOrc+'?text='+encodeURIComponent('Olá '+o.nome+'! Segue o orçamento *'+o.num+'* da CMT Projetos e Fachadas.\n\nServiço: '+o.desc+'\nValor: *'+fmtMoney(o.valor||0)+'*\nVálido até: '+o.validade+'\n\nQualquer dúvida estamos à disposição! 🏗️'),'_blank');
     await updateDoc(doc(db,'orcamentos',currentOrcId),{status:'sent'});
     document.getElementById('orc-modal-bg').classList.remove('open');return;
   }
