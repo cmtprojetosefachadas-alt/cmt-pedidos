@@ -1131,7 +1131,7 @@ function getMesNome(mesNum) {
   return nome+' '+yy;
 }
 
-function imprimirVisao() {
+window.imprimirVisao = function imprimirVisao() {
   const sel = document.getElementById('visao-mes-sel');
   const mesNum = sel ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
   const mesNome = getMesNome(mesNum);
