@@ -1283,8 +1283,11 @@ window.imprimirVisao = function imprimirVisao() {
   </div>
   ${fatMes.length?`<h2 style="font-size:15px;margin-bottom:12px;">Pedidos faturados</h2>
   <table>
-    <thead><tr><th>Cliente</th><th>Pedido</th><th>Descrição</th><th style="text-align:right;">Valor</th></tr></thead>
-    <tbody>${fatMes.map((p,i)=>`<tr><td>${p.nome}</td><td style="font-family:monospace;font-size:12px;">${p.codigo}</td><td>${p.desc||'—'}</td><td style="text-align:right;font-weight:600;color:#0F6E56;">${fmtMoney(p.valor||0)}</td></tr>`).join('')}</tbody>
+    <thead><tr><th>Cliente</th><th>Pedido</th><th>Descrição</th><th>Status</th><th style="text-align:right;">Valor</th></tr></thead>
+    <tbody>${(window._fatMes||[]).map((p,i)=>{
+      const fin=p.finalizado===true||Number(p.etapa||0)>=ETAPAS.length-1;
+      return`<tr style="background:${i%2===0?'#fff':'#f9f9f9'}"><td>${p.nome}</td><td style="font-family:monospace;font-size:12px;">${p.codigo}</td><td>${p.desc||'—'}</td><td style="text-align:center;font-size:11px;">${fin?'✅ Finalizado':'⚙️ Em andamento'}</td><td style="text-align:right;font-weight:600;color:#0F6E56;">${fmtMoney(p.valor||0)}</td></tr>`;
+    }).join('')}</tbody>
     <tfoot><tr><td colspan="3">Total faturado</td><td style="text-align:right;color:#0F6E56;">${fmtMoney(fatVal)}</td></tr></tfoot>
   </table>`:'<p style="color:#6b6b6b;font-size:13px;">Nenhum pedido faturado neste mês.</p>'}
   <div class="footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>CNPJ: 53.466.209/0001-01</span></div>
@@ -1312,14 +1315,17 @@ function renderVisaoGeral() {
   if(elAndQtd) elAndQtd.textContent = emAnd.length;
 
   // Faturados no mês
-  const fatMes = pedidos.filter(p=>(p.finalizado===true||Number(p.etapa||0)>=ETAPAS.length-1)&&(p.mes===mesNum||p.dataConversao&&p.dataConversao.substring(3)===mesNum));
-  const fatVal = fatMes.reduce((s,p)=>s+(p.valor||0),0);
+  // Pedidos do mês = finalizados + em andamento criados no mês (venda ocorreu)
+  const pedidosMes = pedidos.filter(p=>p.mes===mesNum||(p.dataConversao&&p.dataConversao.substring(3)===mesNum));
+  const fatMes = pedidosMes.filter(p=>p.finalizado===true||Number(p.etapa||0)>=ETAPAS.length-1);
+  const andMes = pedidosMes.filter(p=>!p.finalizado&&Number(p.etapa||0)<ETAPAS.length-1);
+  const fatVal = pedidosMes.reduce((s,p)=>s+(p.valor||0),0);
   const elFatVal = document.getElementById('vg-fat-val');
   const elFatQtd = document.getElementById('vg-fat-qtd');
   if(elFatVal) elFatVal.textContent = fmtMoney(fatVal);
-  if(elFatQtd) elFatQtd.textContent = fatMes.length + ' entregues — ver relatório →';
+  if(elFatQtd) elFatQtd.textContent = pedidosMes.length + ' pedido(s) no mês — ver relatório →';
   // Guarda para o relatório
-  window._fatMes = fatMes; window._fatVal = fatVal; window._mesNome = getMesNome(mesNum);
+  window._fatMes = pedidosMes; window._fatVal = fatVal; window._mesNome = getMesNome(mesNum);
 
   // Meta
   atualizarMeta();
@@ -1341,7 +1347,7 @@ function atualizarMeta() {
   const meta = parseFloat(raw) || 0;
 
   const mesNum = new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
-  const fatMes = pedidos.filter(p=>(p.finalizado===true||Number(p.etapa||0)>=ETAPAS.length-1)&&(p.mes===mesNum||p.dataConversao&&p.dataConversao.substring(3)===mesNum));
+  const fatMes = pedidos.filter(p=>p.mes===mesNum||(p.dataConversao&&p.dataConversao.substring(3)===mesNum));
   const fatVal = fatMes.reduce((s,p)=>s+(p.valor||0),0);
 
   const pct = meta > 0 ? Math.min(Math.round((fatVal/meta)*100),100) : 0;
@@ -1392,14 +1398,16 @@ document.getElementById('btn-salvar-meta').addEventListener('click', async () =>
 document.getElementById('vg-fat-card').addEventListener('click', () => {
   const mesNum = new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
   const mesNome = new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-  const fatMes = pedidos.filter(p=>(p.finalizado===true||Number(p.etapa||0)>=ETAPAS.length-1)&&(p.mes===mesNum||p.dataConversao&&p.dataConversao.substring(3)===mesNum));
+  const fatMes = pedidos.filter(p=>p.mes===mesNum||(p.dataConversao&&p.dataConversao.substring(3)===mesNum));
   const fatVal = fatMes.reduce((s,p)=>s+(p.valor||0),0);
 
   document.getElementById('relatorio-title').textContent = 'Relatório — ' + mesNome.charAt(0).toUpperCase()+mesNome.slice(1);
+  const finalizados = (window._fatMes||[]).filter(p=>p.finalizado===true||Number(p.etapa||0)>=ETAPAS.length-1);
+  const emAndRel = (window._fatMes||[]).filter(p=>!p.finalizado&&Number(p.etapa||0)<ETAPAS.length-1);
   document.getElementById('relatorio-body').innerHTML = `
     <div style="background:var(--surface2);border-radius:8px;padding:14px 18px;margin-bottom:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:13px;color:var(--muted);">${fatMes.length} pedido${fatMes.length!==1?'s':''} finalizado${fatMes.length!==1?'s':''}</span>
+        <span style="font-size:13px;color:var(--muted);">${(window._fatMes||[]).length} pedido(s) no mês · ${finalizados.length} finalizado(s) · ${emAndRel.length} em andamento</span>
         <span style="font-size:20px;font-weight:600;color:var(--green);">${fmtMoney(fatVal)}</span>
       </div>
     </div>
