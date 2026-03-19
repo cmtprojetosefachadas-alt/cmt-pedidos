@@ -422,6 +422,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
     <div class="modal-actions">
       <button class="btn" id="btn-fechar-modal">Fechar</button>
+      <button class="btn" id="btn-ver-orc" style="display:none;">📄 Ver Orçamento</button>
       <button class="btn btn-wpp" id="btn-status-wpp">&#128172; Status via WhatsApp</button>
       <button class="btn btn-red" id="btn-finalizar">&#10003; Finalizar pedido</button>
     </div>
@@ -699,6 +700,8 @@ async function openModal(id){
   document.getElementById('previsao-input').value=p.previsaoEntrega||'';
   const credTel=document.getElementById('cred-tel');
   if(credTel) credTel.value=p.tel||'';
+  const verOrcBtn=document.getElementById('btn-ver-orc');
+  if(verOrcBtn) verOrcBtn.style.display=p.orcItens&&p.orcItens.length?'inline-flex':'none';
   // Carregar fotos
   const f1=document.getElementById('foto1-preview');
   const f2=document.getElementById('foto2-preview');
@@ -1002,6 +1005,30 @@ document.addEventListener('click',async e=>{
     showToast('Mensagem enviada!');return;
   }
   // Enviar credenciais
+  if(e.target.id==='btn-ver-orc'){
+    const p=pedidos.find(x=>x.id===currentPedidoId);if(!p)return;
+    const rows=(p.orcItens||[]).map(it=>`<tr><td>${it.desc}</td><td style="text-align:right;font-weight:600;color:#0F6E56;">${fmtMoney(it.valor||0)}</td></tr>`).join('');
+    const total=fmtMoney(p.valor||0);
+    document.getElementById('pdf-content').innerHTML=`
+      <div class="pdf-header">
+        <div><div class="pdf-co">CMT Projetos e Fachadas</div><div class="pdf-co-sub">CNPJ: 53.466.209/0001-01 · Franca, SP · Comercial: (16) 99649-2182</div></div>
+        <div><div class="pdf-badge">ORÇAMENTO</div><div class="pdf-badge-sub">Nº ${p.orcNum||p.codigo} · ${p.orcData||p.dataConversao||''}<br/>Válido até ${p.orcValidade||''}</div></div>
+      </div>
+      <div class="pdf-cliente"><strong>Cliente:</strong> ${p.nome} &nbsp;|&nbsp; <strong>Pedido:</strong> ${p.codigo}</div>
+      <table class="pdf-tbl"><thead><tr><th style="width:70%">Descrição do serviço</th><th>Valor</th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="2" style="text-align:center;color:#999;">Sem itens registrados</td></tr>'}</tbody></table>
+      <div class="pdf-total"><div class="pdf-total-final">Total: ${total}</div></div>
+      ${p.orcObs?`<div class="pdf-obs"><strong>Observações:</strong><br/>${p.orcObs.replace(/
+/g,'<br/>')}</div>`:''}
+      <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
+        <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>CMT Projetos e Fachadas</strong><br/>CNPJ: 53.466.209/0001-01</div></div>
+        <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>Cliente: ${p.nome}</strong><br/>Assinatura</div></div>
+      </div>
+      <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Pedido: ${p.codigo}</span></div>`;
+    document.getElementById('modal-bg').classList.remove('open');
+    showTab('preview');
+    return;
+  }
   if(e.target.id==='btn-salvar-tel'){
     const novoTel=document.getElementById('cred-tel').value.trim().replace(/\D/g,'');
     if(!novoTel||!currentPedidoId)return;
@@ -1124,6 +1151,11 @@ document.addEventListener('click',async e=>{
       valor:o.valor||0,
       mes:new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}),
       dataConversao:new Date().toLocaleDateString('pt-BR'),
+      orcNum:o.num||'',
+      orcData:o.data||'',
+      orcValidade:o.validade||'',
+      orcItens:o.itens||[],
+      orcObs:o.obs||'',
       criadoEm:serverTimestamp()
     });
     await deleteDoc(doc(db,'orcamentos',currentOrcId));
