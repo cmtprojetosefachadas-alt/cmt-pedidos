@@ -1018,8 +1018,7 @@ document.addEventListener('click',async e=>{
       <table class="pdf-tbl"><thead><tr><th style="width:70%">Descrição do serviço</th><th>Valor</th></tr></thead>
       <tbody>${rows||'<tr><td colspan="2" style="text-align:center;color:#999;">Sem itens registrados</td></tr>'}</tbody></table>
       <div class="pdf-total"><div class="pdf-total-final">Total: ${total}</div></div>
-      ${p.orcObs?`<div class="pdf-obs"><strong>Observações:</strong><br/>${p.orcObs.replace(/
-/g,'<br/>')}</div>`:''}
+      ${p.orcObs?`<div class="pdf-obs"><strong>Observações:</strong><br/>${(p.orcObs||'').split('\n').join('<br/>')}</div>`:''}
       <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
         <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>CMT Projetos e Fachadas</strong><br/>CNPJ: 53.466.209/0001-01</div></div>
         <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>Cliente: ${p.nome}</strong><br/>Assinatura</div></div>
