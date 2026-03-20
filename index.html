@@ -534,7 +534,8 @@ function updateStats(){
 function clienteCard(p){
   const etapa=p.etapa||0;
   const finalizado=p.finalizado===true||Number(etapa)>=ETAPAS.length-1;
-  return`<div class="client-card" data-id="${p.id}" data-type="pedido">
+  const tipo=finalizado?'pedido-fin':'pedido';
+  return`<div class="client-card" data-id="${p.id}" data-type="${tipo}">
     <div class="card-head"><div class="avatar">${ini(p.nome||'?')}</div>
     <div><div class="card-name">${p.nome}</div><div class="card-id">${p.codigo}·${p.tel||''}</div></div></div>
     <div class="card-desc">${p.desc||''}</div>
@@ -931,6 +932,37 @@ document.addEventListener('click',async e=>{
     document.getElementById('edit-doc').value=c.doc||'';
     document.getElementById('edit-end').value=c.end||'';
     document.getElementById('edit-cliente-bg').classList.add('open');
+    return;
+  }
+  // Abrir pedido finalizado → PDF
+  if(e.target.closest('[data-type="pedido-fin"]')){
+    const el=e.target.closest('[data-type="pedido-fin"]');
+    if(!el)return;
+    const p=pedidos.find(x=>x.id===el.dataset.id);
+    if(!p)return;
+    // Se tem itens do orçamento salvo, abre PDF
+    if(p.orcItens&&p.orcItens.length){
+      const rows=(p.orcItens||[]).map(it=>`<tr><td>${it.desc}</td><td style="text-align:right;font-weight:600;color:#0F6E56;">${fmtMoney(it.valor||0)}</td></tr>`).join('');
+      document.getElementById('pdf-content').innerHTML=`
+        <div class="pdf-header">
+          <div><div class="pdf-co">CMT Projetos e Fachadas</div><div class="pdf-co-sub">CNPJ: 53.466.209/0001-01 · Franca, SP · Comercial: (16) 99649-2182</div></div>
+          <div><div class="pdf-badge">PEDIDO FINALIZADO</div><div class="pdf-badge-sub">Nº ${p.orcNum||p.codigo}<br/>Entregue em ${p.dataConversao||''}</div></div>
+        </div>
+        <div class="pdf-cliente"><strong>Cliente:</strong> ${p.nome} &nbsp;|&nbsp; <strong>Pedido:</strong> ${p.codigo}</div>
+        <table class="pdf-tbl"><thead><tr><th style="width:70%">Descrição do serviço</th><th>Valor</th></tr></thead>
+        <tbody>${rows}</tbody></table>
+        <div class="pdf-total"><div class="pdf-total-final">Total: ${fmtMoney(p.valor||0)}</div></div>
+        ${p.orcObs?`<div class="pdf-obs"><strong>Observações:</strong><br/>${(p.orcObs||'').split('\n').join('<br/>')}</div>`:''}
+        <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
+          <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>CMT Projetos e Fachadas</strong><br/>CNPJ: 53.466.209/0001-01</div></div>
+          <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>Cliente: ${p.nome}</strong><br/>Assinatura</div></div>
+        </div>
+        <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Pedido: ${p.codigo}</span></div>`;
+      showTab('preview');
+    } else {
+      // Sem orçamento salvo, abre modal normal
+      openModal(el.dataset.id);
+    }
     return;
   }
   // Abrir pedido
