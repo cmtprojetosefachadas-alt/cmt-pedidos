@@ -623,7 +623,7 @@ body {
     <div class="card-title" style="margin-bottom:14px">Criar novo acesso</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;align-items:end">
       <div class="field-group" style="margin:0">
-        <label class="field-label">Nome</label>
+        <label class="field-label">Nome completo</label>
         <input class="field" id="nu-nome" placeholder="Ex: João Silva">
       </div>
       <div class="field-group" style="margin:0">
@@ -640,7 +640,7 @@ body {
       </div>
     </div>
     <div style="font-size:12px;color:var(--muted);margin-top:10px">
-      Perfil padrão: equipe. Somente o usuário <strong>admin</strong> pode gerenciar usuários.
+      As permissões podem ser ajustadas após a criação. Somente o <strong>admin</strong> pode gerenciar usuários.
     </div>
   </div>
 
@@ -648,7 +648,7 @@ body {
     <table>
       <thead>
         <tr>
-          <th>Nome</th><th>Usuário</th><th>Senha</th><th>Perfil</th><th>Ações</th>
+          <th>Nome</th><th>Usuário</th><th>Senha</th><th>Perfil</th><th>Permissões</th><th>Ações</th>
         </tr>
       </thead>
       <tbody id="usuarios-tbody"></tbody>
@@ -658,7 +658,38 @@ body {
 
 </div><!-- /main -->
 
-<!-- MODAL STATUS -->
+<!-- MODAL EDITAR USUÁRIO -->
+<div class="modal-overlay" id="modal-editar-usuario" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:500px">
+    <h3>Editar usuário</h3>
+    <input type="hidden" id="eu-id">
+    <div class="field-row" style="margin-bottom:14px">
+      <div class="field-group" style="margin:0">
+        <label class="field-label">Nome completo</label>
+        <input class="field" id="eu-nome" placeholder="Nome">
+      </div>
+      <div class="field-group" style="margin:0">
+        <label class="field-label">Usuário (login)</label>
+        <input class="field" id="eu-usuario" placeholder="login">
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Nova senha <span style="color:var(--muted);font-weight:400">(deixe em branco para não alterar)</span></label>
+      <input class="field" id="eu-senha" type="password" placeholder="••••••••">
+    </div>
+
+    <!-- PERMISSÕES -->
+    <div style="margin-top:4px">
+      <div class="card-title" style="margin-bottom:12px"><span class="dot"></span>Permissões de acesso</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="eu-perms-grid"></div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-primary" style="flex:1" onclick="salvarEdicaoUsuario()">Salvar</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="document.getElementById('modal-editar-usuario').classList.remove('open')">Cancelar</button>
+    </div>
+  </div>
+</div><!-- MODAL STATUS -->
 <div class="modal-overlay" id="modal-overlay" onclick="fecharModal(event)">
   <div class="modal">
     <h3 id="modal-title">Detalhe do orçamento</h3>
@@ -965,7 +996,7 @@ async function init() {
   atualizarNumeroOrcamento();
   // Controle de acesso: só admin vê aba Usuários
   const navU = document.getElementById('nav-usuarios');
-  if(navU) navU.style.display = (_usuarioLogado?.perfil==='admin') ? '' : 'none';
+  if(navU) navU.style.display = isAdmin?'':'none';
 }
 
 // ── MATERIAIS ──
@@ -1602,75 +1633,127 @@ window.salvarEdicaoOrcamento = async function() {
 };
 
 // ── GESTÃO DE USUÁRIOS ──
+const TODAS_PERMISSOES = [
+  { key:'criar_orc',       label:'Criar orçamento' },
+  { key:'editar_orc',      label:'Editar orçamento' },
+  { key:'aprovar_orc',     label:'Aprovar orçamento' },
+  { key:'remover_orc',     label:'Remover orçamento' },
+  { key:'ver_relatorio',   label:'Ver relatório' },
+  { key:'gerar_pdf',       label:'Gerar PDF' },
+  { key:'gerenciar_mat',   label:'Gerenciar materiais' },
+  { key:'gerenciar_users', label:'Gerenciar usuários' },
+];
+const PERMS_ADMIN  = Object.fromEntries(['criar_orc','editar_orc','aprovar_orc','remover_orc','ver_relatorio','gerar_pdf','gerenciar_mat','gerenciar_users'].map(k=>[k,true]));
+const PERMS_PADRAO = { criar_orc:true, editar_orc:false, aprovar_orc:false, remover_orc:false, ver_relatorio:false, gerar_pdf:false, gerenciar_mat:false, gerenciar_users:false };
+
+function temPermissao(key) {
+  if(!_usuarioLogado) return false;
+  if(_usuarioLogado.perfil==='admin') return true;
+  return !!(_usuarioLogado.permissoes?.[key]);
+}
+
 window.toggleFormUsuario = function() {
-  const f = document.getElementById('form-novo-usuario');
-  f.classList.toggle('open');
+  document.getElementById('form-novo-usuario').classList.toggle('open');
 };
 
 window.criarUsuario = async function() {
-  if(_usuarioLogado?.perfil !== 'admin') { showToast('Apenas o admin pode criar usuários!'); return; }
+  if(!temPermissao('gerenciar_users')) { showToast('Sem permissão!'); return; }
   const nome    = document.getElementById('nu-nome').value.trim();
   const usuario = document.getElementById('nu-usuario').value.trim().toLowerCase();
   const senha   = document.getElementById('nu-senha').value.trim();
   if(!nome||!usuario||!senha) { showToast('Preencha todos os campos!'); return; }
-  // Verifica duplicata
   const snap = await getDocs(collection(db,'cmt_usuarios'));
-  const existe = snap.docs.find(d=>d.data().usuario===usuario);
-  if(existe) { showToast('Usuário "'+usuario+'" já existe!'); return; }
-  await addDoc(collection(db,'cmt_usuarios'),{nome,usuario,senha,perfil:'equipe'});
+  if(snap.docs.find(d=>d.data().usuario===usuario)) { showToast('Usuário "'+usuario+'" já existe!'); return; }
+  await addDoc(collection(db,'cmt_usuarios'),{nome,usuario,senha,perfil:'equipe',permissoes:PERMS_PADRAO});
   document.getElementById('nu-nome').value='';
   document.getElementById('nu-usuario').value='';
   document.getElementById('nu-senha').value='';
   document.getElementById('form-novo-usuario').classList.remove('open');
   await renderTabelaUsuarios();
-  showToast('Usuário "'+nome+'" criado com sucesso!');
+  showToast('Usuário "'+nome+'" criado!');
 };
 
 window.deletarUsuario = async function(id, usuario) {
-  if(usuario==='admin') { showToast('O usuário admin não pode ser removido!'); return; }
+  if(usuario==='admin') { showToast('O admin não pode ser removido!'); return; }
   if(!confirm('Remover acesso de "'+usuario+'"?')) return;
   await deleteDoc(doc(db,'cmt_usuarios',id));
   await renderTabelaUsuarios();
   showToast('Usuário removido.');
 };
 
-window.editarSenhaUsuario = async function(id, nomeAtual) {
-  const nova = prompt('Nova senha para "'+nomeAtual+'":');
-  if(!nova||!nova.trim()) return;
-  await updateDoc(doc(db,'cmt_usuarios',id),{senha:nova.trim()});
+window.abrirEdicaoUsuario = function(u) {
+  document.getElementById('eu-id').value      = u.id;
+  document.getElementById('eu-nome').value    = u.nome;
+  document.getElementById('eu-usuario').value = u.usuario;
+  document.getElementById('eu-senha').value   = '';
+  const isAdm = u.perfil==='admin';
+  const perms = isAdm ? PERMS_ADMIN : (u.permissoes||PERMS_PADRAO);
+  document.getElementById('eu-perms-grid').innerHTML = TODAS_PERMISSOES.map(p=>`
+    <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);cursor:${isAdm?'default':'pointer'}">
+      <input type="checkbox" id="perm-${p.key}" ${perms[p.key]?'checked':''} ${isAdm?'disabled':''}
+        style="width:16px;height:16px;accent-color:var(--accent)">
+      <span style="font-size:13px;font-weight:500">${p.label}</span>
+    </label>
+  `).join('')+( isAdm?'<div style="grid-column:span 2;font-size:11px;color:var(--muted);padding:6px 4px">Admin sempre tem todas as permissões.</div>':'');
+  document.getElementById('modal-editar-usuario').classList.add('open');
+};
+
+window.salvarEdicaoUsuario = async function() {
+  const id      = document.getElementById('eu-id').value;
+  const nome    = document.getElementById('eu-nome').value.trim();
+  const usuario = document.getElementById('eu-usuario').value.trim().toLowerCase();
+  const senha   = document.getElementById('eu-senha').value.trim();
+  if(!nome||!usuario) { showToast('Nome e usuário são obrigatórios!'); return; }
+  const snap = await getDocs(collection(db,'cmt_usuarios'));
+  const uDoc = snap.docs.find(d=>d.id===id);
+  if(!uDoc) return;
+  const isAdm = uDoc.data().perfil==='admin';
+  const permissoes = isAdm ? PERMS_ADMIN : Object.fromEntries(
+    TODAS_PERMISSOES.map(p=>[p.key, document.getElementById('perm-'+p.key)?.checked||false])
+  );
+  const updates = {nome, usuario, permissoes};
+  if(senha) updates.senha = senha;
+  await updateDoc(doc(db,'cmt_usuarios',id), updates);
+  if(_usuarioLogado && _usuarioLogado.usuario === uDoc.data().usuario) {
+    _usuarioLogado.nome = nome;
+    _usuarioLogado.permissoes = permissoes;
+    sessionStorage.setItem('cmt_user', JSON.stringify(_usuarioLogado));
+    document.querySelectorAll('.header span').forEach(s=>{ if(s.textContent===uDoc.data().nome) s.textContent=nome; });
+  }
+  document.getElementById('modal-editar-usuario').classList.remove('open');
   await renderTabelaUsuarios();
-  showToast('Senha atualizada!');
+  showToast('Usuário atualizado!');
 };
 
 async function renderTabelaUsuarios() {
   const snap = await getDocs(collection(db,'cmt_usuarios'));
   const usuarios = snap.docs.map(d=>({id:d.id,...d.data()}));
-  const isAdmin = _usuarioLogado?.perfil==='admin';
+  const isAdmin  = _usuarioLogado?.perfil==='admin';
   const tb = document.getElementById('usuarios-tbody');
   if(!tb) return;
-  tb.innerHTML = usuarios.map(u=>`
-    <tr>
+  tb.innerHTML = usuarios.map(u=>{
+    const perms  = u.perfil==='admin' ? PERMS_ADMIN : (u.permissoes||PERMS_PADRAO);
+    const ativas = TODAS_PERMISSOES.filter(p=>perms[p.key]);
+    const tags   = ativas.slice(0,3).map(p=>`<span style="display:inline-block;font-size:10px;background:rgba(26,95,168,0.1);color:var(--blue);border-radius:4px;padding:2px 6px;margin:1px">${p.label}</span>`).join('');
+    const mais   = ativas.length>3?`<span style="font-size:10px;color:var(--muted)">+${ativas.length-3}</span>`:'';
+    const uJson  = encodeURIComponent(JSON.stringify({id:u.id,nome:u.nome,usuario:u.usuario,perfil:u.perfil,permissoes:u.permissoes||PERMS_PADRAO}));
+    return `<tr>
       <td style="font-weight:600">${u.nome}</td>
       <td><code style="background:var(--bg3);padding:2px 8px;border-radius:4px;font-size:12px">${u.usuario}</code></td>
-      <td>
-        <span style="background:var(--bg3);padding:2px 8px;border-radius:4px;font-size:12px;letter-spacing:0.05em">
-          ${isAdmin ? u.senha : '••••••••'}
-        </span>
-      </td>
+      <td><span style="background:var(--bg3);padding:2px 8px;border-radius:4px;font-size:12px">${isAdmin?u.senha:'••••••'}</span></td>
       <td><span class="badge ${u.perfil==='admin'?'badge-amber':'badge-blue'}">${u.perfil==='admin'?'Admin':'Equipe'}</span></td>
-      <td style="display:flex;gap:8px">
-        ${isAdmin ? `
-          <button class="btn-ghost" style="padding:5px 10px;font-size:10px" onclick="editarSenhaUsuario('${u.id}','${u.nome}')">Alterar senha</button>
+      <td style="max-width:220px">${tags}${mais}</td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        ${isAdmin?`
+          <button class="btn-ghost" style="padding:5px 10px;font-size:10px" onclick='abrirEdicaoUsuario(JSON.parse(decodeURIComponent("${uJson}")))'>Editar</button>
           ${u.usuario!=='admin'?`<button class="btn-ghost" style="padding:5px 10px;font-size:10px;color:var(--red);border-color:var(--red)" onclick="deletarUsuario('${u.id}','${u.usuario}')">Remover</button>`:''}
-        ` : '<span style="font-size:12px;color:var(--muted)">—</span>'}
+        `:'<span style="font-size:12px;color:var(--muted)">—</span>'}
       </td>
-    </tr>
-  `).join('');
-  // Oculta nav de usuários para não-admin
+    </tr>`;
+  }).join('');
   const navU = document.getElementById('nav-usuarios');
-  if(navU) navU.style.display = isAdmin ? '' : 'none';
+  if(navU) navU.style.display = isAdmin?'':'none';
 }
-
 // ── GESTÃO DE USUÁRIOS ──
 function fmt(v){return'R$ '+(Math.round((v||0)*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function fmtData(iso){try{return new Date(iso).toLocaleDateString('pt-BR')}catch{return '-'}}
