@@ -725,7 +725,42 @@ body {
   </div>
 </div>
 
-<!-- BANNER INSTALAR (iOS) -->
+<!-- MODAL EDITAR ORÇAMENTO -->
+<div class="modal-overlay" id="modal-editar-orc" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:620px">
+    <h3 id="edit-orc-title">Editar orçamento</h3>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Ajuste quantidades, adicione ou remova itens. O total é recalculado automaticamente.</div>
+    <div id="edit-orc-itens"></div>
+    <!-- Adicionar item -->
+    <div style="margin-top:14px;background:var(--bg3);border:1px dashed var(--border2);border-radius:8px;padding:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">Adicionar item</div>
+      <div style="display:grid;grid-template-columns:1fr 80px 90px auto;gap:8px;align-items:end">
+        <div>
+          <label class="field-label">Material</label>
+          <select class="field" id="edit-add-mat" style="font-size:12px;padding:8px 10px"></select>
+        </div>
+        <div>
+          <label class="field-label">Qtd</label>
+          <input class="field" id="edit-add-qty" type="number" value="1" min="0.01" step="0.01" style="font-size:12px;padding:8px 10px">
+        </div>
+        <div>
+          <label class="field-label">Custo unit.</label>
+          <input class="field" id="edit-add-custo" type="number" step="0.01" style="font-size:12px;padding:8px 10px" placeholder="Auto">
+        </div>
+        <div>
+          <label class="field-label" style="visibility:hidden">.</label>
+          <button class="btn-ghost" style="padding:8px 14px;font-size:12px;white-space:nowrap" onclick="editOrcAddItem()">+ Add</button>
+        </div>
+      </div>
+    </div>
+    <!-- Totais -->
+    <div id="edit-orc-totais" style="margin-top:14px;background:var(--bg3);border-radius:8px;padding:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" style="flex:1" onclick="salvarEdicaoOrcamento()">Salvar alterações</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="document.getElementById('modal-editar-orc').classList.remove('open')">Cancelar</button>
+    </div>
+  </div>
+</div>
 <div id="install-banner" style="
   display:none;position:fixed;bottom:0;left:0;right:0;z-index:10000;
   background:var(--header);padding:14px 20px;
@@ -1382,20 +1417,26 @@ window.abrirModal = function(id) {
   window._modalOrcId = id;
   document.getElementById('modal-title').textContent = `${o.numero} — ${o.cliente}`;
   const itens = (o.itens||[]).map(i=>`
-    <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border)">
-      <span>${i.nome} <span style="color:var(--muted)">${i.qty} ${i.unit}</span></span>
-      <span style="font-family:Syne,sans-serif;font-weight:600">${fmt(i.custo*i.qty)}</span>
+    <div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border);align-items:center">
+      <span style="font-weight:500">${i.nome} <span style="color:var(--muted);font-weight:400">${i.qty} ${i.unit}</span></span>
+      <span style="font-family:Inter,sans-serif;font-weight:700">${fmt(Math.round(i.custo*i.qty*100)/100)}</span>
     </div>
   `).join('');
+  const custoTotal = Math.round((o.custoTotal||0)*100)/100;
+  const venda      = Math.round((o.venda||0)*100)/100;
+  const lucro      = Math.round((o.lucro||0)*100)/100;
   document.getElementById('modal-body').innerHTML = `
-    <div style="margin-bottom:16px;color:var(--muted);font-size:13px">${o.desc}</div>
+    <div style="margin-bottom:14px;color:var(--muted);font-size:13px">${o.desc||''}</div>
     ${itens}
     <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-      <div class="mbar"><div class="mbar-label">Custo</div><div class="mbar-val amber">${fmt(o.custoTotal)}</div></div>
-      <div class="mbar"><div class="mbar-label">Venda</div><div class="mbar-val">${fmt(o.venda)}</div></div>
-      <div class="mbar"><div class="mbar-label">Lucro</div><div class="mbar-val green">${fmt(o.lucro)}</div></div>
+      <div class="mbar"><div class="mbar-label">Custo</div><div class="mbar-val amber">${fmt(custoTotal)}</div></div>
+      <div class="mbar"><div class="mbar-label">Venda</div><div class="mbar-val">${fmt(venda)}</div></div>
+      <div class="mbar"><div class="mbar-label">Lucro</div><div class="mbar-val green">${fmt(lucro)}</div></div>
     </div>
-    <div style="margin-top:10px;font-size:12px;color:var(--muted)">Status atual: <span class="badge ${badgeClass(o.status)}">${o.status}</span></div>
+    <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:12px;color:var(--muted)">Status: <span class="badge ${badgeClass(o.status)}">${o.status}</span></div>
+      <button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="abrirEdicaoOrcamento('${id}')">✏️ Editar itens</button>
+    </div>
   `;
   document.getElementById('modal-overlay').classList.add('open');
 };
@@ -1472,6 +1513,94 @@ window.renderRelatorio = function() {
     : '<tr><td colspan="4" style="color:var(--muted);padding:20px;text-align:center">Nenhum aprovado.</td></tr>';
 };
 
+// ── EDITAR ORÇAMENTO ──
+let _editItens = [];
+
+window.abrirEdicaoOrcamento = function(id) {
+  const o = window._orcamentos.find(x=>x.id===id);
+  if(!o) return;
+  window._modalOrcId = id;
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.getElementById('edit-orc-title').textContent = `Editar ${o.numero} — ${o.cliente}`;
+  _editItens = JSON.parse(JSON.stringify(o.itens||[]));
+  const sel = document.getElementById('edit-add-mat');
+  sel.innerHTML = window._materiais.map(m=>`<option value="${m.id}">${m.nome} (${m.unit}) — R$${m.custo}</option>`).join('');
+  sel.onchange = function() {
+    const m = window._materiais.find(x=>x.id===sel.value);
+    if(m) document.getElementById('edit-add-custo').value = m.custo;
+  };
+  sel.dispatchEvent(new Event('change'));
+  renderEditItens();
+  document.getElementById('modal-editar-orc').classList.add('open');
+};
+
+function renderEditItens() {
+  const el = document.getElementById('edit-orc-itens');
+  el.innerHTML = _editItens.map((it,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:${i%2===0?'var(--bg3)':'transparent'};margin-bottom:4px">
+      <div style="flex:1;font-size:13px;font-weight:500">${it.nome}</div>
+      <div style="font-size:11px;color:var(--muted);width:28px;text-align:center">${it.unit}</div>
+      <input type="number" value="${it.qty}" min="0.01" step="0.01"
+        style="width:64px;background:#fff;border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:13px;text-align:center;outline:none;font-family:Inter,sans-serif"
+        onchange="_editItens[${i}].qty=Math.max(0.01,parseFloat(this.value)||0.01);atualizarTotaisEdit()">
+      <div style="font-size:12px;color:var(--muted);width:58px;text-align:right">R$${it.custo}/${it.unit}</div>
+      <div style="font-family:Inter,sans-serif;font-size:13px;font-weight:700;width:80px;text-align:right">${fmt(Math.round(it.custo*it.qty*100)/100)}</div>
+      <span onclick="_editItens.splice(${i},1);renderEditItens()" style="color:var(--red);font-size:18px;cursor:pointer;padding:0 4px;line-height:1">×</span>
+    </div>
+  `).join('');
+  atualizarTotaisEdit();
+}
+
+function atualizarTotaisEdit() {
+  const o = window._orcamentos.find(x=>x.id===window._modalOrcId);
+  if(!o) return;
+  const margem = o.margemPct||30;
+  const moPct  = o.moPct||25;
+  const subMat = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100, 0);
+  const divisor = 1-margem/100-moPct/100;
+  const venda   = divisor>0?subMat/divisor:subMat*(1+margem/100);
+  const moVal   = Math.round(venda*moPct/100*100)/100;
+  const custoT  = Math.round((subMat+moVal)*100)/100;
+  const lucro   = Math.round((venda-custoT)*100)/100;
+  document.getElementById('edit-orc-totais').innerHTML = `
+    <div class="mbar"><div class="mbar-label">Custo total</div><div class="mbar-val amber">${fmt(custoT)}</div></div>
+    <div class="mbar"><div class="mbar-label">Venda (${margem}% margem)</div><div class="mbar-val">${fmt(Math.round(venda*100)/100)}</div></div>
+    <div class="mbar"><div class="mbar-label">Lucro</div><div class="mbar-val green">${fmt(lucro)}</div></div>
+  `;
+}
+
+window.editOrcAddItem = function() {
+  const sel   = document.getElementById('edit-add-mat');
+  const m     = window._materiais.find(x=>x.id===sel.value);
+  if(!m) return;
+  const qty   = Math.max(0.01, parseFloat(document.getElementById('edit-add-qty').value)||1);
+  const custo = parseFloat(document.getElementById('edit-add-custo').value)||m.custo;
+  _editItens.push({id:m.id,nome:m.nome,unit:m.unit,custo,qty});
+  document.getElementById('edit-add-qty').value = 1;
+  renderEditItens();
+};
+
+window.salvarEdicaoOrcamento = async function() {
+  const id = window._modalOrcId;
+  const o  = window._orcamentos.find(x=>x.id===id);
+  if(!o||!_editItens.length) { showToast('Adicione pelo menos 1 item!'); return; }
+  const margem  = o.margemPct||30;
+  const moPct   = o.moPct||25;
+  const subMat  = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100, 0);
+  const divisor = 1-margem/100-moPct/100;
+  const venda   = Math.round((divisor>0?subMat/divisor:subMat*(1+margem/100))*100)/100;
+  const moVal   = Math.round(venda*moPct/100*100)/100;
+  const custoTotal = Math.round((subMat+moVal)*100)/100;
+  const lucro   = Math.round((venda-custoTotal)*100)/100;
+  const updates = {itens:_editItens,subMat,moVal,custoTotal,venda,lucro};
+  try { await updateDoc(doc(db,'cmt_orcamentos',id),updates); } catch(e){}
+  Object.assign(o,updates);
+  document.getElementById('modal-editar-orc').classList.remove('open');
+  renderListaOrcamentos();
+  renderRelatorio();
+  showToast('Orçamento atualizado!');
+};
+
 // ── GESTÃO DE USUÁRIOS ──
 window.toggleFormUsuario = function() {
   const f = document.getElementById('form-novo-usuario');
@@ -1543,7 +1672,7 @@ async function renderTabelaUsuarios() {
 }
 
 // ── GESTÃO DE USUÁRIOS ──
-function fmt(v){return'R$ '+(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}
+function fmt(v){return'R$ '+(Math.round((v||0)*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function fmtData(iso){try{return new Date(iso).toLocaleDateString('pt-BR')}catch{return '-'}}
 function badgeClass(s){return s==='Aprovado'?'badge-green':s==='Recusado'?'badge-red':'badge-amber'}
 
