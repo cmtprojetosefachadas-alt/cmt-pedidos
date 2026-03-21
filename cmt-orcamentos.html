@@ -531,6 +531,9 @@ body {
       <option value="2">Fevereiro 2026</option>
       <option value="1">Janeiro 2026</option>
     </select>
+    <button class="btn-ghost" onclick="gerarPDFRelatorio()" style="background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700">
+      ↓ Gerar PDF
+    </button>
   </div>
   <div class="rel-grid">
     <div class="kpi">
@@ -664,6 +667,60 @@ body {
       <button class="btn btn-primary" style="flex:1" onclick="atualizarStatus('Aprovado')">Aprovar</button>
       <button class="btn btn-secondary" style="flex:1" onclick="atualizarStatus('Aguardando')">Aguardando</button>
       <button class="btn" style="flex:1;background:var(--red);color:#fff" onclick="atualizarStatus('Recusado')">Recusar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR MATERIAL -->
+<div class="modal-overlay" id="modal-material" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:420px">
+    <h3>Editar material</h3>
+    <input type="hidden" id="edit-mat-id">
+    <div class="field-group">
+      <label class="field-label">Nome</label>
+      <input class="field" id="edit-mat-nome">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Categoria</label>
+      <select class="field" id="edit-mat-cat">
+        <option>ACM</option>
+        <option>PVC</option>
+        <option>Acrílico</option>
+        <option>Metalon</option>
+        <option>Fixação</option>
+        <option>Elétrico</option>
+        <option>Equipamento</option>
+        <option>Logística</option>
+        <option>Serviço</option>
+        <option>Outros</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field-group">
+        <label class="field-label">Unidade</label>
+        <select class="field" id="edit-mat-unit">
+          <option value="m²">m²</option>
+          <option value="ml">ml</option>
+          <option value="un">un</option>
+          <option value="pct">pct</option>
+          <option value="hr">hr</option>
+          <option value="dia">dia</option>
+          <option value="uso">uso</option>
+          <option value="m">m</option>
+          <option value="placa">placa</option>
+          <option value="barra">barra</option>
+          <option value="rolo">rolo</option>
+          <option value="kit">kit</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Custo (R$)</label>
+        <input class="field" id="edit-mat-custo" type="number" step="0.01">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" style="flex:1" onclick="salvarEdicaoMaterial()">Salvar</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="document.getElementById('modal-material').classList.remove('open')">Cancelar</button>
     </div>
   </div>
 </div>
@@ -983,17 +1040,151 @@ function renderTabelaMateriais() {
   `).join('');
 }
 
-window.editarCustoMaterial = async function(id) {
+window.editarCustoMaterial = function(id) {
   const m = window._materiais.find(x=>x.id===id);
-  const novo = prompt(`Novo custo para "${m.nome}" (atual: R$ ${m.custo}):`,m.custo);
-  if(!novo) return;
-  const val = parseFloat(novo);
-  if(isNaN(val)) return;
-  await updateDoc(doc(db,'cmt_materiais',id),{custo:val});
-  m.custo = val;
+  if(!m) return;
+  document.getElementById('edit-mat-id').value   = id;
+  document.getElementById('edit-mat-nome').value  = m.nome;
+  document.getElementById('edit-mat-custo').value = m.custo;
+  // Seleciona categoria
+  const catSel = document.getElementById('edit-mat-cat');
+  for(let i=0;i<catSel.options.length;i++) {
+    if(catSel.options[i].value===m.cat) { catSel.selectedIndex=i; break; }
+  }
+  // Seleciona unidade
+  const unitSel = document.getElementById('edit-mat-unit');
+  for(let i=0;i<unitSel.options.length;i++) {
+    if(unitSel.options[i].value===m.unit) { unitSel.selectedIndex=i; break; }
+  }
+  document.getElementById('modal-material').classList.add('open');
+};
+
+window.salvarEdicaoMaterial = async function() {
+  const id    = document.getElementById('edit-mat-id').value;
+  const nome  = document.getElementById('edit-mat-nome').value.trim();
+  const cat   = document.getElementById('edit-mat-cat').value;
+  const unit  = document.getElementById('edit-mat-unit').value;
+  const custo = parseFloat(document.getElementById('edit-mat-custo').value)||0;
+  if(!nome||!custo) { showToast('Preencha todos os campos!'); return; }
+  await updateDoc(doc(db,'cmt_materiais',id),{nome,cat,unit,custo});
+  const m = window._materiais.find(x=>x.id===id);
+  if(m) { m.nome=nome; m.cat=cat; m.unit=unit; m.custo=custo; }
+  document.getElementById('modal-material').classList.remove('open');
   renderTabelaMateriais();
   renderCatalogo();
-  showToast('Custo atualizado!');
+  showToast('Material atualizado!');
+};
+
+// ── GERAR PDF RELATÓRIO ──
+window.gerarPDFRelatorio = function() {
+  const mes = parseInt(document.getElementById('sel-mes')?.value||3);
+  const nomes = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const orcs  = window._orcamentos.filter(o=>o.mes===mes&&o.status==='Aprovado');
+  const fat   = orcs.reduce((a,o)=>a+o.venda,0);
+  const custo = orcs.reduce((a,o)=>a+o.custoTotal,0);
+  const lucro = fat-custo;
+  const margem= fat>0?(lucro/fat*100):0;
+
+  // Ranking clientes
+  const porCliente = {};
+  orcs.forEach(o=>{
+    if(!porCliente[o.cliente]) porCliente[o.cliente]={venda:0,lucro:0,custo:0,n:0};
+    porCliente[o.cliente].venda+=o.venda;
+    porCliente[o.cliente].lucro+=o.lucro;
+    porCliente[o.cliente].custo+=o.custoTotal;
+    porCliente[o.cliente].n++;
+  });
+  const ranking = Object.entries(porCliente).sort((a,b)=>b[1].lucro-a[1].lucro);
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head>
+  <meta charset="UTF-8">
+  <title>Relatório ${nomes[mes]} 2026 — CMT</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;color:#1a1a1a;padding:40px;font-size:13px}
+    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px;padding-bottom:20px;border-bottom:3px solid #e8520a}
+    .logo{font-size:26px;font-weight:900;color:#1a2332}.logo span{color:#e8520a}
+    .titulo{font-size:13px;color:#666;margin-top:4px}
+    .data{font-size:12px;color:#999;text-align:right}
+    .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
+    .kpi{background:#f8f7f4;border-radius:10px;padding:16px;border-left:4px solid #e8520a}
+    .kpi-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px}
+    .kpi-val{font-size:22px;font-weight:800;color:#1a1a1a}
+    .kpi-val.green{color:#0a8a4a}.kpi-val.amber{color:#e8520a}
+    h2{font-size:14px;font-weight:700;color:#1a2332;margin-bottom:14px;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid #eee;padding-bottom:8px}
+    table{width:100%;border-collapse:collapse;margin-bottom:28px}
+    th{text-align:left;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;padding:8px 12px;border-bottom:2px solid #eee}
+    td{padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:13px}
+    tr:last-child td{border-bottom:none}
+    .val{font-weight:700}.green{color:#0a8a4a}.amber{color:#e8520a}.red{color:#cc2222}
+    .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+    .badge-green{background:#e6f7ef;color:#0a8a4a}
+    .footer{margin-top:40px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#999;text-align:center}
+    .rank-bar{height:4px;background:#eee;border-radius:2px;margin-top:4px;overflow:hidden}
+    .rank-fill{height:100%;border-radius:2px;background:#0a8a4a}
+    @media print{body{padding:20px}.no-print{display:none}}
+  </style>
+  </head><body>
+  <div class="header">
+    <div>
+      <div class="logo">CMT <span>Projetos e Fachadas</span></div>
+      <div class="titulo">Relatório interno de resultados — ${nomes[mes]} 2026</div>
+    </div>
+    <div class="data">Gerado em ${new Date().toLocaleDateString('pt-BR')}<br><span style="color:#e8520a;font-weight:700">USO INTERNO</span></div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-label">Faturamento</div><div class="kpi-val amber">${fmt(fat)}</div><div style="font-size:11px;color:#888;margin-top:4px">${orcs.length} orçamentos aprovados</div></div>
+    <div class="kpi"><div class="kpi-label">Custo total</div><div class="kpi-val">${fmt(custo)}</div><div style="font-size:11px;color:#888;margin-top:4px">Materiais + mão de obra</div></div>
+    <div class="kpi"><div class="kpi-label">Lucro líquido</div><div class="kpi-val green">${fmt(lucro)}</div><div style="font-size:11px;color:#888;margin-top:4px">Margem ${margem.toFixed(1)}%</div></div>
+  </div>
+
+  <h2>Lucro por cliente</h2>
+  <table>
+    <thead><tr><th>#</th><th>Cliente</th><th>Orçamentos</th><th>Faturado</th><th>Custo</th><th>Lucro</th><th>Margem</th></tr></thead>
+    <tbody>
+      ${ranking.map(([nome,d],i)=>{
+        const mg = d.venda>0?(d.lucro/d.venda*100):0;
+        const maxL = ranking[0]?.[1].lucro||1;
+        return `<tr>
+          <td style="color:#999;font-weight:700">${i+1}</td>
+          <td><strong>${nome}</strong><div class="rank-bar"><div class="rank-fill" style="width:${Math.max(4,d.lucro/maxL*100)}%"></div></div></td>
+          <td>${d.n}</td>
+          <td class="val amber">${fmt(d.venda)}</td>
+          <td class="val">${fmt(d.custo)}</td>
+          <td class="val ${d.lucro>=0?'green':'red'}">${fmt(d.lucro)}</td>
+          <td class="val">${mg.toFixed(1)}%</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+
+  <h2>Orçamentos do mês</h2>
+  <table>
+    <thead><tr><th>Nº</th><th>Cliente</th><th>Serviço</th><th>Custo</th><th>Venda</th><th>Lucro</th><th>Margem</th></tr></thead>
+    <tbody>
+      ${[...orcs].reverse().map(o=>{
+        const mg = o.venda>0?(o.lucro/o.venda*100):0;
+        return `<tr>
+          <td style="color:#999">${o.numero||'-'}</td>
+          <td>${o.cliente}</td>
+          <td style="color:#666">${o.desc||'-'}</td>
+          <td class="val">${fmt(o.custoTotal)}</td>
+          <td class="val amber">${fmt(o.venda)}</td>
+          <td class="val ${o.lucro>=0?'green':'red'}">${fmt(o.lucro)}</td>
+          <td>${mg.toFixed(1)}%</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+
+  <div class="footer">CMT Projetos e Fachadas — Documento de uso interno e confidencial — Gerado automaticamente pelo sistema</div>
+  <script>window.onload=()=>window.print()<\/script>
+  </body></html>`;
+
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
 };
 
 // ── CLIENTES (lê do CRM existente) ──
