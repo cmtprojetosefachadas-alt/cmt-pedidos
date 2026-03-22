@@ -465,7 +465,7 @@ body {
           <div class="card-title" style="margin-bottom:10px"><span class="dot" style="background:var(--purple)"></span>Mão de obra</div>
           <div class="mo-row">
             <span class="mo-label">% sobre valor de venda</span>
-            <input type="number" class="field" id="mo-pct" value="25" style="width:70px;padding:6px 8px;font-size:13px;text-align:center" oninput="recalcular()">
+            <input type="number" class="field" id="mo-pct" value="25" style="width:70px;padding:6px 8px;font-size:13px;text-align:center" oninput="validarMoPct(this)">
             <span style="font-size:12px;color:var(--muted)">%</span>
             <span class="mo-val" id="mo-val-display">R$ 0</span>
           </div>
@@ -1385,13 +1385,15 @@ window.recalcular = function() {
   const items = Object.values(window._itensSelecionados);
   if(!items.length) return;
   const margem = parseInt(document.getElementById('margem-slider').value)||30;
-  const moPct = parseFloat(document.getElementById('mo-pct').value)||0;
+  const moPct  = parseFloat(document.getElementById('mo-pct').value)||0;
   const pagNovo = document.getElementById('orc-pagamento')?.value||'dinheiro';
   const isCardNovo = pagNovo==='cartao_debito'||pagNovo==='cartao_credito';
   const taxaNovo = isCardNovo?(parseFloat(document.getElementById('orc-taxa-cartao')?.value)||0):0;
   const subMat = items.reduce((a,i)=>a+i.custo*i.qty,0);
-  const divisor = 1 - margem/100 - moPct/100;
-  const vendaBase = divisor>0 ? subMat/divisor : subMat*(1+margem/100);
+  // Garante divisor mínimo de 0.10 (máx 90% entre margem+MO)
+  const soma = margem/100 + moPct/100;
+  const divisor = Math.max(0.10, 1 - soma);
+  const vendaBase = subMat / divisor;
   const taxaVal = Math.round(vendaBase*taxaNovo/100*100)/100;
   const venda = vendaBase + taxaVal;
   const moVal = vendaBase*moPct/100;
@@ -1413,8 +1415,31 @@ window.recalcular = function() {
   document.getElementById('lucro-bar-fill').style.background = lucroP>20?'var(--green)':lucroP>10?'var(--accent)':'var(--red)';
 };
 
+window.validarMoPct = function(el) {
+  const moPct  = parseFloat(el.value)||0;
+  const margem = parseInt(document.getElementById('margem-slider').value)||30;
+  if(moPct + margem >= 90) {
+    const maxMo = Math.max(0, 89 - margem);
+    el.value = maxMo;
+    showToast('Mão de obra + Margem não pode ultrapassar 90%!');
+  }
+  recalcular();
+};
+
 window.updateMargem = function(v) {
-  document.getElementById('margem-display').textContent = v+'%';
+  const margem = parseInt(v)||30;
+  const moPct  = parseFloat(document.getElementById('mo-pct').value)||0;
+  const soma   = margem + moPct;
+  // Limite: margem + MO não pode ultrapassar 90%
+  if(soma >= 90) {
+    const maxMargem = 90 - moPct;
+    document.getElementById('margem-slider').value = maxMargem;
+    document.getElementById('margem-display').textContent = maxMargem+'%';
+    showToast('Margem + Mão de obra não pode ultrapassar 90%!');
+    recalcular();
+    return;
+  }
+  document.getElementById('margem-display').textContent = margem+'%';
   recalcular();
 };
 
