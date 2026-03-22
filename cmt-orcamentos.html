@@ -1928,17 +1928,37 @@ window.toggleNovaCategoria = function(sel) {
 function renderEditItens() {
   const el = document.getElementById('edit-orc-itens');
   el.innerHTML = _editItens.map((it,i)=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:${i%2===0?'var(--bg3)':'transparent'};margin-bottom:4px">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:${i%2===0?'var(--bg3)':'transparent'};margin-bottom:4px" data-idx="${i}">
       <div style="flex:1;font-size:13px;font-weight:500">${it.nome}</div>
       <div style="font-size:11px;color:var(--muted);width:28px;text-align:center">${it.unit}</div>
-      <input type="number" value="${it.qty}" min="0.01" step="0.01"
-        style="width:64px;background:#fff;border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:13px;text-align:center;outline:none;font-family:Inter,sans-serif"
-        onchange="_editItens[${i}].qty=Math.max(0.01,parseFloat(this.value)||0.01);atualizarTotaisEdit()">
+      <input type="number" value="${it.qty}" min="0.01" step="0.01" data-edit-qty="${i}"
+        style="width:64px;background:#fff;border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:13px;text-align:center;outline:none;font-family:Inter,sans-serif">
       <div style="font-size:12px;color:var(--muted);width:58px;text-align:right">R$${it.custo}/${it.unit}</div>
-      <div style="font-family:Inter,sans-serif;font-size:13px;font-weight:700;width:80px;text-align:right">${fmt(Math.round(it.custo*it.qty*100)/100)}</div>
-      <span onclick="_editItens.splice(${i},1);renderEditItens()" style="color:var(--red);font-size:18px;cursor:pointer;padding:0 4px;line-height:1">×</span>
+      <div style="font-family:Inter,sans-serif;font-size:13px;font-weight:700;width:80px;text-align:right" data-total="${i}">${fmt(Math.round(it.custo*it.qty*100)/100)}</div>
+      <span data-del-idx="${i}" style="color:var(--red);font-size:22px;cursor:pointer;padding:0 6px;line-height:1;font-weight:300">×</span>
     </div>
   `).join('');
+
+  // Event delegation — evita problemas com CSP/inline handlers
+  el.querySelectorAll('[data-edit-qty]').forEach(input => {
+    input.addEventListener('input', function() {
+      const idx = parseInt(this.getAttribute('data-edit-qty'));
+      const val = Math.max(0.01, parseFloat(this.value)||0.01);
+      _editItens[idx].qty = val;
+      const totalEl = el.querySelector(`[data-total="${idx}"]`);
+      if(totalEl) totalEl.textContent = fmt(Math.round(_editItens[idx].custo*val*100)/100);
+      atualizarTotaisEdit();
+    });
+  });
+
+  el.querySelectorAll('[data-del-idx]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const idx = parseInt(this.getAttribute('data-del-idx'));
+      _editItens.splice(idx, 1);
+      renderEditItens();
+    });
+  });
+
   atualizarTotaisEdit();
 }
 
