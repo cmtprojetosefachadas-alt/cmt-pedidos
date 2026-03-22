@@ -395,6 +395,23 @@ body {
           <label class="field-label">Descrição do serviço</label>
           <input class="field" id="orc-desc" placeholder="Ex: Fachada ACM — loja unidade centro...">
         </div>
+        <div class="field-row">
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Forma de pagamento</label>
+            <select class="field" id="orc-pagamento" onchange="toggleCartaoTaxaNovo()">
+              <option value="dinheiro">Dinheiro / PIX</option>
+              <option value="boleto">Boleto</option>
+              <option value="cartao_debito">Cartão débito</option>
+              <option value="cartao_credito">Cartão crédito</option>
+              <option value="cheque">Cheque</option>
+              <option value="transferencia">Transferência</option>
+            </select>
+          </div>
+          <div class="field-group" id="taxa-novo-wrap" style="margin:0;display:none">
+            <label class="field-label">Taxa do cartão (%)</label>
+            <input class="field" id="orc-taxa-cartao" type="number" min="0" max="10" step="0.1" value="2.5" oninput="recalcular()" placeholder="Ex: 2.5">
+          </div>
+        </div>
       </div>
 
       <!-- Materiais -->
@@ -713,7 +730,7 @@ body {
     </div>
     <div class="field-group">
       <label class="field-label">Categoria</label>
-      <select class="field" id="edit-mat-cat">
+      <select class="field" id="edit-mat-cat" onchange="toggleNovaCategoria(this)">
         <option>ACM</option>
         <option>PVC</option>
         <option>Acrílico</option>
@@ -724,7 +741,9 @@ body {
         <option>Logística</option>
         <option>Serviço</option>
         <option>Outros</option>
+        <option value="__nova__">+ Nova categoria...</option>
       </select>
+      <input class="field" id="edit-mat-cat-nova" placeholder="Digite a nova categoria" style="display:none;margin-top:6px">
     </div>
     <div class="field-row">
       <div class="field-group">
@@ -758,9 +777,32 @@ body {
 
 <!-- MODAL EDITAR ORÇAMENTO -->
 <div class="modal-overlay" id="modal-editar-orc" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="modal" style="max-width:620px">
+  <div class="modal" style="max-width:680px;max-height:92vh;overflow-y:auto">
     <h3 id="edit-orc-title">Editar orçamento</h3>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Ajuste quantidades, adicione ou remova itens. O total é recalculado automaticamente.</div>
+    <!-- Margem + Pagamento -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+      <div>
+        <label class="field-label">Margem de venda (%)</label>
+        <input class="field" id="edit-margem" type="number" min="1" max="90" value="30" oninput="atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px">
+      </div>
+      <div>
+        <label class="field-label">Forma de pagamento</label>
+        <select class="field" id="edit-pagamento" onchange="toggleCartaoTaxa()" style="font-size:13px;padding:8px 10px">
+          <option value="dinheiro">Dinheiro / PIX</option>
+          <option value="boleto">Boleto</option>
+          <option value="cartao_debito">Cartão débito</option>
+          <option value="cartao_credito">Cartão crédito</option>
+          <option value="cheque">Cheque</option>
+          <option value="transferencia">Transferência</option>
+        </select>
+      </div>
+      <div id="cartao-taxa-wrap" style="display:none">
+        <label class="field-label">Taxa do cartão (%)</label>
+        <input class="field" id="edit-taxa-cartao" type="number" min="0" max="10" step="0.1" value="2.5" oninput="atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px" placeholder="Ex: 2.5">
+      </div>
+      <div id="cartao-taxa-vazio" style="display:block"></div>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Ajuste itens, quantidades e margem. Total recalculado automaticamente.</div>
     <div id="edit-orc-itens"></div>
     <!-- Adicionar item -->
     <div style="margin-top:14px;background:var(--bg3);border:1px dashed var(--border2);border-radius:8px;padding:12px">
@@ -1128,7 +1170,8 @@ window.editarCustoMaterial = function(id) {
 window.salvarEdicaoMaterial = async function() {
   const id    = document.getElementById('edit-mat-id').value;
   const nome  = document.getElementById('edit-mat-nome').value.trim();
-  const cat   = document.getElementById('edit-mat-cat').value;
+  let cat = document.getElementById('edit-mat-cat').value;
+  if(cat==='__nova__') { cat = document.getElementById('edit-mat-cat-nova').value.trim()||'Outros'; }
   const unit  = document.getElementById('edit-mat-unit').value;
   const custo = parseFloat(document.getElementById('edit-mat-custo').value)||0;
   if(!nome||!custo) { showToast('Preencha todos os campos!'); return; }
@@ -1335,12 +1378,16 @@ window.recalcular = function() {
   if(!items.length) return;
   const margem = parseInt(document.getElementById('margem-slider').value)||30;
   const moPct = parseFloat(document.getElementById('mo-pct').value)||0;
+  const pagNovo = document.getElementById('orc-pagamento')?.value||'dinheiro';
+  const isCardNovo = pagNovo==='cartao_debito'||pagNovo==='cartao_credito';
+  const taxaNovo = isCardNovo?(parseFloat(document.getElementById('orc-taxa-cartao')?.value)||0):0;
   const subMat = items.reduce((a,i)=>a+i.custo*i.qty,0);
-  // Venda = custo_mat / (1 - margem/100 - mo/100) quando mo é % da venda
   const divisor = 1 - margem/100 - moPct/100;
-  const venda = divisor>0 ? subMat/divisor : subMat*(1+margem/100);
-  const moVal = venda*moPct/100;
-  const custoTotal = subMat + moVal;
+  const vendaBase = divisor>0 ? subMat/divisor : subMat*(1+margem/100);
+  const taxaVal = Math.round(vendaBase*taxaNovo/100*100)/100;
+  const venda = vendaBase + taxaVal;
+  const moVal = vendaBase*moPct/100;
+  const custoTotal = subMat + moVal + taxaVal;
   const lucro = venda - custoTotal;
   const lucroP = venda>0?(lucro/venda*100):0;
 
@@ -1381,13 +1428,20 @@ window.salvarOrcamento = async function() {
   const moVal = venda*moPct/100;
   const custoTotal = subMat+moVal;
   const lucro = venda-custoTotal;
+  const pagamento = document.getElementById('orc-pagamento')?.value||'dinheiro';
+  const isCardS = pagamento==='cartao_debito'||pagamento==='cartao_credito';
+  const taxaCartao = isCardS?(parseFloat(document.getElementById('orc-taxa-cartao')?.value)||0):0;
+  const agora = new Date().toISOString();
   const data = {
     numero: document.getElementById('orc-num').value,
     cliente, desc, itens: items,
     subMat, moVal, moPct, margemPct:margem,
     custoTotal, venda, lucro,
+    pagamento, taxaCartao,
     status:'Aguardando',
-    criadoEm: new Date().toISOString(),
+    criadoEm: agora,
+    alteradoEm: null, alteradoPor: null,
+    historico: [{ data: agora, usuario: _usuarioLogado?.nome||'Sistema', acao: 'Criado' }],
     mes: new Date().getMonth()+1
   };
   await addDoc(collection(db,'cmt_orcamentos'),data);
@@ -1456,6 +1510,10 @@ window.abrirModal = function(id) {
   const custoTotal = Math.round((o.custoTotal||0)*100)/100;
   const venda      = Math.round((o.venda||0)*100)/100;
   const lucro      = Math.round((o.lucro||0)*100)/100;
+  const pagLabels  = {'dinheiro':'Dinheiro/PIX','boleto':'Boleto','cartao_debito':'Cartão débito','cartao_credito':'Cartão crédito','cheque':'Cheque','transferencia':'Transferência'};
+  const pagLabel   = pagLabels[o.pagamento]||'—';
+  const taxaCard   = o.taxaCartao||0;
+  const hist       = (o.historico||[]).slice(-3).reverse();
   document.getElementById('modal-body').innerHTML = `
     <div style="margin-bottom:14px;color:var(--muted);font-size:13px">${o.desc||''}</div>
     ${itens}
@@ -1463,7 +1521,14 @@ window.abrirModal = function(id) {
       <div class="mbar"><div class="mbar-label">Custo</div><div class="mbar-val amber">${fmt(custoTotal)}</div></div>
       <div class="mbar"><div class="mbar-label">Venda</div><div class="mbar-val">${fmt(venda)}</div></div>
       <div class="mbar"><div class="mbar-label">Lucro</div><div class="mbar-val green">${fmt(lucro)}</div></div>
+      <div class="mbar"><div class="mbar-label">Pagamento</div><div class="mbar-val" style="font-size:13px;color:var(--blue)">${pagLabel}${taxaCard?` (${taxaCard}%)`:''}</div></div>
+      <div class="mbar"><div class="mbar-label">Criado em</div><div class="mbar-val" style="font-size:12px;color:var(--muted)">${fmtData(o.criadoEm)}</div></div>
+      <div class="mbar"><div class="mbar-label">Última edição</div><div class="mbar-val" style="font-size:12px;color:var(--muted)">${o.alteradoEm?fmtData(o.alteradoEm)+' — '+o.alteradoPor:'—'}</div></div>
     </div>
+    ${hist.length?`<div style="margin-top:10px;padding:10px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Histórico</div>
+      ${hist.map(h=>`<div style="font-size:11px;color:var(--muted);padding:3px 0">${fmtData(h.data)} ${new Date(h.data).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} — ${h.usuario} — ${h.acao}</div>`).join('')}
+    </div>`:''}
     <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
       <div style="font-size:12px;color:var(--muted)">Status: <span class="badge ${badgeClass(o.status)}">${o.status}</span></div>
       <button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="abrirEdicaoOrcamento('${id}')">✏️ Editar itens</button>
@@ -1554,6 +1619,12 @@ window.abrirEdicaoOrcamento = function(id) {
   document.getElementById('modal-overlay').classList.remove('open');
   document.getElementById('edit-orc-title').textContent = `Editar ${o.numero} — ${o.cliente}`;
   _editItens = JSON.parse(JSON.stringify(o.itens||[]));
+  // Carrega margem e pagamento existentes
+  document.getElementById('edit-margem').value = o.margemPct||30;
+  const pag = document.getElementById('edit-pagamento');
+  pag.value = o.pagamento||'dinheiro';
+  document.getElementById('edit-taxa-cartao').value = o.taxaCartao||2.5;
+  toggleCartaoTaxa();
   const sel = document.getElementById('edit-add-mat');
   sel.innerHTML = window._materiais.map(m=>`<option value="${m.id}">${m.nome} (${m.unit}) — R$${m.custo}</option>`).join('');
   sel.onchange = function() {
@@ -1563,6 +1634,27 @@ window.abrirEdicaoOrcamento = function(id) {
   sel.dispatchEvent(new Event('change'));
   renderEditItens();
   document.getElementById('modal-editar-orc').classList.add('open');
+};
+
+window.toggleCartaoTaxaNovo = function() {
+  const pag = document.getElementById('orc-pagamento').value;
+  const isCard = pag==='cartao_debito'||pag==='cartao_credito';
+  document.getElementById('taxa-novo-wrap').style.display = isCard?'block':'none';
+  recalcular();
+};
+
+window.toggleCartaoTaxa = function() {
+  const pag = document.getElementById('edit-pagamento').value;
+  const isCard = pag==='cartao_debito'||pag==='cartao_credito';
+  document.getElementById('cartao-taxa-wrap').style.display = isCard?'block':'none';
+  document.getElementById('cartao-taxa-vazio').style.display = isCard?'none':'block';
+  atualizarTotaisEdit();
+};
+
+window.toggleNovaCategoria = function(sel) {
+  const input = document.getElementById('edit-mat-cat-nova');
+  if(sel.value==='__nova__') { input.style.display='block'; input.focus(); }
+  else input.style.display='none';
 };
 
 function renderEditItens() {
@@ -1585,18 +1677,26 @@ function renderEditItens() {
 function atualizarTotaisEdit() {
   const o = window._orcamentos.find(x=>x.id===window._modalOrcId);
   if(!o) return;
-  const margem = o.margemPct||30;
-  const moPct  = o.moPct||25;
-  const subMat = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100, 0);
-  const divisor = 1-margem/100-moPct/100;
-  const venda   = divisor>0?subMat/divisor:subMat*(1+margem/100);
-  const moVal   = Math.round(venda*moPct/100*100)/100;
-  const custoT  = Math.round((subMat+moVal)*100)/100;
-  const lucro   = Math.round((venda-custoT)*100)/100;
+  const margem   = parseFloat(document.getElementById('edit-margem')?.value)||30;
+  const moPct    = o.moPct||25;
+  const pag      = document.getElementById('edit-pagamento')?.value||'dinheiro';
+  const isCard   = pag==='cartao_debito'||pag==='cartao_credito';
+  const taxaCard = isCard?(parseFloat(document.getElementById('edit-taxa-cartao')?.value)||0):0;
+  const subMat   = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100, 0);
+  const divisor  = 1-margem/100-moPct/100;
+  const vendaBase= divisor>0?subMat/divisor:subMat*(1+margem/100);
+  const taxaVal  = Math.round(vendaBase*taxaCard/100*100)/100;
+  const venda    = Math.round((vendaBase+taxaVal)*100)/100;
+  const moVal    = Math.round(vendaBase*moPct/100*100)/100;
+  const custoT   = Math.round((subMat+moVal+taxaVal)*100)/100;
+  const lucro    = Math.round((venda-custoT)*100)/100;
+  const pagLabel = {'dinheiro':'Dinheiro/PIX','boleto':'Boleto','cartao_debito':'Débito','cartao_credito':'Crédito','cheque':'Cheque','transferencia':'Transferência'}[pag]||pag;
   document.getElementById('edit-orc-totais').innerHTML = `
     <div class="mbar"><div class="mbar-label">Custo total</div><div class="mbar-val amber">${fmt(custoT)}</div></div>
-    <div class="mbar"><div class="mbar-label">Venda (${margem}% margem)</div><div class="mbar-val">${fmt(Math.round(venda*100)/100)}</div></div>
-    <div class="mbar"><div class="mbar-label">Lucro</div><div class="mbar-val green">${fmt(lucro)}</div></div>
+    <div class="mbar"><div class="mbar-label">Venda (${margem}% margem)</div><div class="mbar-val">${fmt(venda)}</div></div>
+    <div class="mbar"><div class="mbar-label">Lucro estimado</div><div class="mbar-val green">${fmt(lucro)}</div></div>
+    ${isCard?`<div class="mbar" style="grid-column:span 1"><div class="mbar-label">Taxa ${pagLabel} (${taxaCard}%)</div><div class="mbar-val" style="color:var(--red)">${fmt(taxaVal)}</div></div>`:''}
+    <div class="mbar" style="grid-column:span ${isCard?'2':'3'}"><div class="mbar-label">Pagamento</div><div class="mbar-val" style="color:var(--blue)">${pagLabel}</div></div>
   `;
 }
 
@@ -1615,15 +1715,29 @@ window.salvarEdicaoOrcamento = async function() {
   const id = window._modalOrcId;
   const o  = window._orcamentos.find(x=>x.id===id);
   if(!o||!_editItens.length) { showToast('Adicione pelo menos 1 item!'); return; }
-  const margem  = o.margemPct||30;
-  const moPct   = o.moPct||25;
-  const subMat  = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100, 0);
-  const divisor = 1-margem/100-moPct/100;
-  const venda   = Math.round((divisor>0?subMat/divisor:subMat*(1+margem/100))*100)/100;
-  const moVal   = Math.round(venda*moPct/100*100)/100;
-  const custoTotal = Math.round((subMat+moVal)*100)/100;
-  const lucro   = Math.round((venda-custoTotal)*100)/100;
-  const updates = {itens:_editItens,subMat,moVal,custoTotal,venda,lucro};
+  const margem   = parseFloat(document.getElementById('edit-margem').value)||30;
+  const moPct    = o.moPct||25;
+  const pag      = document.getElementById('edit-pagamento').value||'dinheiro';
+  const isCard   = pag==='cartao_debito'||pag==='cartao_credito';
+  const taxaCard = isCard?(parseFloat(document.getElementById('edit-taxa-cartao').value)||0):0;
+  const subMat   = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100, 0);
+  const divisor  = 1-margem/100-moPct/100;
+  const vendaBase= divisor>0?subMat/divisor:subMat*(1+margem/100);
+  const taxaVal  = Math.round(vendaBase*taxaCard/100*100)/100;
+  const venda    = Math.round((vendaBase+taxaVal)*100)/100;
+  const moVal    = Math.round(vendaBase*moPct/100*100)/100;
+  const custoTotal = Math.round((subMat+moVal+taxaVal)*100)/100;
+  const lucro    = Math.round((venda-custoTotal)*100)/100;
+  // Histórico de alterações
+  const agora = new Date().toISOString();
+  const hist  = o.historico||[];
+  hist.push({ data: agora, usuario: _usuarioLogado?.nome||'Sistema', acao: 'Editado' });
+  const updates = {
+    itens:_editItens, subMat, moVal, custoTotal, venda, lucro,
+    margemPct: margem, pagamento: pag, taxaCartao: taxaCard,
+    alteradoEm: agora, alteradoPor: _usuarioLogado?.nome||'Sistema',
+    historico: hist
+  };
   try { await updateDoc(doc(db,'cmt_orcamentos',id),updates); } catch(e){}
   Object.assign(o,updates);
   document.getElementById('modal-editar-orc').classList.remove('open');
