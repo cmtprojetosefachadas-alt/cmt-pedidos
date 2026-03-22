@@ -1060,7 +1060,21 @@ window._itensSelecionados = {};
 window._modalOrcId = null;
 
 // ── INIT ──
+async function carregarCategorias() {
+  window._categoriasExtras = [];
+  try {
+    const snap = await getDocs(collection(db,'cmt_categorias'));
+    snap.docs.forEach(d=>{
+      const nome = d.data().nome;
+      if(nome && !window._categoriasExtras.includes(nome)) {
+        window._categoriasExtras.push(nome);
+      }
+    });
+  } catch(e){}
+}
+
 async function init() {
+  await carregarCategorias();
   await carregarMateriais();
   await carregarClientes();
   await carregarOrcamentos();
@@ -1137,9 +1151,10 @@ window.toggleCategorias = function() {
 
 // ── CATEGORIAS ──
 function getCategorias() {
-  const cats = [...new Set(window._materiais.map(m=>m.cat||'Outros'))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
-  // Sempre garante Outros no final
-  const sem = cats.filter(c=>c!=='Outros');
+  const dosMateriais = window._materiais.map(m=>m.cat||'Outros');
+  const extras = window._categoriasExtras||[];
+  const todas = [...new Set([...dosMateriais, ...extras])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const sem = todas.filter(c=>c!=='Outros');
   return [...sem, 'Outros'];
 }
 
@@ -1189,15 +1204,16 @@ window.adicionarCategoria = async function() {
   const nome = document.getElementById('nova-cat-input').value.trim();
   if(!nome) { showToast('Digite o nome da categoria!'); return; }
   const cats = getCategorias();
-  if(cats.includes(nome)) { showToast('Categoria já existe!'); return; }
-  // Salva no Firebase como config
+  if(cats.includes(nome)) { showToast('Categoria "'+nome+'" já existe!'); return; }
+  // Salva no Firebase
   try { await addDoc(collection(db,'cmt_categorias'),{nome}); } catch(e){}
-  // Adiciona um material placeholder invisível para manter a categoria (ou só usa localmente)
+  // Adiciona ao estado local
   window._categoriasExtras = window._categoriasExtras||[];
   window._categoriasExtras.push(nome);
   document.getElementById('nova-cat-input').value='';
-  // Atualiza todos os selects
+  // Atualiza toda a UI
   renderListaCategorias();
+  renderFiltrosCategorias();
   popularSelectCategorias('g-nm-cat');
   popularSelectCategorias('edit-mat-cat');
   showToast('Categoria "'+nome+'" adicionada!');
