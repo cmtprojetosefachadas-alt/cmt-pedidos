@@ -590,14 +590,37 @@ body {
 <div class="screen" id="screen-materiais">
   <div class="orc-header">
     <h2>Gestão de materiais</h2>
+    <button class="btn-ghost" onclick="toggleCategorias()">🏷️ Categorias</button>
     <button class="btn-ghost" onclick="toggleNovoMatGlobal()">+ Novo material</button>
   </div>
+
+  <!-- PAINEL CATEGORIAS -->
+  <div class="novo-mat-form" id="painel-categorias" style="margin-bottom:16px">
+    <div class="card-title" style="margin-bottom:14px">Gerenciar categorias</div>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">
+      <input class="field" id="nova-cat-input" placeholder="Nome da nova categoria..." style="max-width:280px">
+      <button class="btn-ghost" onclick="adicionarCategoria()">+ Adicionar</button>
+    </div>
+    <div id="lista-categorias" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px">Clique em uma categoria para renomear. × para remover.</div>
+  </div>
+
+  <!-- FORM NOVO MATERIAL -->
   <div class="novo-mat-form" id="novo-mat-form-global" style="margin-bottom:16px">
     <div class="card-title" style="margin-bottom:12px">Adicionar material</div>
-    <div class="novo-mat-grid">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 80px;gap:8px;align-items:end">
       <div class="field-group" style="margin:0">
         <label class="field-label">Nome</label>
         <input class="field" id="g-nm-nome" placeholder="Nome do material">
+      </div>
+      <div class="field-group" style="margin:0">
+        <label class="field-label">Categoria</label>
+        <select class="field" id="g-nm-cat" onchange="toggleNovaCatGlobal(this)">
+        </select>
+      </div>
+      <div class="field-group" style="margin:0" id="g-nm-cat-nova-wrap" style="display:none">
+        <label class="field-label">Nova categoria</label>
+        <input class="field" id="g-nm-cat-nova" placeholder="Digite o nome">
       </div>
       <div class="field-group" style="margin:0">
         <label class="field-label">Unidade</label>
@@ -606,6 +629,8 @@ body {
           <option value="un">un</option><option value="pct">pct</option>
           <option value="hr">hr</option><option value="dia">dia</option>
           <option value="uso">uso</option><option value="m">m</option>
+          <option value="placa">placa</option><option value="barra">barra</option>
+          <option value="rolo">rolo</option><option value="kit">kit</option>
         </select>
       </div>
       <div class="field-group" style="margin:0">
@@ -618,6 +643,14 @@ body {
       </div>
     </div>
   </div>
+
+  <!-- FILTRO POR CATEGORIA -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+    <span style="font-size:12px;color:var(--muted);font-weight:600">Filtrar:</span>
+    <button class="btn-ghost active-cat" id="cat-filter-all" onclick="filtrarPorCategoria('',this)" style="padding:4px 12px;font-size:11px;background:var(--accent);color:#fff;border-color:var(--accent)">Todos</button>
+    <div id="cat-filter-btns" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+  </div>
+
   <div class="card">
     <div class="orc-table-wrap">
       <table>
@@ -1036,6 +1069,8 @@ async function init() {
   renderRelatorio();
   renderTabelaMateriais();
   atualizarNumeroOrcamento();
+  renderFiltrosCategorias();
+  popularSelectCategorias('g-nm-cat');
   // Controle de acesso: só admin vê aba Usuários
   const navU = document.getElementById('nav-usuarios');
   if(navU) navU.style.display = isAdmin?'':'none';
@@ -1087,13 +1122,129 @@ window.toggleMaterial = function(id) {
 };
 
 window.toggleNovoMat = function() {
-  const f = document.getElementById('novo-mat-form');
-  f.classList.toggle('open');
+  document.getElementById('novo-mat-form').classList.toggle('open');
 };
 window.toggleNovoMatGlobal = function() {
-  const f = document.getElementById('novo-mat-form-global');
-  f.classList.toggle('open');
+  document.getElementById('novo-mat-form-global').classList.toggle('open');
+  if(document.getElementById('novo-mat-form-global').classList.contains('open')) {
+    popularSelectCategorias('g-nm-cat');
+  }
 };
+window.toggleCategorias = function() {
+  document.getElementById('painel-categorias').classList.toggle('open');
+  if(document.getElementById('painel-categorias').classList.contains('open')) renderListaCategorias();
+};
+
+// ── CATEGORIAS ──
+function getCategorias() {
+  const cats = [...new Set(window._materiais.map(m=>m.cat||'Outros'))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  // Sempre garante Outros no final
+  const sem = cats.filter(c=>c!=='Outros');
+  return [...sem, 'Outros'];
+}
+
+function popularSelectCategorias(selectId, valorAtual) {
+  const sel = document.getElementById(selectId);
+  if(!sel) return;
+  const cats = getCategorias();
+  const val = valorAtual||sel.value||'';
+  sel.innerHTML = cats.map(c=>`<option value="${c}" ${c===val?'selected':''}>${c}</option>`).join('')
+    + '<option value="__nova__">+ Nova categoria...</option>';
+}
+
+function renderListaCategorias() {
+  const cats = getCategorias();
+  const el = document.getElementById('lista-categorias');
+  if(!el) return;
+  el.innerHTML = cats.map(cat=>`
+    <div style="display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:4px 10px 4px 12px">
+      <span style="font-size:13px;font-weight:500;cursor:pointer" onclick="renomearCategoria('${cat}')" title="Clique para renomear">${cat}</span>
+      ${cat!=='Outros'?`<span onclick="removerCategoria('${cat}')" style="color:var(--muted2);cursor:pointer;font-size:16px;line-height:1;margin-left:4px" title="Remover">×</span>`:''}
+    </div>
+  `).join('');
+  // Atualiza filtros
+  renderFiltrosCategorias();
+}
+
+function renderFiltrosCategorias() {
+  const cats = getCategorias();
+  const el = document.getElementById('cat-filter-btns');
+  if(!el) return;
+  el.innerHTML = cats.map(cat=>`
+    <button class="btn-ghost" onclick="filtrarPorCategoria('${cat}',this)" style="padding:4px 12px;font-size:11px">${cat}</button>
+  `).join('');
+}
+
+window._catFiltro = '';
+window.filtrarPorCategoria = function(cat, btn) {
+  window._catFiltro = cat;
+  document.querySelectorAll('#cat-filter-btns .btn-ghost, #cat-filter-all').forEach(b=>{
+    b.style.background=''; b.style.color=''; b.style.borderColor='';
+  });
+  if(btn) { btn.style.background='var(--accent)'; btn.style.color='#fff'; btn.style.borderColor='var(--accent)'; }
+  renderTabelaMateriais();
+};
+
+window.adicionarCategoria = async function() {
+  const nome = document.getElementById('nova-cat-input').value.trim();
+  if(!nome) { showToast('Digite o nome da categoria!'); return; }
+  const cats = getCategorias();
+  if(cats.includes(nome)) { showToast('Categoria já existe!'); return; }
+  // Salva no Firebase como config
+  try { await addDoc(collection(db,'cmt_categorias'),{nome}); } catch(e){}
+  // Adiciona um material placeholder invisível para manter a categoria (ou só usa localmente)
+  window._categoriasExtras = window._categoriasExtras||[];
+  window._categoriasExtras.push(nome);
+  document.getElementById('nova-cat-input').value='';
+  // Atualiza todos os selects
+  renderListaCategorias();
+  popularSelectCategorias('g-nm-cat');
+  popularSelectCategorias('edit-mat-cat');
+  showToast('Categoria "'+nome+'" adicionada!');
+};
+
+window.renomearCategoria = async function(cat) {
+  const novo = prompt(`Renomear categoria "${cat}" para:`, cat);
+  if(!novo||!novo.trim()||novo===cat) return;
+  // Atualiza todos os materiais dessa categoria
+  const batch = window._materiais.filter(m=>m.cat===cat);
+  for(const m of batch) {
+    try { await updateDoc(doc(db,'cmt_materiais',m.id),{cat:novo}); m.cat=novo; } catch(e){}
+  }
+  renderTabelaMateriais();
+  renderListaCategorias();
+  popularSelectCategorias('g-nm-cat');
+  popularSelectCategorias('edit-mat-cat');
+  renderCatalogo();
+  showToast(`"${cat}" renomeada para "${novo}"!`);
+};
+
+window.removerCategoria = async function(cat) {
+  const count = window._materiais.filter(m=>m.cat===cat).length;
+  const msg = count>0
+    ? `A categoria "${cat}" tem ${count} material(is). Eles irão para "Outros". Confirma?`
+    : `Remover categoria "${cat}"?`;
+  if(!confirm(msg)) return;
+  // Move materiais para Outros
+  const batch = window._materiais.filter(m=>m.cat===cat);
+  for(const m of batch) {
+    try { await updateDoc(doc(db,'cmt_materiais',m.id),{cat:'Outros'}); m.cat='Outros'; } catch(e){}
+  }
+  renderTabelaMateriais();
+  renderListaCategorias();
+  popularSelectCategorias('g-nm-cat');
+  popularSelectCategorias('edit-mat-cat');
+  renderCatalogo();
+  showToast(`Categoria "${cat}" removida.`);
+};
+
+window.toggleNovaCatGlobal = function(sel) {
+  const wrap = document.getElementById('g-nm-cat-nova-wrap');
+  if(sel.value==='__nova__') { wrap.style.display='block'; document.getElementById('g-nm-cat-nova').focus(); }
+  else wrap.style.display='none';
+};
+
+
 
 window.salvarNovoMaterial = async function() {
   const nome = document.getElementById('nm-nome').value.trim();
@@ -1110,14 +1261,18 @@ window.salvarNovoMaterial = async function() {
 };
 
 window.salvarNovoMaterialGlobal = async function() {
-  const nome = document.getElementById('g-nm-nome').value.trim();
-  const unit = document.getElementById('g-nm-unit').value;
+  const nome  = document.getElementById('g-nm-nome').value.trim();
+  const unit  = document.getElementById('g-nm-unit').value;
   const custo = parseFloat(document.getElementById('g-nm-custo').value)||0;
+  let cat     = document.getElementById('g-nm-cat')?.value||'Outros';
+  if(cat==='__nova__') { cat = document.getElementById('g-nm-cat-nova').value.trim()||'Outros'; }
   if(!nome||!custo){showToast('Preencha nome e custo!');return;}
-  const ref = await addDoc(collection(db,'cmt_materiais'),{nome,cat:'Outros',unit,custo});
-  window._materiais.push({id:ref.id,nome,cat:'Outros',unit,custo});
+  const ref = await addDoc(collection(db,'cmt_materiais'),{nome,cat,unit,custo});
+  window._materiais.push({id:ref.id,nome,cat,unit,custo});
   renderCatalogo();
   renderTabelaMateriais();
+  renderListaCategorias();
+  renderFiltrosCategorias();
   document.getElementById('g-nm-nome').value='';
   document.getElementById('g-nm-custo').value='';
   showToast('Material salvo!');
@@ -1134,7 +1289,9 @@ window.deletarMaterial = async function(id) {
 
 function renderTabelaMateriais() {
   const tb = document.getElementById('materiais-tbody');
-  tb.innerHTML = window._materiais.map(m=>`
+  const filtro = window._catFiltro||'';
+  const lista = filtro ? window._materiais.filter(m=>m.cat===filtro) : window._materiais;
+  tb.innerHTML = lista.map(m=>`
     <tr>
       <td>${m.nome}</td>
       <td><span class="badge badge-blue">${m.cat}</span></td>
@@ -1921,6 +2078,7 @@ window.showScreen = function(name,btn) {
   if(name==='materiais') renderTabelaMateriais();
   if(name==='lista') renderListaOrcamentos();
   if(name==='usuarios') renderTabelaUsuarios();
+  if(name==='materiais') { renderFiltrosCategorias(); renderListaCategorias(); popularSelectCategorias('g-nm-cat'); }
 };
 
 // ── PWA INSTALL BANNER (iOS Safari) ──
