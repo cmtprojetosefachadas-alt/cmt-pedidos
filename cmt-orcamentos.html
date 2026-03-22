@@ -1298,8 +1298,8 @@ window.gerarPDFRelatorio = function() {
 
 // ── CLIENTES (lê do CRM existente) ──
 async function carregarClientes() {
-  // Tenta coleção 'pedidos' (portal rastreamento) e 'clientes'
-  const colecoes = ['pedidos','clientes','customers'];
+  // Coleção correta do CRM: 'clientes' com campo 'nome'
+  const colecoes = ['clientes','pedidos','customers'];
   let encontrou = false;
   for(const col of colecoes) {
     try {
@@ -1311,17 +1311,25 @@ async function carregarClientes() {
       }
     } catch(e){}
   }
-  // Popula select
+  // Popula select — campo 'nome' é o correto no CRM da CMT
   const sel = document.getElementById('sel-cliente');
   if(window._clientes.length>0) {
-    window._clientes.forEach(c=>{
-      const nome = c.clienteNome||c.nome||c.name||c.empresa||'Cliente '+c.id;
+    // Ordena por nome alfabeticamente
+    const sorted = [...window._clientes].sort((a,b)=>{
+      const na = (a.nome||a.clienteNome||a.name||a.empresa||'').toLowerCase();
+      const nb = (b.nome||b.clienteNome||b.name||b.empresa||'').toLowerCase();
+      return na.localeCompare(nb,'pt-BR');
+    });
+    sorted.forEach(c=>{
+      const nome = c.nome||c.clienteNome||c.name||c.empresa||'Cliente '+c.id;
+      if(!nome.trim()) return; // Ignora registros sem nome
       const opt = document.createElement('option');
-      opt.value = c.id; opt.textContent = nome;
+      opt.value = c.id;
+      opt.textContent = nome;
       sel.appendChild(opt);
     });
   } else {
-    // Permite digitar manualmente
+    // Permite digitar manualmente se não encontrar clientes
     sel.outerHTML = '<input class="field" id="sel-cliente" placeholder="Nome do cliente...">';
   }
 }
