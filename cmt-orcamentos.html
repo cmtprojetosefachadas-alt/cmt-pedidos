@@ -618,7 +618,7 @@ body {
         <select class="field" id="g-nm-cat" onchange="toggleNovaCatGlobal(this)">
         </select>
       </div>
-      <div class="field-group" style="margin:0" id="g-nm-cat-nova-wrap" style="display:none">
+      <div class="field-group" id="g-nm-cat-nova-wrap" style="display:none;margin:0">
         <label class="field-label">Nova categoria</label>
         <input class="field" id="g-nm-cat-nova" placeholder="Digite o nome">
       </div>
@@ -1240,8 +1240,13 @@ window.removerCategoria = async function(cat) {
 
 window.toggleNovaCatGlobal = function(sel) {
   const wrap = document.getElementById('g-nm-cat-nova-wrap');
-  if(sel.value==='__nova__') { wrap.style.display='block'; document.getElementById('g-nm-cat-nova').focus(); }
-  else wrap.style.display='none';
+  if(sel.value==='__nova__') {
+    wrap.style.display='block';
+    document.getElementById('g-nm-cat-nova').focus();
+  } else {
+    wrap.style.display='none';
+    document.getElementById('g-nm-cat-nova').value='';
+  }
 };
 
 
