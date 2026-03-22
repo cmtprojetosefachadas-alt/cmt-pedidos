@@ -1241,13 +1241,24 @@ window.removerCategoria = async function(cat) {
     ? `A categoria "${cat}" tem ${count} material(is). Eles irão para "Outros". Confirma?`
     : `Remover categoria "${cat}"?`;
   if(!confirm(msg)) return;
-  // Move materiais para Outros
+  // Move materiais para Outros no Firebase
   const batch = window._materiais.filter(m=>m.cat===cat);
   for(const m of batch) {
     try { await updateDoc(doc(db,'cmt_materiais',m.id),{cat:'Outros'}); m.cat='Outros'; } catch(e){}
   }
+  // Remove da coleção cmt_categorias no Firebase
+  try {
+    const snap = await getDocs(collection(db,'cmt_categorias'));
+    for(const d of snap.docs) {
+      if(d.data().nome===cat) await deleteDoc(doc(db,'cmt_categorias',d.id));
+    }
+  } catch(e){}
+  // Remove do estado local
+  window._categoriasExtras = (window._categoriasExtras||[]).filter(c=>c!==cat);
+  // Atualiza UI
   renderTabelaMateriais();
   renderListaCategorias();
+  renderFiltrosCategorias();
   popularSelectCategorias('g-nm-cat');
   popularSelectCategorias('edit-mat-cat');
   renderCatalogo();
