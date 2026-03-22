@@ -812,11 +812,21 @@ body {
 <div class="modal-overlay" id="modal-editar-orc" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:680px;max-height:92vh;overflow-y:auto">
     <h3 id="edit-orc-title">Editar orçamento</h3>
-    <!-- Margem + Pagamento -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+    <!-- Margem + MO + Pagamento -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px">
       <div>
         <label class="field-label">Margem de venda (%)</label>
-        <input class="field" id="edit-margem" type="number" min="1" max="90" value="30" oninput="atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <input class="field" id="edit-margem" type="number" min="1" max="89" value="30" oninput="validarCamposEdit();atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px">
+          <span id="edit-margem-preview" style="font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap">30%</span>
+        </div>
+      </div>
+      <div>
+        <label class="field-label">Mão de obra (%)</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input class="field" id="edit-mo-pct" type="number" min="0" max="89" value="25" oninput="validarCamposEdit();atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px">
+          <span id="edit-mo-preview" style="font-size:13px;font-weight:700;color:var(--purple);white-space:nowrap">25%</span>
+        </div>
       </div>
       <div>
         <label class="field-label">Forma de pagamento</label>
@@ -835,7 +845,11 @@ body {
       </div>
       <div id="cartao-taxa-vazio" style="display:block"></div>
     </div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Ajuste itens, quantidades e margem. Total recalculado automaticamente.</div>
+    <!-- Aviso limite -->
+    <div id="edit-limite-aviso" style="display:none;font-size:12px;color:var(--red);background:rgba(204,34,34,0.08);border-radius:6px;padding:6px 10px;margin-bottom:10px">
+      ⚠️ Margem + Mão de obra não pode ultrapassar 90%
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Ajuste itens, quantidades, margem e mão de obra. Total recalculado automaticamente.</div>
     <div id="edit-orc-itens"></div>
     <!-- Adicionar item -->
     <div style="margin-top:14px;background:var(--bg3);border:1px dashed var(--border2);border-radius:8px;padding:12px">
@@ -1843,6 +1857,9 @@ window.abrirEdicaoOrcamento = function(id) {
   _editItens = JSON.parse(JSON.stringify(o.itens||[]));
   // Carrega margem e pagamento existentes
   document.getElementById('edit-margem').value = o.margemPct||30;
+  document.getElementById('edit-margem-preview').textContent = (o.margemPct||30)+'%';
+  document.getElementById('edit-mo-pct').value = o.moPct||25;
+  document.getElementById('edit-mo-preview').textContent = (o.moPct||25)+'%';
   const pag = document.getElementById('edit-pagamento');
   pag.value = o.pagamento||'dinheiro';
   document.getElementById('edit-taxa-cartao').value = o.taxaCartao||2.5;
@@ -1896,11 +1913,30 @@ function renderEditItens() {
   atualizarTotaisEdit();
 }
 
+window.validarCamposEdit = function() {
+  const margem = parseFloat(document.getElementById('edit-margem')?.value)||0;
+  const moPct  = parseFloat(document.getElementById('edit-mo-pct')?.value)||0;
+  const aviso  = document.getElementById('edit-limite-aviso');
+  // Atualiza previews
+  document.getElementById('edit-margem-preview').textContent = margem+'%';
+  document.getElementById('edit-mo-preview').textContent = moPct+'%';
+  if(margem + moPct >= 90) {
+    if(aviso) aviso.style.display='block';
+    // Ajusta automaticamente
+    if(parseFloat(document.getElementById('edit-margem').value) + moPct >= 90) {
+      document.getElementById('edit-margem').value = Math.max(1, 89 - moPct);
+      document.getElementById('edit-margem-preview').textContent = document.getElementById('edit-margem').value+'%';
+    }
+  } else {
+    if(aviso) aviso.style.display='none';
+  }
+};
+
 function atualizarTotaisEdit() {
   const o = window._orcamentos.find(x=>x.id===window._modalOrcId);
   if(!o) return;
   const margem   = parseFloat(document.getElementById('edit-margem')?.value)||30;
-  const moPct    = o.moPct||25;
+  const moPct    = parseFloat(document.getElementById('edit-mo-pct')?.value)||25;
   const pag      = document.getElementById('edit-pagamento')?.value||'dinheiro';
   const isCard   = pag==='cartao_debito'||pag==='cartao_credito';
   const taxaCard = isCard?(parseFloat(document.getElementById('edit-taxa-cartao')?.value)||0):0;
@@ -1938,7 +1974,7 @@ window.salvarEdicaoOrcamento = async function() {
   const o  = window._orcamentos.find(x=>x.id===id);
   if(!o||!_editItens.length) { showToast('Adicione pelo menos 1 item!'); return; }
   const margem   = parseFloat(document.getElementById('edit-margem').value)||30;
-  const moPct    = o.moPct||25;
+  const moPct    = parseFloat(document.getElementById('edit-mo-pct').value)||25;
   const pag      = document.getElementById('edit-pagamento').value||'dinheiro';
   const isCard   = pag==='cartao_debito'||pag==='cartao_credito';
   const taxaCard = isCard?(parseFloat(document.getElementById('edit-taxa-cartao').value)||0):0;
