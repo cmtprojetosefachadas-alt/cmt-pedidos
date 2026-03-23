@@ -367,11 +367,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="stat-val dark" id="fx-futuro-val" style="font-size:24px;color:#7C5CBF;">R$ 0</div>
         <div class="stat-label">Entradas futuras</div>
       </div>
-      <div class="stat" style="cursor:pointer;" id="fx-aberto-card">
-        <div style="font-size:16px;margin-bottom:6px;">⏳</div>
-        <div class="stat-val dark" id="fx-aberto" style="font-size:24px;color:var(--amber);">R$ 0</div>
-        <div class="stat-label">Em aberto — ver →</div>
-      </div>
+
     </div>
 
     <!-- SUB TABS -->
@@ -379,7 +375,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="tab active" id="fxtab-entradas" onclick="showFluxoTab('entradas')" style="padding:10px 18px;font-size:13px;">📥 Entradas</button>
       <button class="tab" id="fxtab-saidas" onclick="showFluxoTab('saidas')" style="padding:10px 18px;font-size:13px;">📤 Saídas</button>
       <button class="tab" id="fxtab-futuro" onclick="showFluxoTab('futuro')" style="padding:10px 18px;font-size:13px;">🔮 Futuros</button>
-      <button class="tab" id="fxtab-aberto" onclick="showFluxoTab('aberto')" style="padding:10px 18px;font-size:13px;">⏳ Em aberto</button>
+
       <button class="tab" id="fxtab-categorias" onclick="showFluxoTab('categorias')" style="padding:10px 18px;font-size:13px;">🏷️ Categorias</button>
     </div>
 
@@ -453,14 +449,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
     </div>
 
-    <!-- EM ABERTO -->
-    <div id="fxpanel-aberto" style="display:none;">
-      <div class="form-card">
-        <h3>⏳ Pedidos com saldo em aberto</h3>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Pedidos com valor pendente de recebimento</p>
-        <div id="fx-aberto-lista"></div>
-      </div>
-    </div>
+
 
     <!-- CATEGORIAS -->
     <div id="fxpanel-categorias" style="display:none;">
@@ -1093,30 +1082,7 @@ document.addEventListener('click',async e=>{
     showToast(jaRecebido?'↩ Marcado como pendente':'✅ Recebido! Movido para Entradas','toast-fluxo');
     return;
   }
-  // Registrar recebimento do em aberto
-  if(e.target.dataset.type==='registrar-recebimento'){
-    const pedidoId=e.target.dataset.pedidoId;
-    const nomeCliente=e.target.dataset.nome;
-    const pendente=parseFloat(e.target.dataset.pendente)||0;
-    const valor = prompt(`Valor recebido de ${nomeCliente}:
-(Pendente: R$ ${pendente.toFixed(2).replace('.',',')})`, pendente.toFixed(2).replace('.',','));
-    if(valor===null) return;
-    const valorNum = parseFloat(valor.replace(',','.'))||0;
-    // allow zero for cortesia
-    const hoje = new Date().toISOString().split('T')[0];
-    const entrada = {
-      pedidoId, clienteNome: nomeCliente,
-      tipo: 'Recebimento', valor: valorNum,
-      data: hoje, compensacao: '', obs: 'Registrado via Em aberto',
-      mes: hoje.substring(5,7)+'/20'+hoje.substring(2,4),
-      recebido: true, criadoEm: serverTimestamp()
-    };
-    await addDoc(collection(db,'fluxo_entradas'), entrada);
-    await carregarFluxoData();
-    showToast(`✅ Recebimento registrado!`,'toast-fluxo');
-    showFluxoTab('entradas');
-    return;
-  }
+
   // Edit entrada
   if(e.target.dataset.type==='edit-entrada'){
     const ent = fluxoEntradas.find(x=>x.id===e.target.dataset.id);
@@ -1783,12 +1749,12 @@ let fluxoCategorias = ['Material','Fornecedor','Mão de obra','Despesa fixa','Tr
 const CAT_DEFAULT = ['Material','Fornecedor','Mão de obra','Despesa fixa','Transporte','Outro'];
 
 window.showFluxoTab = function showFluxoTab(tab) {
-  ['entradas','saidas','futuro','aberto','categorias'].forEach(t => {
-    document.getElementById('fxpanel-'+t).style.display = t===tab ? 'block' : 'none';
+  ['entradas','saidas','futuro','categorias'].forEach(t => {
+    const panel = document.getElementById('fxpanel-'+t);
+    if(panel) panel.style.display = t===tab ? 'block' : 'none';
     const el = document.getElementById('fxtab-'+t);
     if(el) el.classList.toggle('active', t===tab);
   });
-  if(tab==='aberto') renderAberto();
   if(tab==='futuro') renderFuturos();
   if(tab==='categorias') renderCategorias();
   if(tab==='saidas') popularCatSelect();
@@ -2143,14 +2109,17 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
   const mesNum = (sel && sel.value) ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
   const [mm,yy] = mesNum.split('/');
   const nomeMes = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||mesNum;
-  const mesNome = nomeMes + ' 20' + yy;
+  const mesNome = nomeMes + ' ' + (yy.length===4 ? yy : '20'+yy);
 
   const normM = m => m ? (m.length===5 ? m.substring(0,3)+'20'+m.substring(3) : m) : '';
-  const getM = d => d ? d.substring(5,7)+'/20'+d.substring(2,4) : '';
+  const getM = d => d ? d.substring(5,7)+'/'+d.substring(0,4) : '';
+  const hojeP = new Date().toISOString().split('T')[0];
   const entMes = fluxoEntradas.filter(e=> normM(e.mes||getM(e.data))===mesNum);
   const saiMes = fluxoSaidas.filter(s=> normM(s.mes||getM(s.data))===mesNum);
-  const totalEnt = entPassadas.reduce((s,e)=>s+(e.valor||0),0);
-  const totalFuturo = entFuturas.reduce((s,e)=>s+(e.valor||0),0);
+  const entPassadasP = entMes.filter(e=>e.recebido===true||(e.data&&e.data<=hojeP));
+  const entFuturasP = entMes.filter(e=>e.recebido!==true&&e.data&&e.data>hojeP);
+  const totalEnt = entPassadasP.reduce((s,e)=>s+(e.valor||0),0);
+  const totalFuturo = entFuturasP.reduce((s,e)=>s+(e.valor||0),0);
   const totalSai = saiMes.reduce((s,e)=>s+(e.valor||0),0);
   const saldo = totalEnt - totalSai;
 
@@ -2187,7 +2156,7 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
   <h2>📥 Entradas</h2>
   ${entMes.length ? `<table>
     <thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Observação</th><th style="text-align:right;">Valor</th></tr></thead>
-    <tbody>${entMes.map(e=>`<tr><td>${e.data?e.data.split('-').reverse().join('/'):'—'}</td><td>${e.clienteNome||'—'}</td><td>${e.tipo||'Entrada'}</td><td>${e.obs||''}</td><td style="text-align:right;color:#0F6E56;font-weight:600;">${fmtMoney(e.valor||0)}</td></tr>`).join('')}</tbody>
+    <tbody>${entPassadasP.map(e=>`<tr><td>${e.data?e.data.split('-').reverse().join('/'):'—'}</td><td>${e.clienteNome||'—'}</td><td>${e.tipo||'Entrada'}</td><td>${e.obs||''}</td><td style="text-align:right;color:#0F6E56;font-weight:600;">${fmtMoney(e.valor||0)}</td></tr>`).join('')}</tbody>
     <tfoot><tr><td colspan="4">Total entradas</td><td style="text-align:right;color:#0F6E56;">${fmtMoney(totalEnt)}</td></tr></tfoot>
   </table>` : '<p style="color:#6b6b6b;">Nenhuma entrada registrada.</p>'}
 
@@ -2216,9 +2185,7 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
   setTimeout(()=>win.print(), 500);
 });
 
-// Card em aberto click
-const abCard = document.getElementById('fx-aberto-card');
-if(abCard) abCard.addEventListener('click', ()=>showFluxoTab('aberto'));
+
 
 // Show/hide parcelas field based on tipo
 document.getElementById('fx-ent-tipo').addEventListener('change', function() {
