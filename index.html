@@ -160,6 +160,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <button class="tab" id="tab-finalizados">Finalizados (0)</button>
   <button class="tab" id="tab-cadastro">+ Cadastrar Cliente</button>
   <button class="tab" id="tab-faturamento">💰 Faturamento</button>
+  <button class="tab" id="tab-fluxo">💵 Fluxo de Caixa</button>
   <button class="tab" id="tab-novo-orc">+ Novo Orçamento</button>
 </div>
 
@@ -333,6 +334,125 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="section-header"><span class="section-title">Pedidos finalizados</span></div>
     <div class="cards-grid" id="finalizados-grid"><div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;">Nenhum pedido finalizado ainda.</div></div>
   </div>
+
+  <!-- FLUXO DE CAIXA -->
+  <div id="panel-fluxo" class="panel">
+    <div class="section-header">
+      <span class="section-title">💵 Fluxo de Caixa</span>
+      <div style="display:flex;gap:8px;">
+        <select id="fluxo-mes-sel" style="padding:6px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" onchange="renderFluxo()"></select>
+      </div>
+    </div>
+
+    <!-- RESUMO TOPO -->
+    <div class="stats" style="margin-bottom:16px;">
+      <div class="stat">
+        <div style="font-size:16px;margin-bottom:6px;">📥</div>
+        <div class="stat-val" id="fx-entradas" style="font-size:24px;color:var(--green);">R$ 0</div>
+        <div class="stat-label">Total entradas</div>
+      </div>
+      <div class="stat">
+        <div style="font-size:16px;margin-bottom:6px;">📤</div>
+        <div class="stat-val dark" id="fx-saidas" style="font-size:24px;color:var(--red);">R$ 0</div>
+        <div class="stat-label">Total saídas</div>
+      </div>
+      <div class="stat">
+        <div style="font-size:16px;margin-bottom:6px;">💰</div>
+        <div class="stat-val" id="fx-saldo" style="font-size:24px;">R$ 0</div>
+        <div class="stat-label">Saldo do mês</div>
+      </div>
+      <div class="stat" style="cursor:pointer;" onclick="showFluxoTab('aberto')">
+        <div style="font-size:16px;margin-bottom:6px;">⏳</div>
+        <div class="stat-val dark" id="fx-aberto" style="font-size:24px;color:var(--amber);">R$ 0</div>
+        <div class="stat-label">Em aberto — ver →</div>
+      </div>
+    </div>
+
+    <!-- SUB TABS -->
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;">
+      <button class="tab active" id="fxtab-entradas" onclick="showFluxoTab('entradas')" style="padding:10px 18px;font-size:13px;">📥 Entradas</button>
+      <button class="tab" id="fxtab-saidas" onclick="showFluxoTab('saidas')" style="padding:10px 18px;font-size:13px;">📤 Saídas</button>
+      <button class="tab" id="fxtab-futuro" onclick="showFluxoTab('futuro')" style="padding:10px 18px;font-size:13px;">🔮 Futuros</button>
+      <button class="tab" id="fxtab-aberto" onclick="showFluxoTab('aberto')" style="padding:10px 18px;font-size:13px;">⏳ Em aberto</button>
+      <button class="tab" id="fxtab-categorias" onclick="showFluxoTab('categorias')" style="padding:10px 18px;font-size:13px;">🏷️ Categorias</button>
+    </div>
+
+    <!-- ENTRADAS -->
+    <div id="fxpanel-entradas">
+      <div class="form-card" style="margin-bottom:16px;">
+        <h3>+ Nova entrada</h3>
+        <div class="fg2">
+          <div class="field"><label>Cliente / Pedido</label>
+            <select id="fx-ent-pedido"><option value="">— Selecionar —</option></select>
+          </div>
+          <div class="field"><label>Tipo</label>
+            <select id="fx-ent-tipo">
+              <option>Entrada</option><option>Parcela</option><option>Pagamento final</option>
+              <option>Cheque pré-datado</option><option>PIX</option><option>Transferência</option><option>Outro</option>
+            </select>
+          </div>
+          <div class="field"><label>Valor (R$)</label><input type="number" id="fx-ent-valor" placeholder="0,00" min="0" step="0.01"/></div>
+          <div class="field"><label>Data</label><input type="date" id="fx-ent-data"/></div>
+          <div class="field"><label>Data compensação (cheque)</label><input type="date" id="fx-ent-compensacao"/></div>
+          <div class="field"><label>Observação</label><input type="text" id="fx-ent-obs" placeholder="Ex: 50% entrada conforme combinado"/></div>
+        </div>
+        <div style="margin-top:12px;"><button class="btn btn-primary" id="btn-add-entrada">+ Registrar entrada</button></div>
+      </div>
+      <div id="fx-entradas-lista"></div>
+    </div>
+
+    <!-- SAIDAS -->
+    <div id="fxpanel-saidas" style="display:none;">
+      <div class="form-card" style="margin-bottom:16px;">
+        <h3>+ Nova saída</h3>
+        <div class="fg2">
+          <div class="field"><label>Descrição</label><input type="text" id="fx-sai-desc" placeholder="Ex: Chapa ACM fornecedor X"/></div>
+          <div class="field"><label>Categoria</label>
+            <select id="fx-sai-cat"><option>Carregando...</option></select>
+          </div>
+          <div class="field"><label>Valor (R$)</label><input type="number" id="fx-sai-valor" placeholder="0,00" min="0" step="0.01"/></div>
+          <div class="field"><label>Data</label><input type="date" id="fx-sai-data"/></div>
+          <div class="field"><label>Fornecedor / Referência</label><input type="text" id="fx-sai-ref" placeholder="Ex: Fornecedor ACM Ltda"/></div>
+          <div class="field"><label>Observação</label><input type="text" id="fx-sai-obs" placeholder="Opcional"/></div>
+        </div>
+        <div style="margin-top:12px;"><button class="btn btn-red" id="btn-add-saida">+ Registrar saída</button></div>
+      </div>
+      <div id="fx-saidas-lista"></div>
+    </div>
+
+    <!-- FUTUROS -->
+    <div id="fxpanel-futuro" style="display:none;">
+      <div class="form-card">
+        <h3>🔮 Recebimentos futuros</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Cheques pré-datados e parcelas com data futura</p>
+        <div id="fx-futuros-lista"></div>
+      </div>
+    </div>
+
+    <!-- EM ABERTO -->
+    <div id="fxpanel-aberto" style="display:none;">
+      <div class="form-card">
+        <h3>⏳ Pedidos com saldo em aberto</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Pedidos com valor pendente de recebimento</p>
+        <div id="fx-aberto-lista"></div>
+      </div>
+    </div>
+
+    <!-- CATEGORIAS -->
+    <div id="fxpanel-categorias" style="display:none;">
+      <div class="form-card">
+        <h3>🏷️ Categorias de saída</h3>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <input type="text" id="fx-cat-nova" placeholder="Nova categoria..." style="flex:1;padding:9px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;"/>
+          <button class="btn btn-primary" id="btn-add-cat">+ Adicionar</button>
+        </div>
+        <div id="fx-cat-lista"></div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast-fluxo"></div>
+  </div>
+
   <!-- FATURAMENTO -->
   <div id="panel-faturamento" class="panel">
     <div class="section-header"><span class="section-title">Faturamento por mês</span></div>
@@ -494,6 +614,7 @@ function showTab(tab){
   if(panelEl)panelEl.classList.add('active');
   if(tab==='finalizados')renderFinalizados();
   if(tab==='visao')renderVisaoGeral();
+  if(tab==='fluxo'){renderFluxo();popularFluxoMeses();}
   if(tab==='novo-orc'){
     editingItens=[];renderItens();
     const hoje=new Date();
@@ -824,7 +945,7 @@ document.getElementById('login-senha').addEventListener('keydown',e=>{if(e.key==
 document.getElementById('btn-savelink').addEventListener('click',()=>showToast('Link salvo!'));
 
 // TABS
-['visao','clientes','pedidos','orcamentos','finalizados','cadastro','novo-orc','faturamento'].forEach(t=>{
+['visao','clientes','pedidos','orcamentos','finalizados','cadastro','novo-orc','faturamento','fluxo'].forEach(t=>{
   document.getElementById('tab-'+t).addEventListener('click',()=>showTab(t));
 });
 document.getElementById('link-fin').addEventListener('click',()=>showTab('finalizados'));
@@ -916,6 +1037,28 @@ document.addEventListener('click',async e=>{
   // Del item orçamento
   if(e.target.dataset.type==='delitem'){
     editingItens.splice(parseInt(e.target.dataset.idx),1);renderItens();return;
+  }
+  // Del entrada fluxo
+  if(e.target.dataset.type==='del-entrada'){
+    if(!confirm('Remover esta entrada?'))return;
+    await deleteDoc(doc(db,'fluxo_entradas',e.target.dataset.id));
+    fluxoEntradas=fluxoEntradas.filter(x=>x.id!==e.target.dataset.id);
+    renderFluxo();return;
+  }
+  // Del saida fluxo
+  if(e.target.dataset.type==='del-saida'){
+    if(!confirm('Remover esta saída?'))return;
+    await deleteDoc(doc(db,'fluxo_saidas',e.target.dataset.id));
+    fluxoSaidas=fluxoSaidas.filter(x=>x.id!==e.target.dataset.id);
+    renderFluxo();return;
+  }
+  // Del categoria
+  if(e.target.dataset.type==='del-cat'){
+    if(!confirm('Remover esta categoria?'))return;
+    const snap=await getDocs(query(collection(db,'fluxo_categorias'),where('nome','==',e.target.dataset.cat)));
+    snap.forEach(async d=>await deleteDoc(doc(db,'fluxo_categorias',d.id)));
+    fluxoCategorias=fluxoCategorias.filter(c=>c!==e.target.dataset.cat);
+    renderCategorias();popularCatSelect();return;
   }
   // Del cliente
   if(e.target.dataset.type==='delcliente'){
@@ -1473,6 +1616,282 @@ document.getElementById('vg-fat-card').addEventListener('click', () => {
     </table>`;
   document.getElementById('relatorio-bg').classList.add('open');
 });
+
+
+// ============================================================
+// FLUXO DE CAIXA
+// ============================================================
+let fluxoEntradas = [];
+let fluxoSaidas = [];
+let fluxoCategorias = ['Material','Fornecedor','Mão de obra','Despesa fixa','Transporte','Outro'];
+
+const CAT_DEFAULT = ['Material','Fornecedor','Mão de obra','Despesa fixa','Transporte','Outro'];
+
+function showFluxoTab(tab) {
+  ['entradas','saidas','futuro','aberto','categorias'].forEach(t => {
+    document.getElementById('fxpanel-'+t).style.display = t===tab ? 'block' : 'none';
+    const el = document.getElementById('fxtab-'+t);
+    if(el) el.classList.toggle('active', t===tab);
+  });
+  if(tab==='aberto') renderAberto();
+  if(tab==='futuro') renderFuturos();
+  if(tab==='categorias') renderCategorias();
+  if(tab==='saidas') popularCatSelect();
+}
+
+function popularFluxoMeses() {
+  const sel = document.getElementById('fluxo-mes-sel');
+  if(!sel) return;
+  const hoje = new Date();
+  const meses = [];
+  for(let i=0;i<6;i++){
+    const d = new Date(hoje.getFullYear(), hoje.getMonth()-i, 1);
+    meses.push(d.toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
+  }
+  const atual = hoje.toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+  const currentVal = sel.value || atual;
+  sel.innerHTML = meses.map(m=>{
+    const [mm,yy]=m.split('/');
+    const nome=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||m;
+    return `<option value="${m}" ${m===currentVal?'selected':''}>${nome} ${yy}</option>`;
+  }).join('');
+}
+
+async function carregarFluxoData() {
+  try {
+    const [snapE, snapS, snapC] = await Promise.all([
+      getDocs(query(collection(db,'fluxo_entradas'), orderBy('data','desc'))),
+      getDocs(query(collection(db,'fluxo_saidas'), orderBy('data','desc'))),
+      getDocs(collection(db,'fluxo_categorias'))
+    ]);
+    fluxoEntradas = snapE.docs.map(d=>({id:d.id,...d.data()}));
+    fluxoSaidas = snapS.docs.map(d=>({id:d.id,...d.data()}));
+    const cats = snapC.docs.map(d=>d.data().nome);
+    if(cats.length) fluxoCategorias = cats;
+    renderFluxo();
+  } catch(e){ console.error(e); }
+}
+
+function renderFluxo() {
+  popularFluxoMeses();
+  const sel = document.getElementById('fluxo-mes-sel');
+  const mesNum = sel ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+
+  const entMes = fluxoEntradas.filter(e=>e.data&&e.data.substring(3)===mesNum);
+  const saiMes = fluxoSaidas.filter(s=>s.data&&s.data.substring(3)===mesNum);
+  const totalEnt = entMes.reduce((s,e)=>s+(e.valor||0),0);
+  const totalSai = saiMes.reduce((s,e)=>s+(e.valor||0),0);
+  const saldo = totalEnt - totalSai;
+
+  // Aberto = valor dos pedidos do mês - entradas recebidas
+  const pedMes = pedidos.filter(p=>p.mes===mesNum||(p.dataConversao&&p.dataConversao.substring(3)===mesNum));
+  const totalPed = pedMes.reduce((s,p)=>s+(p.valor||0),0);
+  const aberto = Math.max(totalPed - totalEnt, 0);
+
+  const el = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+  el('fx-entradas', fmtMoney(totalEnt));
+  el('fx-saidas', fmtMoney(totalSai));
+  el('fx-aberto', fmtMoney(aberto));
+  const saldoEl = document.getElementById('fx-saldo');
+  if(saldoEl){ saldoEl.textContent = fmtMoney(saldo); saldoEl.style.color = saldo>=0?'var(--green)':'var(--red)'; }
+
+  renderEntradasLista(entMes);
+  renderSaidasLista(saiMes);
+  popularPedidoSelect();
+  popularCatSelect();
+}
+
+function fmtDataBr(s) { if(!s)return''; const[y,m,d]=s.split('-'); return`${d}/${m}/${y}`; }
+function dataToMes(s) { if(!s)return''; const parts=s.split('-'); if(parts.length===3) return parts[2]+'/'+parts[1]+'/'+parts[0].substring(2); return s; }
+
+function renderEntradasLista(lista) {
+  const el = document.getElementById('fx-entradas-lista');
+  if(!el)return;
+  if(!lista.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhuma entrada registrada.</div>'; return; }
+  el.innerHTML=`<div class="form-card">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr style="border-bottom:1px solid var(--border);">
+        <th style="padding:8px;text-align:left;color:var(--muted);font-weight:500;">Data</th>
+        <th style="padding:8px;text-align:left;color:var(--muted);font-weight:500;">Cliente</th>
+        <th style="padding:8px;text-align:left;color:var(--muted);font-weight:500;">Tipo</th>
+        <th style="padding:8px;text-align:left;color:var(--muted);font-weight:500;">Obs</th>
+        <th style="padding:8px;text-align:right;color:var(--muted);font-weight:500;">Valor</th>
+        <th style="padding:8px;"></th>
+      </tr></thead>
+      <tbody>${lista.map(e=>`
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:8px;">${fmtDataBr(e.data)}</td>
+          <td style="padding:8px;font-weight:500;">${e.clienteNome||'—'}</td>
+          <td style="padding:8px;"><span style="background:var(--green-bg);color:var(--green-text);padding:2px 8px;border-radius:12px;font-size:11px;">${e.tipo||'Entrada'}</span>
+          ${e.compensacao?`<br/><span style="font-size:11px;color:var(--muted);">Comp: ${fmtDataBr(e.compensacao)}</span>`:''}
+          </td>
+          <td style="padding:8px;color:var(--muted);font-size:12px;">${e.obs||''}</td>
+          <td style="padding:8px;text-align:right;font-weight:600;color:var(--green);">${fmtMoney(e.valor||0)}</td>
+          <td style="padding:8px;"><button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function renderSaidasLista(lista) {
+  const el = document.getElementById('fx-saidas-lista');
+  if(!el)return;
+  if(!lista.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhuma saída registrada.</div>'; return; }
+  el.innerHTML=`<div class="form-card">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr style="border-bottom:1px solid var(--border);">
+        <th style="padding:8px;text-align:left;color:var(--muted);font-weight:500;">Data</th>
+        <th style="padding:8px;text-align:left;color:var(--muted);font-weight:500;">Descrição</th>
+        <th style="padding:8px;text-align:left;color:var(--muted);font-weight:500;">Categoria</th>
+        <th style="padding:8px;text-align:left;color:var(--muted);font-weight:500;">Referência</th>
+        <th style="padding:8px;text-align:right;color:var(--muted);font-weight:500;">Valor</th>
+        <th style="padding:8px;"></th>
+      </tr></thead>
+      <tbody>${lista.map(s=>`
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:8px;">${fmtDataBr(s.data)}</td>
+          <td style="padding:8px;font-weight:500;">${s.desc||'—'}</td>
+          <td style="padding:8px;"><span style="background:var(--red-bg);color:var(--red-text);padding:2px 8px;border-radius:12px;font-size:11px;">${s.cat||'Outro'}</span></td>
+          <td style="padding:8px;color:var(--muted);font-size:12px;">${s.ref||s.obs||''}</td>
+          <td style="padding:8px;text-align:right;font-weight:600;color:var(--red);">${fmtMoney(s.valor||0)}</td>
+          <td style="padding:8px;"><button class="del-btn" data-id="${s.id}" data-type="del-saida">×</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function renderFuturos() {
+  const el = document.getElementById('fx-futuros-lista');
+  if(!el)return;
+  const hoje = new Date().toISOString().split('T')[0];
+  const futuros = fluxoEntradas.filter(e=>e.compensacao&&e.compensacao>hoje);
+  futuros.sort((a,b)=>a.compensacao.localeCompare(b.compensacao));
+  if(!futuros.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum recebimento futuro registrado.</div>'; return; }
+  el.innerHTML=futuros.map(e=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">
+      <div style="background:var(--amber-bg);color:var(--amber-text);padding:4px 10px;border-radius:8px;font-size:12px;white-space:nowrap;">📅 ${fmtDataBr(e.compensacao)}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;">${e.clienteNome||'—'}</div>
+        <div style="font-size:12px;color:var(--muted);">${e.tipo||'Cheque'} ${e.obs?'· '+e.obs:''}</div>
+      </div>
+      <div style="font-size:15px;font-weight:600;color:var(--green);">${fmtMoney(e.valor||0)}</div>
+    </div>`).join('');
+}
+
+function renderAberto() {
+  const el = document.getElementById('fx-aberto-lista');
+  if(!el)return;
+  const result = pedidos.filter(p=>(p.etapa||0)<ETAPAS.length-1&&(p.valor||0)>0).map(p=>{
+    const recebido = fluxoEntradas.filter(e=>e.pedidoId===p.id).reduce((s,e)=>s+(e.valor||0),0);
+    const pendente = (p.valor||0) - recebido;
+    return {...p, recebido, pendente};
+  }).filter(p=>p.pendente>0);
+  if(!result.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum saldo em aberto! 🎉</div>'; return; }
+  el.innerHTML=result.map(p=>`
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);">
+      <div class="avatar" style="width:36px;height:36px;font-size:11px;">${ini(p.nome)}</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:600;">${p.nome}</div>
+        <div style="font-size:12px;color:var(--muted);">${p.codigo} · Total: ${fmtMoney(p.valor||0)} · Recebido: ${fmtMoney(p.recebido)}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:15px;font-weight:600;color:var(--red);">${fmtMoney(p.pendente)}</div>
+        <div style="font-size:11px;color:var(--muted);">pendente</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderCategorias() {
+  const el = document.getElementById('fx-cat-lista');
+  if(!el)return;
+  el.innerHTML=fluxoCategorias.map((c,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span style="flex:1;font-size:13px;">${c}</span>
+      ${!CAT_DEFAULT.includes(c)?`<button class="del-btn" data-cat="${c}" data-type="del-cat">×</button>`:'<span style="font-size:11px;color:var(--muted);">padrão</span>'}
+    </div>`).join('');
+}
+
+function popularPedidoSelect() {
+  const sel = document.getElementById('fx-ent-pedido');
+  if(!sel)return;
+  const ativos = pedidos.filter(p=>(p.etapa||0)<ETAPAS.length-1);
+  sel.innerHTML='<option value="">— Selecionar —</option>'+ativos.map(p=>`<option value="${p.id}" data-nome="${p.nome}">${p.nome} · ${p.codigo}</option>`).join('');
+}
+
+function popularCatSelect() {
+  const sel = document.getElementById('fx-sai-cat');
+  if(!sel)return;
+  sel.innerHTML=fluxoCategorias.map(c=>`<option>${c}</option>`).join('');
+}
+
+// LISTENERS FLUXO
+document.getElementById('btn-add-entrada').addEventListener('click', async()=>{
+  const pedSel = document.getElementById('fx-ent-pedido');
+  const pedidoId = pedSel.value;
+  const clienteNome = pedSel.options[pedSel.selectedIndex]?.dataset?.nome||pedSel.options[pedSel.selectedIndex]?.text?.split(' ·')[0]||'';
+  const tipo = document.getElementById('fx-ent-tipo').value;
+  const valor = parseFloat(document.getElementById('fx-ent-valor').value)||0;
+  const data = document.getElementById('fx-ent-data').value;
+  const compensacao = document.getElementById('fx-ent-compensacao').value;
+  const obs = document.getElementById('fx-ent-obs').value;
+  if(!valor||!data){ showToast('Preencha valor e data!','toast-fluxo'); return; }
+  const novaEntrada = { pedidoId, clienteNome, tipo, valor, data, compensacao, obs,
+    mes: data.substring(3,5)+'/'+data.substring(0,4).substring(2),
+    criadoEm: serverTimestamp() };
+  const ref = await addDoc(collection(db,'fluxo_entradas'), novaEntrada);
+  fluxoEntradas.unshift({id:ref.id,...novaEntrada});
+  document.getElementById('fx-ent-valor').value='';
+  document.getElementById('fx-ent-obs').value='';
+  document.getElementById('fx-ent-compensacao').value='';
+  renderFluxo();
+  showToast('✅ Entrada registrada!','toast-fluxo');
+});
+
+document.getElementById('btn-add-saida').addEventListener('click', async()=>{
+  const desc = document.getElementById('fx-sai-desc').value.trim();
+  const cat = document.getElementById('fx-sai-cat').value;
+  const valor = parseFloat(document.getElementById('fx-sai-valor').value)||0;
+  const data = document.getElementById('fx-sai-data').value;
+  const ref2 = document.getElementById('fx-sai-ref').value;
+  const obs = document.getElementById('fx-sai-obs').value;
+  if(!desc||!valor||!data){ showToast('Preencha descrição, valor e data!','toast-fluxo'); return; }
+  const novaSaida = { desc, cat, valor, data, ref:ref2, obs, criadoEm: serverTimestamp() };
+  const docRef = await addDoc(collection(db,'fluxo_saidas'), novaSaida);
+  fluxoSaidas.unshift({id:docRef.id,...novaSaida});
+  document.getElementById('fx-sai-desc').value='';
+  document.getElementById('fx-sai-valor').value='';
+  document.getElementById('fx-sai-ref').value='';
+  document.getElementById('fx-sai-obs').value='';
+  renderFluxo();
+  showToast('📤 Saída registrada!','toast-fluxo');
+});
+
+document.getElementById('btn-add-cat').addEventListener('click', async()=>{
+  const nome = document.getElementById('fx-cat-nova').value.trim();
+  if(!nome)return;
+  if(fluxoCategorias.includes(nome)){ showToast('Categoria já existe!','toast-fluxo'); return; }
+  await addDoc(collection(db,'fluxo_categorias'),{nome});
+  fluxoCategorias.push(nome);
+  document.getElementById('fx-cat-nova').value='';
+  renderCategorias();
+  popularCatSelect();
+  showToast('Categoria adicionada!','toast-fluxo');
+});
+
+// Delete entrada/saida/cat via event delegation - added to main click handler below
+// Set default dates for fluxo
+(()=>{
+  const hoje = new Date().toISOString().split('T')[0];
+  const edEl = document.getElementById('fx-ent-data');
+  const sdEl = document.getElementById('fx-sai-data');
+  if(edEl) edEl.value = hoje;
+  if(sdEl) sdEl.value = hoje;
+})();
+
+// Load fluxo data on init
+carregarFluxoData();
 
 // START
 document.getElementById('login-screen').style.display='flex';
