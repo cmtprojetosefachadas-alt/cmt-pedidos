@@ -1061,11 +1061,12 @@ document.addEventListener('click',async e=>{
   if(e.target.dataset.type==='toggle-recebido'){
     const id=e.target.dataset.id;
     const jaRecebido=e.target.dataset.recebido==='1';
-    await updateDoc(doc(db,'fluxo_entradas',id),{recebido:!jaRecebido});
+    const novoStatus=!jaRecebido;
+    await updateDoc(doc(db,'fluxo_entradas',id),{recebido:novoStatus});
     const idx=fluxoEntradas.findIndex(x=>x.id===id);
-    if(idx>=0) fluxoEntradas[idx].recebido=!jaRecebido;
+    if(idx>=0) fluxoEntradas[idx].recebido=novoStatus;
     renderFuturos();renderFluxo();
-    showToast(jaRecebido?'Marcado como pendente':'✅ Marcado como recebido!','toast-fluxo');
+    showToast(jaRecebido?'↩ Marcado como pendente':'✅ Marcado como recebido!','toast-fluxo');
     return;
   }
   // Registrar recebimento do em aberto
@@ -1073,17 +1074,22 @@ document.addEventListener('click',async e=>{
     const pedidoId=e.target.dataset.pedidoId;
     const nomeCliente=e.target.dataset.nome;
     const pendente=parseFloat(e.target.dataset.pendente)||0;
-    // Seleciona o pedido no form e muda para aba entradas
+    const valor = prompt(`Valor recebido de ${nomeCliente}:
+(Pendente: R$ ${pendente.toFixed(2).replace('.',',')})`, pendente.toFixed(2).replace('.',','));
+    if(!valor) return;
+    const valorNum = parseFloat(valor.replace(',','.'))||0;
+    if(!valorNum) return;
+    const hoje = new Date().toISOString().split('T')[0];
+    const entrada = {
+      pedidoId, clienteNome: nomeCliente,
+      tipo: 'Recebimento', valor: valorNum,
+      data: hoje, compensacao: '', obs: 'Registrado via Em aberto',
+      mes: hoje.substring(5,7)+'/20'+hoje.substring(2,4),
+      recebido: true, criadoEm: serverTimestamp()
+    };
+    await addDoc(collection(db,'fluxo_entradas'), entrada);
+    showToast(`✅ R$ ${valorNum.toFixed(2).replace('.',',')} registrado para ${nomeCliente}!`,'toast-fluxo');
     showFluxoTab('entradas');
-    const sel=document.getElementById('fx-ent-pedido');
-    if(sel){
-      for(let i=0;i<sel.options.length;i++){
-        if(sel.options[i].value===pedidoId){sel.selectedIndex=i;break;}
-      }
-    }
-    document.getElementById('fx-ent-valor').value=pendente.toFixed(2);
-    document.getElementById('fx-ent-obs').value='Pagamento saldo pendente';
-    showToast('Preencha os dados e clique em Registrar entrada','toast-fluxo');
     return;
   }
   // Del entrada fluxo
@@ -1761,6 +1767,8 @@ function renderFluxo() {
     const em = normMes(e.mes) || getMesFromData(e.data);
     return em === mesNum;
   });
+  // Soma TODAS entradas do mês (recebidas ou pendentes)
+  const entRecebidas = entMes; // todas contam no total
   const saiMes = fluxoSaidas.filter(s=>{
     const sm = normMes(s.mes) || getMesFromData(s.data);
     return sm === mesNum;
