@@ -1088,7 +1088,7 @@ document.addEventListener('click',async e=>{
       recebido: true, criadoEm: serverTimestamp()
     };
     await addDoc(collection(db,'fluxo_entradas'), entrada);
-    showToast(`✅ R$ ${valorNum.toFixed(2).replace('.',',')} registrado para ${nomeCliente}!`,'toast-fluxo');
+    showToast(`✅ Recebimento registrado!`,'toast-fluxo');
     showFluxoTab('entradas');
     return;
   }
@@ -1893,7 +1893,7 @@ function renderAberto() {
     const recebido = fluxoEntradas.filter(e=>e.pedidoId===p.id).reduce((s,e)=>s+(e.valor||0),0);
     const pendente = (p.valor||0) - recebido;
     return {...p, recebido, pendente};
-  }).filter(p=>p.pendente>=0); // mostra mesmo zerado para poder fechar
+  }).filter(p=>p.pendente>0); // só mostra quem tem saldo real pendente
   if(!result.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum saldo em aberto! 🎉</div>'; return; }
   el.innerHTML=result.map(p=>`
     <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);">
@@ -1967,15 +1967,15 @@ document.getElementById('btn-add-entrada').addEventListener('click', async()=>{
         criadoEm: serverTimestamp()
       };
       const ref = await addDoc(collection(db,'fluxo_entradas'), entrada);
-      fluxoEntradas.unshift({id:ref.id,...entrada});
+      // onSnapshot cuida do update
     }
     showToast(`✅ ${numParcelas} parcelas registradas!`,'toast-fluxo');
   } else {
     const novaEntrada = { pedidoId, clienteNome, tipo, valor, data, compensacao, obs,
-      mes: data.substring(5,7)+'/'+data.substring(2,4),
+      mes: data.substring(5,7)+'/'+data.substring(0,4),
       criadoEm: serverTimestamp() };
     const ref = await addDoc(collection(db,'fluxo_entradas'), novaEntrada);
-    fluxoEntradas.unshift({id:ref.id,...novaEntrada});
+      // onSnapshot cuida do update
     showToast('✅ Entrada registrada!','toast-fluxo');
   }
 
@@ -2007,14 +2007,12 @@ document.getElementById('btn-add-saida').addEventListener('click', async()=>{
         cat, valor: valorParcela, data: dataStr,
         ref: ref2, obs, criadoEm: serverTimestamp()
       };
-      const docRef = await addDoc(collection(db,'fluxo_saidas'), saida);
-      fluxoSaidas.unshift({id:docRef.id,...saida});
+      await addDoc(collection(db,'fluxo_saidas'), saida);
     }
     showToast(`📤 ${numParcelas} parcelas de saída registradas!`,'toast-fluxo');
   } else {
     const novaSaida = { desc, cat, valor, data, ref:ref2, obs, criadoEm: serverTimestamp() };
-    const docRef = await addDoc(collection(db,'fluxo_saidas'), novaSaida);
-    fluxoSaidas.unshift({id:docRef.id,...novaSaida});
+    await addDoc(collection(db,'fluxo_saidas'), novaSaida);
     showToast('📤 Saída registrada!','toast-fluxo');
   }
 
