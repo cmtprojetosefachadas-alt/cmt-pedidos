@@ -1088,6 +1088,7 @@ document.addEventListener('click',async e=>{
       recebido: true, criadoEm: serverTimestamp()
     };
     await addDoc(collection(db,'fluxo_entradas'), entrada);
+    await carregarFluxoData();
     showToast(`✅ Recebimento registrado!`,'toast-fluxo');
     showFluxoTab('entradas');
     return;
@@ -1743,15 +1744,19 @@ function popularFluxoMeses() {
 async function carregarFluxoData() {
   try {
     const [snapE, snapS, snapC] = await Promise.all([
-      getDocs(query(collection(db,'fluxo_entradas'), orderBy('data','desc'))),
-      getDocs(query(collection(db,'fluxo_saidas'), orderBy('data','desc'))),
+      getDocs(query(collection(db,'fluxo_entradas'), orderBy('criadoEm','desc'))),
+      getDocs(query(collection(db,'fluxo_saidas'), orderBy('criadoEm','desc'))),
       getDocs(collection(db,'fluxo_categorias'))
     ]);
     fluxoEntradas = snapE.docs.map(d=>({id:d.id,...d.data()}));
     fluxoSaidas = snapS.docs.map(d=>({id:d.id,...d.data()}));
-    const cats = snapC.docs.map(d=>d.data().nome);
-    if(cats.length) fluxoCategorias = cats;
+    const cats = snapC.docs.map(d=>d.data().nome).filter(Boolean);
+    // Sempre mantém as padrão + as do Firebase
+    const extras = cats.filter(c => !CAT_DEFAULT.includes(c));
+    fluxoCategorias = [...CAT_DEFAULT, ...extras];
     renderFluxo();
+    renderCategorias();
+    popularCatSelect();
   } catch(e){ console.error(e); }
 }
 
@@ -1893,7 +1898,7 @@ function renderAberto() {
     const recebido = fluxoEntradas.filter(e=>e.pedidoId===p.id).reduce((s,e)=>s+(e.valor||0),0);
     const pendente = (p.valor||0) - recebido;
     return {...p, recebido, pendente};
-  }).filter(p=>p.pendente>0); // só mostra quem tem saldo real pendente
+  }).filter(p=>Math.round(p.pendente*100)/100 > 0); // só mostra quem tem saldo real pendente
   if(!result.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum saldo em aberto! 🎉</div>'; return; }
   el.innerHTML=result.map(p=>`
     <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);">
@@ -1915,7 +1920,8 @@ function renderAberto() {
 function renderCategorias() {
   const el = document.getElementById('fx-cat-lista');
   if(!el)return;
-  el.innerHTML=fluxoCategorias.map((c,i)=>`
+  const unicas = [...new Set(fluxoCategorias)];
+  el.innerHTML=unicas.map((c,i)=>`
     <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);" id="cat-row-${i}">
       <span id="cat-label-${i}" style="flex:1;font-size:13px;">${c}</span>
       <input id="cat-edit-${i}" value="${c}" style="display:none;flex:1;padding:5px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;"/>
@@ -1982,7 +1988,7 @@ document.getElementById('btn-add-entrada').addEventListener('click', async()=>{
   document.getElementById('fx-ent-valor').value='';
   document.getElementById('fx-ent-obs').value='';
   document.getElementById('fx-ent-compensacao').value='';
-  renderFluxo();
+  await carregarFluxoData();
 });
 
 document.getElementById('btn-add-saida').addEventListener('click', async()=>{
@@ -2021,7 +2027,7 @@ document.getElementById('btn-add-saida').addEventListener('click', async()=>{
   document.getElementById('fx-sai-ref').value='';
   document.getElementById('fx-sai-obs').value='';
   document.getElementById('fx-sai-parcelas').value='1';
-  renderFluxo();
+  await carregarFluxoData();
 });
 
 document.getElementById('btn-add-cat').addEventListener('click', async()=>{
@@ -2135,25 +2141,7 @@ document.getElementById('fx-ent-tipo').addEventListener('change', function() {
   if(wrap) wrap.style.display = this.value==='Parcela' ? 'block' : 'none';
 });
 
-// Realtime listeners for fluxo
-onSnapshot(collection(db,'fluxo_entradas'), snap=>{
-  fluxoEntradas = snap.docs.map(d=>({id:d.id,...d.data()}));
-  renderFluxo();
-});
-onSnapshot(collection(db,'fluxo_saidas'), snap=>{
-  fluxoSaidas = snap.docs.map(d=>({id:d.id,...d.data()}));
-  renderFluxo();
-});
-onSnapshot(collection(db,'fluxo_categorias'), snap=>{
-  const cats = snap.docs.map(d=>d.data().nome).filter(Boolean);
-  if(cats.length) {
-    fluxoCategorias = [...new Set([...CAT_DEFAULT, ...cats])];
-  }
-  popularCatSelect();
-  renderCategorias();
-});
-
-// Load fluxo data on init
+// Load fluxo data on init - sem onSnapshot para evitar duplicatas
 carregarFluxoData();
 
 // START
