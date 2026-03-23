@@ -1725,9 +1725,17 @@ function renderFluxo() {
   const sel = document.getElementById('fluxo-mes-sel');
   const mesNum = sel ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
 
-  const getMesFromData = d => d ? d.substring(5,7)+'/'+d.substring(2,4) : '';
-  const entMes = fluxoEntradas.filter(e=>e.data&&getMesFromData(e.data)===mesNum);
-  const saiMes = fluxoSaidas.filter(s=>s.data&&getMesFromData(s.data)===mesNum);
+  // mes pode ser "03/26" ou "03/2026" - normaliza para comparar
+  const normMes = m => m ? (m.length===5 ? m.substring(0,3)+'20'+m.substring(3) : m) : '';
+  const getMesFromData = d => d ? d.substring(5,7)+'/20'+d.substring(2,4) : '';
+  const entMes = fluxoEntradas.filter(e=>{
+    const em = normMes(e.mes) || getMesFromData(e.data);
+    return em === mesNum;
+  });
+  const saiMes = fluxoSaidas.filter(s=>{
+    const sm = normMes(s.mes) || getMesFromData(s.data);
+    return sm === mesNum;
+  });
   const totalEnt = entMes.reduce((s,e)=>s+(e.valor||0),0);
   const totalSai = saiMes.reduce((s,e)=>s+(e.valor||0),0);
   const saldo = totalEnt - totalSai;
@@ -1903,7 +1911,7 @@ document.getElementById('btn-add-entrada').addEventListener('click', async()=>{
         tipo: `Parcela ${i+1}/${numParcelas}`,
         valor: Math.round(valorParcela * 100) / 100,
         data: dataStr, compensacao, obs,
-        mes: dataStr.substring(5,7)+'/'+dataStr.substring(2,4),
+        mes: dataStr.substring(5,7)+'/'+dataStr.substring(0,4),
         criadoEm: serverTimestamp()
       };
       const ref = await addDoc(collection(db,'fluxo_entradas'), entrada);
