@@ -1851,7 +1851,8 @@ function renderFluxo() {
     || (e.recebido===false && e.data && e.data<=hoje)
   );
   // Futuras = data futura E recebido===false (não recebido ainda)
-  const entFuturas = entMes.filter(e=>e.data && e.data > hoje && e.recebido!==true);
+  // All future entries not yet received
+  const entFuturas = fluxoEntradas.filter(e=>e.data && e.data > hoje && e.recebido!==true);
   const saiMes = fluxoSaidas.filter(s=>{
     const sm = normMes(s.mes) || getMesFromData(s.data);
     return sm === mesNum;
@@ -1952,8 +1953,9 @@ function renderFuturos() {
   if(!el)return;
   // Mostra todas entradas com data futura OU pendentes
   const hojeStr = new Date().toISOString().split('T')[0];
-  // Futuros = data futura E não recebido
+  // Futuros = data futura E recebido != true
   const futuros = fluxoEntradas.filter(e=>e.data && e.data > hojeStr && e.recebido!==true);
+  futuros.sort((a,b)=>a.data.localeCompare(b.data));
   futuros.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
   if(!futuros.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum recebimento pendente.</div>'; return; }
   el.innerHTML=futuros.map(e=>`
@@ -1966,7 +1968,7 @@ function renderFuturos() {
         <div style="font-size:12px;color:var(--muted);">${e.tipo||'Entrada'} ${e.obs?'· '+e.obs:''}</div>
       </div>
       <div style="font-size:14px;font-weight:600;color:var(--green);margin-right:4px;">${fmtMoney(e.valor||0)}</div>
-      <button class="btn btn-primary" style="font-size:11px;padding:4px 8px;white-space:nowrap;" data-id="${e.id}" data-recebido="0" data-type="toggle-recebido">✅ Recebido</button>
+      <button class="btn ${e.recebido===true?'':'btn-primary'}" style="font-size:11px;padding:4px 8px;white-space:nowrap;" data-id="${e.id}" data-recebido="${e.recebido===true?'1':'0'}" data-type="toggle-recebido">${e.recebido===true?'↩ Desfazer':'✅ Dar baixa'}</button>
       <button class="btn" style="font-size:11px;padding:4px 8px;" data-id="${e.id}" data-type="edit-entrada">✏️</button>
       <button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button>
     </div>`).join('');
