@@ -1627,7 +1627,7 @@ let fluxoCategorias = ['Material','Fornecedor','Mão de obra','Despesa fixa','Tr
 
 const CAT_DEFAULT = ['Material','Fornecedor','Mão de obra','Despesa fixa','Transporte','Outro'];
 
-function showFluxoTab(tab) {
+window.showFluxoTab = function showFluxoTab(tab) {
   ['entradas','saidas','futuro','aberto','categorias'].forEach(t => {
     document.getElementById('fxpanel-'+t).style.display = t===tab ? 'block' : 'none';
     const el = document.getElementById('fxtab-'+t);
