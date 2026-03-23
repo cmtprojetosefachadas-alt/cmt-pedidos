@@ -851,7 +851,8 @@ body {
     </div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Ajuste itens, quantidades, margem e mão de obra. Total recalculado automaticamente.</div>
     <div id="edit-orc-itens"></div>
-    <!-- Adicionar item -->
+    <!-- Linha mão de obra -->
+    <div id="edit-mo-line"></div>
     <div style="margin-top:14px;background:var(--bg3);border:1px dashed var(--border2);border-radius:8px;padding:12px">
       <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">Adicionar item</div>
       <div style="display:grid;grid-template-columns:1fr 80px 90px auto;gap:8px;align-items:end">
@@ -1990,20 +1991,37 @@ function atualizarTotaisEdit() {
   const isCard   = pag==='cartao_debito'||pag==='cartao_credito';
   const taxaCard = isCard?(parseFloat(document.getElementById('edit-taxa-cartao')?.value)||0):0;
   const subMat   = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100, 0);
-  const divisor  = 1-margem/100-moPct/100;
-  const vendaBase= divisor>0?subMat/divisor:subMat*(1+margem/100);
+  const divisor  = Math.max(0.10, 1-margem/100-moPct/100);
+  const vendaBase= subMat/divisor;
   const taxaVal  = Math.round(vendaBase*taxaCard/100*100)/100;
   const venda    = Math.round((vendaBase+taxaVal)*100)/100;
   const moVal    = Math.round(vendaBase*moPct/100*100)/100;
   const custoT   = Math.round((subMat+moVal+taxaVal)*100)/100;
   const lucro    = Math.round((venda-custoT)*100)/100;
   const pagLabel = {'dinheiro':'Dinheiro/PIX','boleto':'Boleto','cartao_debito':'Débito','cartao_credito':'Crédito','cheque':'Cheque','transferencia':'Transferência'}[pag]||pag;
+
+  // Linha de MO no resumo de itens
+  const moLine = document.getElementById('edit-mo-line');
+  if(moLine) {
+    moLine.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:rgba(155,127,232,0.08);margin-bottom:4px;border:1px solid rgba(155,127,232,0.2)">
+        <div style="flex:1;font-size:13px;font-weight:500;color:var(--purple)">Mão de obra</div>
+        <div style="font-size:11px;color:var(--muted);width:28px;text-align:center">%</div>
+        <div style="width:64px;text-align:center;font-size:13px;font-weight:600;color:var(--purple)">${moPct}%</div>
+        <div style="font-size:12px;color:var(--muted);width:58px;text-align:right">da venda</div>
+        <div style="font-family:Inter,sans-serif;font-size:13px;font-weight:700;width:80px;text-align:right;color:var(--purple)">${fmt(moVal)}</div>
+        <span style="width:22px"></span>
+      </div>`;
+  }
+
   document.getElementById('edit-orc-totais').innerHTML = `
+    <div class="mbar"><div class="mbar-label">Materiais</div><div class="mbar-val">${fmt(subMat)}</div></div>
+    <div class="mbar"><div class="mbar-label">Mão de obra</div><div class="mbar-val" style="color:var(--purple)">${fmt(moVal)}</div></div>
     <div class="mbar"><div class="mbar-label">Custo total</div><div class="mbar-val amber">${fmt(custoT)}</div></div>
     <div class="mbar"><div class="mbar-label">Venda (${margem}% margem)</div><div class="mbar-val">${fmt(venda)}</div></div>
     <div class="mbar"><div class="mbar-label">Lucro estimado</div><div class="mbar-val green">${fmt(lucro)}</div></div>
-    ${isCard?`<div class="mbar" style="grid-column:span 1"><div class="mbar-label">Taxa ${pagLabel} (${taxaCard}%)</div><div class="mbar-val" style="color:var(--red)">${fmt(taxaVal)}</div></div>`:''}
-    <div class="mbar" style="grid-column:span ${isCard?'2':'3'}"><div class="mbar-label">Pagamento</div><div class="mbar-val" style="color:var(--blue)">${pagLabel}</div></div>
+    ${isCard?`<div class="mbar"><div class="mbar-label">Taxa ${pagLabel} (${taxaCard}%)</div><div class="mbar-val" style="color:var(--red)">${fmt(taxaVal)}</div></div>`:''}
+    <div class="mbar" style="grid-column:span ${isCard?1:2}"><div class="mbar-label">Pagamento</div><div class="mbar-val" style="color:var(--blue)">${pagLabel}</div></div>
   `;
 }
 
