@@ -480,6 +480,27 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 </div>
 
+<!-- MODAL EDITAR ENTRADA/SAIDA -->
+<div class="modal-bg" id="edit-fluxo-bg">
+  <div class="modal" style="max-width:500px;">
+    <button class="modal-close" id="btn-close-edit-fluxo">×</button>
+    <h2 id="edit-fluxo-title">Editar lançamento</h2>
+    <input type="hidden" id="edit-fluxo-id"/>
+    <input type="hidden" id="edit-fluxo-tipo-reg"/>
+    <div class="fg2">
+      <div class="field"><label>Valor (R$)</label><input type="number" id="edit-fluxo-valor" step="0.01"/></div>
+      <div class="field"><label>Data</label><input type="date" id="edit-fluxo-data"/></div>
+      <div class="field" id="edit-fluxo-cliente-wrap"><label>Cliente</label><input type="text" id="edit-fluxo-cliente" readonly style="background:var(--surface2);"/></div>
+      <div class="field"><label>Tipo / Categoria</label><input type="text" id="edit-fluxo-cat"/></div>
+      <div class="field" style="grid-column:1/-1;"><label>Observação</label><input type="text" id="edit-fluxo-obs"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-cancelar-edit-fluxo">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-edit-fluxo">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL EDITAR CLIENTE -->
 <div class="modal-bg" id="edit-cliente-bg">
   <div class="modal" style="max-width:480px;">
@@ -1093,6 +1114,36 @@ document.addEventListener('click',async e=>{
     showFluxoTab('entradas');
     return;
   }
+  // Edit entrada
+  if(e.target.dataset.type==='edit-entrada'){
+    const ent = fluxoEntradas.find(x=>x.id===e.target.dataset.id);
+    if(!ent)return;
+    document.getElementById('edit-fluxo-id').value = ent.id;
+    document.getElementById('edit-fluxo-tipo-reg').value = 'entrada';
+    document.getElementById('edit-fluxo-title').textContent = 'Editar entrada';
+    document.getElementById('edit-fluxo-valor').value = ent.valor||0;
+    document.getElementById('edit-fluxo-data').value = ent.data||'';
+    document.getElementById('edit-fluxo-cliente').value = ent.clienteNome||'';
+    document.getElementById('edit-fluxo-cat').value = ent.tipo||'';
+    document.getElementById('edit-fluxo-obs').value = ent.obs||'';
+    document.getElementById('edit-fluxo-bg').classList.add('open');
+    return;
+  }
+  // Edit saida
+  if(e.target.dataset.type==='edit-saida'){
+    const sai = fluxoSaidas.find(x=>x.id===e.target.dataset.id);
+    if(!sai)return;
+    document.getElementById('edit-fluxo-id').value = sai.id;
+    document.getElementById('edit-fluxo-tipo-reg').value = 'saida';
+    document.getElementById('edit-fluxo-title').textContent = 'Editar saída';
+    document.getElementById('edit-fluxo-valor').value = sai.valor||0;
+    document.getElementById('edit-fluxo-data').value = sai.data||'';
+    document.getElementById('edit-fluxo-cliente').value = sai.desc||'';
+    document.getElementById('edit-fluxo-cat').value = sai.cat||'';
+    document.getElementById('edit-fluxo-obs').value = sai.obs||'';
+    document.getElementById('edit-fluxo-bg').classList.add('open');
+    return;
+  }
   // Del entrada fluxo
   if(e.target.dataset.type==='del-entrada'){
     if(!confirm('Remover esta entrada?'))return;
@@ -1316,6 +1367,23 @@ document.addEventListener('click',async e=>{
   }
   // Fechar modais
   if(e.target.id==='btn-close-relatorio'||e.target.id==='btn-fechar-relatorio')document.getElementById('relatorio-bg').classList.remove('open');
+  if(e.target.id==='btn-close-edit-fluxo'||e.target.id==='btn-cancelar-edit-fluxo')document.getElementById('edit-fluxo-bg').classList.remove('open');
+  if(e.target.id==='btn-salvar-edit-fluxo'){
+    const id = document.getElementById('edit-fluxo-id').value;
+    const tipo = document.getElementById('edit-fluxo-tipo-reg').value;
+    const valor = parseFloat(document.getElementById('edit-fluxo-valor').value)||0;
+    const data = document.getElementById('edit-fluxo-data').value;
+    const cat = document.getElementById('edit-fluxo-cat').value;
+    const obs = document.getElementById('edit-fluxo-obs').value;
+    const mes = data ? data.substring(5,7)+'/'+data.substring(0,4) : '';
+    const col = tipo==='entrada' ? 'fluxo_entradas' : 'fluxo_saidas';
+    const upd = tipo==='entrada' ? {valor,data,mes,tipo:cat,obs} : {valor,data,mes,cat,obs};
+    await updateDoc(doc(db,col,id), upd);
+    await carregarFluxoData();
+    document.getElementById('edit-fluxo-bg').classList.remove('open');
+    showToast('✅ Lançamento atualizado!','toast-fluxo');
+    return;
+  }
   if(e.target.id==='btn-close-edit-cliente'||e.target.id==='btn-cancelar-edit-cliente')document.getElementById('edit-cliente-bg').classList.remove('open');
   if(e.target.id==='btn-salvar-edit-cliente'){
     const id=document.getElementById('edit-cliente-id').value;
@@ -1833,7 +1901,10 @@ function renderEntradasLista(lista) {
           </td>
           <td style="padding:8px;color:var(--muted);font-size:12px;">${e.obs||''}</td>
           <td style="padding:8px;text-align:right;font-weight:600;color:var(--green);">${fmtMoney(e.valor||0)}</td>
-          <td style="padding:8px;"><button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button></td>
+          <td style="padding:8px;display:flex;gap:4px;">
+            <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-type="edit-entrada">✏️</button>
+            <button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button>
+          </td>
         </tr>`).join('')}
       </tbody>
     </table>
@@ -1861,7 +1932,10 @@ function renderSaidasLista(lista) {
           <td style="padding:8px;"><span style="background:var(--red-bg);color:var(--red-text);padding:2px 8px;border-radius:12px;font-size:11px;">${s.cat||'Outro'}</span></td>
           <td style="padding:8px;color:var(--muted);font-size:12px;">${s.ref||s.obs||''}</td>
           <td style="padding:8px;text-align:right;font-weight:600;color:var(--red);">${fmtMoney(s.valor||0)}</td>
-          <td style="padding:8px;"><button class="del-btn" data-id="${s.id}" data-type="del-saida">×</button></td>
+          <td style="padding:8px;display:flex;gap:4px;">
+            <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${s.id}" data-type="edit-saida">✏️</button>
+            <button class="del-btn" data-id="${s.id}" data-type="del-saida">×</button>
+          </td>
         </tr>`).join('')}
       </tbody>
     </table>
