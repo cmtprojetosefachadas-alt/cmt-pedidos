@@ -1792,8 +1792,13 @@ function popularFluxoMeses() {
   if(!sel) return;
   const hoje = new Date();
   const meses = [];
-  for(let i=0;i<6;i++){
+  // 6 meses passados + mês atual + 12 meses futuros
+  for(let i=6;i>=0;i--){
     const d = new Date(hoje.getFullYear(), hoje.getMonth()-i, 1);
+    meses.push(d.toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
+  }
+  for(let i=1;i<=12;i++){
+    const d = new Date(hoje.getFullYear(), hoje.getMonth()+i, 1);
     meses.push(d.toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
   }
   const atual = hoje.toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
@@ -1857,6 +1862,7 @@ function renderFluxo() {
     const sm = normMes(s.mes) || getMesFromData(s.data);
     return sm === mesNum;
   });
+  console.log('mesNum:', mesNum, 'saidas:', fluxoSaidas.length, 'saiMes:', saiMes.length);
   const totalEnt = entPassadas.reduce((s,e)=>s+(e.valor||0),0);
   const totalFuturo = entFuturas.reduce((s,e)=>s+(e.valor||0),0);
   const totalSai = saiMes.reduce((s,e)=>s+(e.valor||0),0);
@@ -2102,13 +2108,14 @@ document.getElementById('btn-add-saida').addEventListener('click', async()=>{
       const saida = {
         desc: `${desc} (${i+1}/${numParcelas})`,
         cat, valor: valorParcela, data: dataStr,
+        mes: dataStr.substring(5,7)+'/'+dataStr.substring(0,4),
         ref: ref2, obs, criadoEm: serverTimestamp()
       };
       await addDoc(collection(db,'fluxo_saidas'), saida);
     }
     showToast(`📤 ${numParcelas} parcelas de saída registradas!`,'toast-fluxo');
   } else {
-    const novaSaida = { desc, cat, valor, data, ref:ref2, obs, criadoEm: serverTimestamp() };
+    const novaSaida = { desc, cat, valor, data, mes: data.substring(5,7)+'/'+data.substring(0,4), ref:ref2, obs, criadoEm: serverTimestamp() };
     await addDoc(collection(db,'fluxo_saidas'), novaSaida);
     showToast('📤 Saída registrada!','toast-fluxo');
   }
