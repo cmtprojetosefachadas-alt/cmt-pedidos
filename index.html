@@ -1057,6 +1057,35 @@ document.addEventListener('click',async e=>{
   if(e.target.dataset.type==='delitem'){
     editingItens.splice(parseInt(e.target.dataset.idx),1);renderItens();return;
   }
+  // Toggle recebido
+  if(e.target.dataset.type==='toggle-recebido'){
+    const id=e.target.dataset.id;
+    const jaRecebido=e.target.dataset.recebido==='1';
+    await updateDoc(doc(db,'fluxo_entradas',id),{recebido:!jaRecebido});
+    const idx=fluxoEntradas.findIndex(x=>x.id===id);
+    if(idx>=0) fluxoEntradas[idx].recebido=!jaRecebido;
+    renderFuturos();renderFluxo();
+    showToast(jaRecebido?'Marcado como pendente':'✅ Marcado como recebido!','toast-fluxo');
+    return;
+  }
+  // Registrar recebimento do em aberto
+  if(e.target.dataset.type==='registrar-recebimento'){
+    const pedidoId=e.target.dataset.pedidoId;
+    const nomeCliente=e.target.dataset.nome;
+    const pendente=parseFloat(e.target.dataset.pendente)||0;
+    // Seleciona o pedido no form e muda para aba entradas
+    showFluxoTab('entradas');
+    const sel=document.getElementById('fx-ent-pedido');
+    if(sel){
+      for(let i=0;i<sel.options.length;i++){
+        if(sel.options[i].value===pedidoId){sel.selectedIndex=i;break;}
+      }
+    }
+    document.getElementById('fx-ent-valor').value=pendente.toFixed(2);
+    document.getElementById('fx-ent-obs').value='Pagamento saldo pendente';
+    showToast('Preencha os dados e clique em Registrar entrada','toast-fluxo');
+    return;
+  }
   // Del entrada fluxo
   if(e.target.dataset.type==='del-entrada'){
     if(!confirm('Remover esta entrada?'))return;
@@ -1822,18 +1851,23 @@ function renderSaidasLista(lista) {
 function renderFuturos() {
   const el = document.getElementById('fx-futuros-lista');
   if(!el)return;
-  const hoje = new Date().toISOString().split('T')[0];
-  const futuros = fluxoEntradas.filter(e=>e.compensacao&&e.compensacao>hoje);
-  futuros.sort((a,b)=>a.compensacao.localeCompare(b.compensacao));
-  if(!futuros.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum recebimento futuro registrado.</div>'; return; }
+  // Mostra todas entradas com data futura OU pendentes
+  const futuros = fluxoEntradas.filter(e=>!e.recebido);
+  futuros.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  if(!futuros.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum recebimento pendente.</div>'; return; }
   el.innerHTML=futuros.map(e=>`
     <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">
-      <div style="background:var(--amber-bg);color:var(--amber-text);padding:4px 10px;border-radius:8px;font-size:12px;white-space:nowrap;">📅 ${fmtDataBr(e.compensacao)}</div>
+      <div style="background:${e.recebido?'var(--green-bg)':'var(--amber-bg)'};color:${e.recebido?'var(--green-text)':'var(--amber-text)'};padding:4px 10px;border-radius:8px;font-size:12px;white-space:nowrap;">
+        📅 ${fmtDataBr(e.data)}${e.compensacao?'<br/>Comp: '+fmtDataBr(e.compensacao):''}
+      </div>
       <div style="flex:1;">
         <div style="font-size:13px;font-weight:600;">${e.clienteNome||'—'}</div>
-        <div style="font-size:12px;color:var(--muted);">${e.tipo||'Cheque'} ${e.obs?'· '+e.obs:''}</div>
+        <div style="font-size:12px;color:var(--muted);">${e.tipo||'Entrada'} ${e.obs?'· '+e.obs:''}</div>
       </div>
-      <div style="font-size:15px;font-weight:600;color:var(--green);">${fmtMoney(e.valor||0)}</div>
+      <div style="font-size:14px;font-weight:600;color:var(--green);margin-right:8px;">${fmtMoney(e.valor||0)}</div>
+      <button class="btn ${e.recebido?'':'btn-primary'}" style="font-size:11px;padding:4px 10px;white-space:nowrap;" data-id="${e.id}" data-recebido="${e.recebido?'1':'0'}" data-type="toggle-recebido">
+        ${e.recebido?'✅ Recebido':'⏳ Pendente'}
+      </button>
     </div>`).join('');
 }
 
@@ -1853,10 +1887,13 @@ function renderAberto() {
         <div style="font-size:14px;font-weight:600;">${p.nome}</div>
         <div style="font-size:12px;color:var(--muted);">${p.codigo} · Total: ${fmtMoney(p.valor||0)} · Recebido: ${fmtMoney(p.recebido)}</div>
       </div>
-      <div style="text-align:right;">
+      <div style="text-align:right;margin-right:8px;">
         <div style="font-size:15px;font-weight:600;color:var(--red);">${fmtMoney(p.pendente)}</div>
         <div style="font-size:11px;color:var(--muted);">pendente</div>
       </div>
+      <button class="btn btn-primary" style="font-size:11px;padding:5px 10px;white-space:nowrap;" data-pedido-id="${p.id}" data-nome="${p.nome}" data-pendente="${p.pendente}" data-type="registrar-recebimento">
+        + Registrar recebimento
+      </button>
     </div>`).join('');
 }
 
@@ -2004,8 +2041,10 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
   const nomeMes = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||mesNum;
   const mesNome = nomeMes + ' 20' + yy;
 
-  const entMes = fluxoEntradas.filter(e=>e.data&&(e.data.substring(5,7)+'/'+e.data.substring(2,4))===mesNum);
-  const saiMes = fluxoSaidas.filter(s=>s.data&&(s.data.substring(5,7)+'/'+s.data.substring(2,4))===mesNum);
+  const normM = m => m ? (m.length===5 ? m.substring(0,3)+'20'+m.substring(3) : m) : '';
+  const getM = d => d ? d.substring(5,7)+'/20'+d.substring(2,4) : '';
+  const entMes = fluxoEntradas.filter(e=> normM(e.mes||getM(e.data))===mesNum);
+  const saiMes = fluxoSaidas.filter(s=> normM(s.mes||getM(s.data))===mesNum);
   const totalEnt = entMes.reduce((s,e)=>s+(e.valor||0),0);
   const totalSai = saiMes.reduce((s,e)=>s+(e.valor||0),0);
   const saldo = totalEnt - totalSai;
@@ -2080,6 +2119,20 @@ if(abCard) abCard.addEventListener('click', ()=>showFluxoTab('aberto'));
 document.getElementById('fx-ent-tipo').addEventListener('change', function() {
   const wrap = document.getElementById('fx-parcelas-wrap');
   if(wrap) wrap.style.display = this.value==='Parcela' ? 'block' : 'none';
+});
+
+// Realtime listeners for fluxo
+onSnapshot(collection(db,'fluxo_entradas'), snap=>{
+  fluxoEntradas = snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderFluxo();
+});
+onSnapshot(collection(db,'fluxo_saidas'), snap=>{
+  fluxoSaidas = snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderFluxo();
+});
+onSnapshot(collection(db,'fluxo_categorias'), snap=>{
+  const cats = snap.docs.map(d=>d.data().nome).filter(Boolean);
+  if(cats.length) fluxoCategorias = cats;
 });
 
 // Load fluxo data on init
