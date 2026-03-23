@@ -175,7 +175,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
     </div>
 
-    <div class="stats" style="margin-bottom:16px;">
+    <div class="stats" style="margin-bottom:16px;grid-template-columns:repeat(5,1fr);">
       <div class="stat" style="cursor:default;">
         <div style="font-size:16px;margin-bottom:6px;">📋</div>
         <div class="stat-val" id="vg-orc-qtd" style="font-size:24px;">0</div>
@@ -361,6 +361,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div style="font-size:16px;margin-bottom:6px;">💰</div>
         <div class="stat-val" id="fx-saldo" style="font-size:24px;">R$ 0</div>
         <div class="stat-label">Saldo do mês</div>
+      </div>
+      <div class="stat" style="cursor:pointer;" onclick="showFluxoTab('futuro')">
+        <div style="font-size:16px;margin-bottom:6px;">🔮</div>
+        <div class="stat-val dark" id="fx-futuro-val" style="font-size:24px;color:#7C5CBF;">R$ 0</div>
+        <div class="stat-label">Entradas futuras</div>
       </div>
       <div class="stat" style="cursor:pointer;" id="fx-aberto-card">
         <div style="font-size:16px;margin-bottom:6px;">⏳</div>
@@ -1084,10 +1089,8 @@ document.addEventListener('click',async e=>{
     const jaRecebido=e.target.dataset.recebido==='1';
     const novoStatus=!jaRecebido;
     await updateDoc(doc(db,'fluxo_entradas',id),{recebido:novoStatus});
-    const idx=fluxoEntradas.findIndex(x=>x.id===id);
-    if(idx>=0) fluxoEntradas[idx].recebido=novoStatus;
-    renderFuturos();renderFluxo();
-    showToast(jaRecebido?'↩ Marcado como pendente':'✅ Marcado como recebido!','toast-fluxo');
+    await carregarFluxoData();
+    showToast(jaRecebido?'↩ Marcado como pendente':'✅ Recebido! Movido para Entradas','toast-fluxo');
     return;
   }
   // Registrar recebimento do em aberto
@@ -1843,17 +1846,21 @@ function renderFluxo() {
     return m;
   };
   const getMesFromData = d => d ? d.substring(5,7)+'/'+d.substring(0,4) : '';
+  const hoje = new Date().toISOString().split('T')[0];
   const entMes = fluxoEntradas.filter(e=>{
     const em = normMes(e.mes) || getMesFromData(e.data);
     return em === mesNum;
   });
-  // Soma TODAS entradas do mês (recebidas ou pendentes)
-  const entRecebidas = entMes; // todas contam no total
+  // Só soma entradas com data <= hoje
+  // Entra nas Entradas: data passada/hoje OU marcado como recebido manualmente
+  const entPassadas = entMes.filter(e=>e.recebido===true || (e.data && e.data <= hoje));
+  const entFuturas = entMes.filter(e=>e.recebido!==true && e.data && e.data > hoje);
   const saiMes = fluxoSaidas.filter(s=>{
     const sm = normMes(s.mes) || getMesFromData(s.data);
     return sm === mesNum;
   });
-  const totalEnt = entMes.reduce((s,e)=>s+(e.valor||0),0);
+  const totalEnt = entPassadas.reduce((s,e)=>s+(e.valor||0),0);
+  const totalFuturo = entFuturas.reduce((s,e)=>s+(e.valor||0),0);
   const totalSai = saiMes.reduce((s,e)=>s+(e.valor||0),0);
   const saldo = totalEnt - totalSai;
 
@@ -1866,10 +1873,11 @@ function renderFluxo() {
   el('fx-entradas', fmtMoney(totalEnt));
   el('fx-saidas', fmtMoney(totalSai));
   el('fx-aberto', fmtMoney(aberto));
+  el('fx-futuro-val', fmtMoney(totalFuturo));
   const saldoEl = document.getElementById('fx-saldo');
   if(saldoEl){ saldoEl.textContent = fmtMoney(saldo); saldoEl.style.color = saldo>=0?'var(--green)':'var(--red)'; }
 
-  renderEntradasLista(entMes);
+  renderEntradasLista(entPassadas);
   renderSaidasLista(saiMes);
   popularPedidoSelect();
   popularCatSelect();
@@ -1946,7 +1954,9 @@ function renderFuturos() {
   const el = document.getElementById('fx-futuros-lista');
   if(!el)return;
   // Mostra todas entradas com data futura OU pendentes
-  const futuros = fluxoEntradas.filter(e=>e.recebido!==true);
+  const hojeStr = new Date().toISOString().split('T')[0];
+  // Futuros = data futura E não marcado como recebido
+  const futuros = fluxoEntradas.filter(e=>e.recebido!==true && e.data && e.data > hojeStr);
   futuros.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
   if(!futuros.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum recebimento pendente.</div>'; return; }
   el.innerHTML=futuros.map(e=>`
@@ -2139,7 +2149,8 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
   const getM = d => d ? d.substring(5,7)+'/20'+d.substring(2,4) : '';
   const entMes = fluxoEntradas.filter(e=> normM(e.mes||getM(e.data))===mesNum);
   const saiMes = fluxoSaidas.filter(s=> normM(s.mes||getM(s.data))===mesNum);
-  const totalEnt = entMes.reduce((s,e)=>s+(e.valor||0),0);
+  const totalEnt = entPassadas.reduce((s,e)=>s+(e.valor||0),0);
+  const totalFuturo = entFuturas.reduce((s,e)=>s+(e.valor||0),0);
   const totalSai = saiMes.reduce((s,e)=>s+(e.valor||0),0);
   const saldo = totalEnt - totalSai;
 
