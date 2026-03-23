@@ -1142,15 +1142,16 @@ document.addEventListener('click',async e=>{
   if(e.target.dataset.type==='del-entrada'){
     if(!confirm('Remover esta entrada?'))return;
     await deleteDoc(doc(db,'fluxo_entradas',e.target.dataset.id));
-    fluxoEntradas=fluxoEntradas.filter(x=>x.id!==e.target.dataset.id);
-    renderFluxo();return;
+    await carregarFluxoData();
+    renderFuturos();
+    return;
   }
   // Del saida fluxo
   if(e.target.dataset.type==='del-saida'){
     if(!confirm('Remover esta saída?'))return;
     await deleteDoc(doc(db,'fluxo_saidas',e.target.dataset.id));
-    fluxoSaidas=fluxoSaidas.filter(x=>x.id!==e.target.dataset.id);
-    renderFluxo();return;
+    await carregarFluxoData();
+    return;
   }
   // Edit categoria
   if(e.target.dataset.type==='edit-cat'){
@@ -1844,9 +1845,13 @@ function renderFluxo() {
     return em === mesNum;
   });
   // Só soma entradas com data <= hoje
-  // Entra nas Entradas: data passada/hoje OU marcado como recebido manualmente
-  const entPassadas = entMes.filter(e=>e.recebido===true || (e.data && e.data <= hoje));
-  const entFuturas = entMes.filter(e=>e.recebido!==true && e.data && e.data > hoje);
+  // Entradas = marcado recebido OU (sem campo recebido E data passada/hoje)
+  const entPassadas = entMes.filter(e=>
+    e.recebido===true || (e.recebido!==true && e.recebido!==false && e.data && e.data<=hoje)
+    || (e.recebido===false && e.data && e.data<=hoje)
+  );
+  // Futuras = data futura E recebido===false (não recebido ainda)
+  const entFuturas = entMes.filter(e=>e.data && e.data > hoje && e.recebido!==true);
   const saiMes = fluxoSaidas.filter(s=>{
     const sm = normMes(s.mes) || getMesFromData(s.data);
     return sm === mesNum;
@@ -1947,8 +1952,8 @@ function renderFuturos() {
   if(!el)return;
   // Mostra todas entradas com data futura OU pendentes
   const hojeStr = new Date().toISOString().split('T')[0];
-  // Futuros = data futura E não marcado como recebido
-  const futuros = fluxoEntradas.filter(e=>e.recebido!==true && e.data && e.data > hojeStr);
+  // Futuros = data futura E não recebido
+  const futuros = fluxoEntradas.filter(e=>e.data && e.data > hojeStr && e.recebido!==true);
   futuros.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
   if(!futuros.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum recebimento pendente.</div>'; return; }
   el.innerHTML=futuros.map(e=>`
@@ -2052,6 +2057,7 @@ document.getElementById('btn-add-entrada').addEventListener('click', async()=>{
         valor: Math.round(valorParcela * 100) / 100,
         data: dataStr, compensacao, obs,
         mes: dataStr.substring(5,7)+'/'+dataStr.substring(0,4),
+        recebido: false,
         criadoEm: serverTimestamp()
       };
       const ref = await addDoc(collection(db,'fluxo_entradas'), entrada);
@@ -2061,6 +2067,7 @@ document.getElementById('btn-add-entrada').addEventListener('click', async()=>{
   } else {
     const novaEntrada = { pedidoId, clienteNome, tipo, valor, data, compensacao, obs,
       mes: data.substring(5,7)+'/'+data.substring(0,4),
+      recebido: false,
       criadoEm: serverTimestamp() };
     const ref = await addDoc(collection(db,'fluxo_entradas'), novaEntrada);
       // onSnapshot cuida do update
