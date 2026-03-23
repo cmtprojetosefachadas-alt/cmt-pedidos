@@ -1076,9 +1076,9 @@ document.addEventListener('click',async e=>{
     const pendente=parseFloat(e.target.dataset.pendente)||0;
     const valor = prompt(`Valor recebido de ${nomeCliente}:
 (Pendente: R$ ${pendente.toFixed(2).replace('.',',')})`, pendente.toFixed(2).replace('.',','));
-    if(!valor) return;
+    if(valor===null) return;
     const valorNum = parseFloat(valor.replace(',','.'))||0;
-    if(!valorNum) return;
+    // allow zero for cortesia
     const hoje = new Date().toISOString().split('T')[0];
     const entrada = {
       pedidoId, clienteNome: nomeCliente,
@@ -1761,8 +1761,14 @@ function renderFluxo() {
   const mesNum = sel ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
 
   // mes pode ser "03/26" ou "03/2026" - normaliza para comparar
-  const normMes = m => m ? (m.length===5 ? m.substring(0,3)+'20'+m.substring(3) : m) : '';
-  const getMesFromData = d => d ? d.substring(5,7)+'/20'+d.substring(2,4) : '';
+  // Normaliza mes para formato MM/YYYY
+  const normMes = m => {
+    if(!m) return '';
+    if(m.length===5) return m.substring(0,3)+'20'+m.substring(3); // "03/26" -> "03/2026"
+    if(m.length===7) return m; // "03/2026" ok
+    return m;
+  };
+  const getMesFromData = d => d ? d.substring(5,7)+'/'+d.substring(0,4) : '';
   const entMes = fluxoEntradas.filter(e=>{
     const em = normMes(e.mes) || getMesFromData(e.data);
     return em === mesNum;
@@ -1860,7 +1866,7 @@ function renderFuturos() {
   const el = document.getElementById('fx-futuros-lista');
   if(!el)return;
   // Mostra todas entradas com data futura OU pendentes
-  const futuros = fluxoEntradas.filter(e=>!e.recebido);
+  const futuros = fluxoEntradas.filter(e=>e.recebido!==true);
   futuros.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
   if(!futuros.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum recebimento pendente.</div>'; return; }
   el.innerHTML=futuros.map(e=>`
@@ -1886,7 +1892,7 @@ function renderAberto() {
     const recebido = fluxoEntradas.filter(e=>e.pedidoId===p.id).reduce((s,e)=>s+(e.valor||0),0);
     const pendente = (p.valor||0) - recebido;
     return {...p, recebido, pendente};
-  }).filter(p=>p.pendente>0);
+  }).filter(p=>p.pendente>=0); // mostra mesmo zerado para poder fechar
   if(!result.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum saldo em aberto! 🎉</div>'; return; }
   el.innerHTML=result.map(p=>`
     <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);">
