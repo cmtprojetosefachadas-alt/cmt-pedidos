@@ -2208,10 +2208,18 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
     <tfoot><tr><td colspan="4">Total saídas</td><td style="text-align:right;color:#A32D2D;">${fmtMoney(totalSai)}</td></tr></tfoot>
   </table>` : '<p style="color:#6b6b6b;">Nenhuma saída registrada.</p>'}
 
+  <h2>🔮 Recebimentos futuros</h2>
+  ${entFuturasP.length ? `<table>
+    <thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Observação</th><th style="text-align:right;">Valor</th></tr></thead>
+    <tbody>${entFuturasP.map(e=>`<tr><td>${e.data?e.data.split('-').reverse().join('/'):'—'}</td><td>${e.clienteNome||'—'}</td><td>${e.tipo||'Entrada'}</td><td>${e.obs||''}</td><td style="text-align:right;color:#7C5CBF;font-weight:600;">${fmtMoney(e.valor||0)}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="4">Total futuro</td><td style="text-align:right;color:#7C5CBF;">${fmtMoney(totalFuturo)}</td></tr></tfoot>
+  </table>` : '<p style="color:#6b6b6b;">Nenhum recebimento futuro.</p>'}
+
   <h2>💰 Resultado</h2>
   <table>
     <tbody>
-      <tr><td style="font-size:14px;">Total entradas</td><td style="text-align:right;color:#0F6E56;font-size:14px;font-weight:600;">${fmtMoney(totalEnt)}</td></tr>
+      <tr><td style="font-size:14px;">Total entradas recebidas</td><td style="text-align:right;color:#0F6E56;font-size:14px;font-weight:600;">${fmtMoney(totalEnt)}</td></tr>
+      <tr><td style="font-size:14px;">Recebimentos futuros</td><td style="text-align:right;color:#7C5CBF;font-size:14px;font-weight:600;">${fmtMoney(totalFuturo)}</td></tr>
       <tr><td style="font-size:14px;">Total saídas</td><td style="text-align:right;color:#A32D2D;font-size:14px;font-weight:600;">${fmtMoney(totalSai)}</td></tr>
     </tbody>
     <tfoot><tr style="background:#f0ede8;"><td style="font-size:15px;">Saldo do mês</td><td style="text-align:right;font-size:18px;color:${saldo>=0?'#0F6E56':'#A32D2D'};">${fmtMoney(saldo)}</td></tr></tfoot>
