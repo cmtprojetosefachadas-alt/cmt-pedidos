@@ -1757,8 +1757,9 @@ async function carregarFluxoData() {
 
 function renderFluxo() {
   popularFluxoMeses();
+  popularFluxoMeses();
   const sel = document.getElementById('fluxo-mes-sel');
-  const mesNum = sel ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+  const mesNum = (sel && sel.value) ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
 
   // mes pode ser "03/26" ou "03/2026" - normaliza para comparar
   // Normaliza mes para formato MM/YYYY
@@ -2049,8 +2050,9 @@ document.getElementById('btn-add-cat').addEventListener('click', async()=>{
 
 // PDF Fluxo de Caixa
 document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
+  popularFluxoMeses();
   const sel = document.getElementById('fluxo-mes-sel');
-  const mesNum = sel ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+  const mesNum = (sel && sel.value) ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
   const [mm,yy] = mesNum.split('/');
   const nomeMes = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||mesNum;
   const mesNome = nomeMes + ' 20' + yy;
@@ -2146,7 +2148,11 @@ onSnapshot(collection(db,'fluxo_saidas'), snap=>{
 });
 onSnapshot(collection(db,'fluxo_categorias'), snap=>{
   const cats = snap.docs.map(d=>d.data().nome).filter(Boolean);
-  if(cats.length) fluxoCategorias = cats;
+  if(cats.length) {
+    fluxoCategorias = [...new Set([...CAT_DEFAULT, ...cats])];
+  }
+  popularCatSelect();
+  renderCategorias();
 });
 
 // Load fluxo data on init
