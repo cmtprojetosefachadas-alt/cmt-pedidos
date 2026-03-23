@@ -1725,8 +1725,9 @@ function renderFluxo() {
   const sel = document.getElementById('fluxo-mes-sel');
   const mesNum = sel ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
 
-  const entMes = fluxoEntradas.filter(e=>e.data&&e.data.substring(3)===mesNum);
-  const saiMes = fluxoSaidas.filter(s=>s.data&&s.data.substring(3)===mesNum);
+  const getMesFromData = d => d ? d.substring(5,7)+'/'+d.substring(2,4) : '';
+  const entMes = fluxoEntradas.filter(e=>e.data&&getMesFromData(e.data)===mesNum);
+  const saiMes = fluxoSaidas.filter(s=>s.data&&getMesFromData(s.data)===mesNum);
   const totalEnt = entMes.reduce((s,e)=>s+(e.valor||0),0);
   const totalSai = saiMes.reduce((s,e)=>s+(e.valor||0),0);
   const saldo = totalEnt - totalSai;
@@ -1995,8 +1996,8 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
   const nomeMes = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||mesNum;
   const mesNome = nomeMes + ' 20' + yy;
 
-  const entMes = fluxoEntradas.filter(e=>e.data&&e.data.substring(5,7)+'/'+e.data.substring(2,4)===mesNum);
-  const saiMes = fluxoSaidas.filter(s=>s.data&&s.data.substring(5,7)+'/'+s.data.substring(2,4)===mesNum);
+  const entMes = fluxoEntradas.filter(e=>e.data&&(e.data.substring(5,7)+'/'+e.data.substring(2,4))===mesNum);
+  const saiMes = fluxoSaidas.filter(s=>s.data&&(s.data.substring(5,7)+'/'+s.data.substring(2,4))===mesNum);
   const totalEnt = entMes.reduce((s,e)=>s+(e.valor||0),0);
   const totalSai = saiMes.reduce((s,e)=>s+(e.valor||0),0);
   const saldo = totalEnt - totalSai;
