@@ -381,6 +381,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
     <!-- ENTRADAS -->
     <div id="fxpanel-entradas">
+      <div class="form-card" style="margin-bottom:8px;padding:12px 18px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:13px;color:var(--muted);flex:1;">Excluir todas as entradas de um cliente:</span>
+          <select id="fx-del-cliente-sel" style="padding:6px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;min-width:200px;">
+            <option value="">— Selecionar cliente —</option>
+          </select>
+          <button class="btn btn-red" style="font-size:12px;padding:6px 14px;" id="btn-del-entradas-cliente">🗑️ Excluir todas</button>
+        </div>
+      </div>
       <div class="form-card" style="margin-bottom:16px;">
         <h3>+ Nova entrada</h3>
         <div class="fg2">
@@ -486,6 +495,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="field"><label>Data</label><input type="date" id="edit-fluxo-data"/></div>
       <div class="field" id="edit-fluxo-cliente-wrap"><label>Cliente</label><input type="text" id="edit-fluxo-cliente" readonly style="background:var(--surface2);"/></div>
       <div class="field"><label>Tipo / Categoria</label><input type="text" id="edit-fluxo-cat"/></div>
+      <div class="field"><label>Data compensação (cheque)</label><input type="date" id="edit-fluxo-compensacao"/></div>
       <div class="field" style="grid-column:1/-1;"><label>Observação</label><input type="text" id="edit-fluxo-obs"/></div>
     </div>
     <div class="modal-actions">
@@ -1095,6 +1105,7 @@ document.addEventListener('click',async e=>{
     document.getElementById('edit-fluxo-cliente').value = ent.clienteNome||'';
     document.getElementById('edit-fluxo-cat').value = ent.tipo||'';
     document.getElementById('edit-fluxo-obs').value = ent.obs||'';
+    document.getElementById('edit-fluxo-compensacao').value = ent.compensacao||'';
     document.getElementById('edit-fluxo-bg').classList.add('open');
     return;
   }
@@ -1111,6 +1122,20 @@ document.addEventListener('click',async e=>{
     document.getElementById('edit-fluxo-cat').value = sai.cat||'';
     document.getElementById('edit-fluxo-obs').value = sai.obs||'';
     document.getElementById('edit-fluxo-bg').classList.add('open');
+    return;
+  }
+  // Del todas entradas de um cliente
+  if(e.target.id==='btn-del-entradas-cliente'){
+    const nome = document.getElementById('fx-del-cliente-sel').value;
+    if(!nome){ showToast('Selecione um cliente!','toast-fluxo'); return; }
+    const paraApagar = fluxoEntradas.filter(x=>x.clienteNome===nome);
+    if(!paraApagar.length){ showToast('Nenhuma entrada encontrada!','toast-fluxo'); return; }
+    if(!confirm(`Apagar ${paraApagar.length} entrada(s) de "${nome}"?`)) return;
+    for(const e2 of paraApagar){
+      await deleteDoc(doc(db,'fluxo_entradas',e2.id));
+    }
+    await carregarFluxoData();
+    showToast(`🗑️ ${paraApagar.length} entrada(s) removida(s)!`,'toast-fluxo');
     return;
   }
   // Del entrada fluxo
@@ -1346,7 +1371,8 @@ document.addEventListener('click',async e=>{
     const obs = document.getElementById('edit-fluxo-obs').value;
     const mes = data ? data.substring(5,7)+'/'+data.substring(0,4) : '';
     const col = tipo==='entrada' ? 'fluxo_entradas' : 'fluxo_saidas';
-    const upd = tipo==='entrada' ? {valor,data,mes,tipo:cat,obs} : {valor,data,mes,cat,obs};
+    const compensacao = document.getElementById('edit-fluxo-compensacao').value||'';
+    const upd = tipo==='entrada' ? {valor,data,mes,tipo:cat,obs,compensacao} : {valor,data,mes,cat,obs};
     await updateDoc(doc(db,col,id), upd);
     await carregarFluxoData();
     document.getElementById('edit-fluxo-bg').classList.remove('open');
@@ -1986,6 +2012,12 @@ function popularPedidoSelect() {
   if(!sel)return;
   const ativos = pedidos.filter(p=>(p.etapa||0)<ETAPAS.length-1);
   sel.innerHTML='<option value="">— Selecionar —</option>'+ativos.map(p=>`<option value="${p.id}" data-nome="${p.nome}">${p.nome} · ${p.codigo}</option>`).join('');
+
+  // Popular select de excluir por cliente
+  const delSel = document.getElementById('fx-del-cliente-sel');
+  if(!delSel)return;
+  const clientes = [...new Set(fluxoEntradas.map(e=>e.clienteNome).filter(Boolean))];
+  delSel.innerHTML='<option value="">— Selecionar cliente —</option>'+clientes.map(c=>`<option value="${c}">${c}</option>`).join('');
 }
 
 function popularCatSelect() {
