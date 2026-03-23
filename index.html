@@ -361,7 +361,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="stat-val" id="fx-saldo" style="font-size:24px;">R$ 0</div>
         <div class="stat-label">Saldo do mês</div>
       </div>
-      <div class="stat" style="cursor:pointer;" onclick="showFluxoTab('aberto')">
+      <div class="stat" style="cursor:pointer;" id="fx-aberto-card">
         <div style="font-size:16px;margin-bottom:6px;">⏳</div>
         <div class="stat-val dark" id="fx-aberto" style="font-size:24px;color:var(--amber);">R$ 0</div>
         <div class="stat-label">Em aberto — ver →</div>
@@ -1051,6 +1051,35 @@ document.addEventListener('click',async e=>{
     await deleteDoc(doc(db,'fluxo_saidas',e.target.dataset.id));
     fluxoSaidas=fluxoSaidas.filter(x=>x.id!==e.target.dataset.id);
     renderFluxo();return;
+  }
+  // Edit categoria
+  if(e.target.dataset.type==='edit-cat'){
+    const idx=e.target.dataset.idx;
+    document.getElementById('cat-label-'+idx).style.display='none';
+    document.getElementById('cat-edit-'+idx).style.display='inline-block';
+    document.getElementById('cat-save-'+idx).style.display='inline-flex';
+    document.getElementById('cat-edit-'+idx).focus();
+    return;
+  }
+  // Save categoria
+  if(e.target.dataset.type==='save-cat'){
+    const idx=e.target.dataset.idx;
+    const oldCat=e.target.dataset.cat;
+    const newCat=document.getElementById('cat-edit-'+idx).value.trim();
+    if(!newCat)return;
+    // Update in firebase
+    const snap=await getDocs(query(collection(db,'fluxo_categorias'),where('nome','==',oldCat)));
+    if(!snap.empty){
+      await updateDoc(doc(db,'fluxo_categorias',snap.docs[0].id),{nome:newCat});
+    } else {
+      await addDoc(collection(db,'fluxo_categorias'),{nome:newCat});
+    }
+    const idx2=fluxoCategorias.indexOf(oldCat);
+    if(idx2>=0) fluxoCategorias[idx2]=newCat;
+    renderCategorias();
+    popularCatSelect();
+    showToast('Categoria atualizada!','toast-fluxo');
+    return;
   }
   // Del categoria
   if(e.target.dataset.type==='del-cat'){
@@ -1807,9 +1836,12 @@ function renderCategorias() {
   const el = document.getElementById('fx-cat-lista');
   if(!el)return;
   el.innerHTML=fluxoCategorias.map((c,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
-      <span style="flex:1;font-size:13px;">${c}</span>
-      ${!CAT_DEFAULT.includes(c)?`<button class="del-btn" data-cat="${c}" data-type="del-cat">×</button>`:'<span style="font-size:11px;color:var(--muted);">padrão</span>'}
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);" id="cat-row-${i}">
+      <span id="cat-label-${i}" style="flex:1;font-size:13px;">${c}</span>
+      <input id="cat-edit-${i}" value="${c}" style="display:none;flex:1;padding:5px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;"/>
+      <button class="btn" style="font-size:11px;padding:3px 10px;" data-idx="${i}" data-cat="${c}" data-type="edit-cat">✏️</button>
+      <button class="btn btn-primary" id="cat-save-${i}" style="display:none;font-size:11px;padding:3px 10px;" data-idx="${i}" data-cat="${c}" data-type="save-cat">💾</button>
+      ${!CAT_DEFAULT.includes(c)?`<button class="del-btn" data-cat="${c}" data-type="del-cat">×</button>`:''}
     </div>`).join('');
 }
 
@@ -1889,6 +1921,10 @@ document.getElementById('btn-add-cat').addEventListener('click', async()=>{
   if(edEl) edEl.value = hoje;
   if(sdEl) sdEl.value = hoje;
 })();
+
+// Card em aberto click
+const abCard = document.getElementById('fx-aberto-card');
+if(abCard) abCard.addEventListener('click', ()=>showFluxoTab('aberto'));
 
 // Load fluxo data on init
 carregarFluxoData();
