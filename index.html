@@ -1927,7 +1927,6 @@ function renderEntradasLista(lista) {
   if(!el)return;
   const hoje = new Date().toISOString().split('T')[0];
   const futuras = (fluxoEntradas||[]).filter(e=>e.data && e.data > hoje && e.recebido!==true);
-  console.log('FUTURAS COUNT:', futuras.length, 'TOTAL ENTRADAS:', fluxoEntradas.length);
   futuras.sort((a,b)=>a.data.localeCompare(b.data));
   const totalFut = futuras.reduce((s,e)=>s+(e.valor||0),0);
 
@@ -2016,13 +2015,8 @@ function renderFuturos() {
   if(!el)return;
   // Mostra todas entradas com data futura OU pendentes
   const hojeStr = new Date().toISOString().split('T')[0];
-  const selMesFut = document.getElementById('fluxo-mes-sel')?.value || new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
-  const normMF = m => m?(m.length===5?m.substring(0,3)+'20'+m.substring(3):m):'';
-  const getMF = d => d?d.substring(5,7)+'/'+d.substring(0,4):'';
-  const futuros = fluxoEntradas.filter(e=>{
-    const em = normMF(e.mes)||getMF(e.data);
-    return e.data && e.data > hojeStr && e.recebido!==true && em===selMesFut;
-  });
+  // Mostra TODOS os futuros (global, todos os meses)
+  const futuros = fluxoEntradas.filter(e=>e.data && e.data > hojeStr && e.recebido!==true);
   futuros.sort((a,b)=>a.data.localeCompare(b.data));
   futuros.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
   if(!futuros.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum recebimento pendente.</div>'; return; }
