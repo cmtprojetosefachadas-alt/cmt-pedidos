@@ -1509,7 +1509,7 @@ window.gerarPDFOrcamento = function(id) {
 
   <!-- FOOTER -->
   <div class="footer">
-    <span>CMT Projetos e Fachadas — Documento interno</span>
+    ${o.moResponsavel?`<span>Responsável pela execução: <strong>${o.moResponsavel}</strong></span>`:'<span>CMT Projetos e Fachadas — Documento interno</span>'}
     <span>Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>
   </div>
 
@@ -1928,6 +1928,23 @@ window.abrirModal = function(id) {
       <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Histórico</div>
       ${hist.map(h=>`<div style="font-size:11px;color:var(--muted);padding:3px 0">${fmtData(h.data)} ${new Date(h.data).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} — ${h.usuario} — ${h.acao}</div>`).join('')}
     </div>`:''}
+
+    <!-- Campo mão de obra responsável -->
+    <div style="margin-top:12px;background:rgba(155,127,232,0.06);border:1px solid rgba(155,127,232,0.2);border-radius:8px;padding:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Mão de obra — Responsável</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="mo-responsavel-input" class="field" placeholder="Nome do instalador / equipe responsável..."
+          value="${o.moResponsavel||''}"
+          style="flex:1;font-size:13px;padding:8px 12px;background:#fff">
+        <button onclick="salvarMoResponsavel('${id}')" style="
+          background:var(--purple);color:#fff;border:none;border-radius:8px;
+          padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;
+          font-family:Inter,sans-serif;white-space:nowrap;transition:opacity .2s
+        " onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Salvar</button>
+      </div>
+      ${o.moResponsavel?`<div style="font-size:11px;color:var(--muted);margin-top:6px">✓ Registrado: <strong style="color:var(--purple)">${o.moResponsavel}</strong></div>`:''}
+    </div>
+
     <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
       <div style="font-size:12px;color:var(--muted)">Status: <span class="badge ${badgeClass(o.status)}">${o.status}</span></div>
       <div style="display:flex;gap:8px">
@@ -1942,6 +1959,28 @@ window.abrirModal = function(id) {
 window.fecharModal = function(e) {
   if(e.target===document.getElementById('modal-overlay'))
     document.getElementById('modal-overlay').classList.remove('open');
+};
+
+window.salvarMoResponsavel = async function(id) {
+  const val = document.getElementById('mo-responsavel-input')?.value.trim();
+  if(!val) { showToast('Digite o nome do responsável!'); return; }
+  const o = window._orcamentos.find(x=>x.id===id);
+  if(!o) return;
+  try { await updateDoc(doc(db,'cmt_orcamentos',id),{moResponsavel:val}); } catch(e){}
+  o.moResponsavel = val;
+  showToast('Responsável salvo: '+val);
+  // Atualiza o campo na tela sem fechar o modal
+  const conf = document.querySelector('#modal-overlay [style*="Registrado:"]');
+  if(conf) { conf.innerHTML = `✓ Registrado: <strong style="color:var(--purple)">${val}</strong>`; }
+  else {
+    const input = document.getElementById('mo-responsavel-input');
+    if(input) {
+      const div = document.createElement('div');
+      div.style.cssText = 'font-size:11px;color:var(--muted);margin-top:6px';
+      div.innerHTML = `✓ Registrado: <strong style="color:var(--purple)">${val}</strong>`;
+      input.parentElement.parentElement.appendChild(div);
+    }
+  }
 };
 
 window.atualizarStatus = async function(status) {
