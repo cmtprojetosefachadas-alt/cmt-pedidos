@@ -1804,6 +1804,7 @@ window.showFluxoTab = function showFluxoTab(tab) {
   if(tab==='futuro') renderFuturos();
   if(tab==='categorias') renderCategorias();
   if(tab==='saidas') popularCatSelect();
+  if(tab==='entradas') renderFluxo();
 }
 
 function popularFluxoMeses() {
@@ -1913,7 +1914,7 @@ window.renderFluxo = function renderFluxo() {
   if(saldoEl){ saldoEl.textContent = fmtMoney(saldo); saldoEl.style.color = saldo>=0?'var(--green)':'var(--red)'; }
 
   renderEntradasLista(entPassadas);
-  renderSaidasLista(saiMes);
+  renderSaidasLista(saiPassadas2);
   popularPedidoSelect();
   popularCatSelect();
 }
