@@ -1873,11 +1873,16 @@ window.renderFluxo = function renderFluxo() {
   // Para mes atual ou passado: só entradas recebidas ou data <= hoje
   // Para mes futuro: todas as entradas daquele mês (pois todas são futuras)
   // REGRA: só soma se deu baixa (recebido===true) OU data passada/hoje sem campo recebido
-  // REGRA FINAL: só soma se recebido===true (deu baixa manualmente)
-  const entPassadas = entMes.filter(e=> e.recebido===true);
+  // REGRA FINAL: só soma se recebido===true OU (sem campo recebido E data <= hoje)
+  const entPassadas = entMes.filter(e=> {
+    if(e.recebido===true) return true; // deu baixa
+    if(e.recebido===false) return false; // explicitamente pendente
+    // sem campo recebido: só conta se data já passou
+    return e.data && e.data <= hoje;
+  });
   // Futuras = data futura E recebido===false (não recebido ainda)
-  // All future entries not yet received (global, not filtered by mes)
-  const entFuturas = fluxoEntradas.filter(e=>e.data && e.data > hoje && e.recebido!==true);
+  // Entradas futuras DO MÊS selecionado
+  const entFuturas = entMes.filter(e=>e.data && e.data > hoje && e.recebido!==true);
   const saiMes = fluxoSaidas.filter(s=>{
     const sm = normMes(s.mes) || getMesFromData(s.data);
     return sm === mesNum;
@@ -1895,7 +1900,7 @@ window.renderFluxo = function renderFluxo() {
   const el = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
   const hoje2 = new Date().toISOString().split('T')[0];
   const saiPassadas2 = saiMes.filter(s=>!s.data||s.data<=hoje2);
-  const saiFuturas2 = fluxoSaidas.filter(s=>s.data&&s.data>hoje2); // global
+  const saiFuturas2 = saiMes.filter(s=>s.data&&s.data>hoje2); // por mês
   const totalSaiPassadas2 = saiPassadas2.reduce((s,e)=>s+(e.valor||0),0);
   const totalSaiFut2 = saiFuturas2.reduce((s,e)=>s+(e.valor||0),0);
 
@@ -1997,8 +2002,13 @@ function renderFuturos() {
   if(!el)return;
   // Mostra todas entradas com data futura OU pendentes
   const hojeStr = new Date().toISOString().split('T')[0];
-  // Futuros = data futura E recebido != true
-  const futuros = fluxoEntradas.filter(e=>e.data && e.data > hojeStr && e.recebido!==true);
+  const selMesFut = document.getElementById('fluxo-mes-sel')?.value || new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+  const normMF = m => m?(m.length===5?m.substring(0,3)+'20'+m.substring(3):m):'';
+  const getMF = d => d?d.substring(5,7)+'/'+d.substring(0,4):'';
+  const futuros = fluxoEntradas.filter(e=>{
+    const em = normMF(e.mes)||getMF(e.data);
+    return e.data && e.data > hojeStr && e.recebido!==true && em===selMesFut;
+  });
   futuros.sort((a,b)=>a.data.localeCompare(b.data));
   futuros.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
   if(!futuros.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum recebimento pendente.</div>'; return; }
