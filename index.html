@@ -1869,11 +1869,13 @@ window.renderFluxo = function renderFluxo() {
     return em === mesNum;
   });
   // Só soma entradas com data <= hoje
-  // Entradas = marcado recebido OU (sem campo recebido E data passada/hoje)
-  const entPassadas = entMes.filter(e=>
-    e.recebido===true || (e.recebido!==true && e.recebido!==false && e.data && e.data<=hoje)
-    || (e.recebido===false && e.data && e.data<=hoje)
-  );
+  // Para mes atual ou passado: só entradas recebidas ou data <= hoje
+  // Para mes futuro: todas as entradas daquele mês (pois todas são futuras)
+  const mesAtualNum = new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+  const isMesFuturo = mesNum !== mesAtualNum && mesNum > mesAtualNum;
+  const entPassadas = isMesFuturo
+    ? entMes // mês futuro: mostra todas
+    : entMes.filter(e=> e.recebido===true || (e.data && e.data <= hoje));
   // Futuras = data futura E recebido===false (não recebido ainda)
   // All future entries not yet received (global, not filtered by mes)
   const entFuturas = fluxoEntradas.filter(e=>e.data && e.data > hoje && e.recebido!==true);
@@ -1894,7 +1896,7 @@ window.renderFluxo = function renderFluxo() {
 
   const el = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
   const hoje2 = new Date().toISOString().split('T')[0];
-  const saiPassadas2 = saiMes.filter(s=>!s.data||s.data<=hoje2);
+  const saiPassadas2 = isMesFuturo ? saiMes : saiMes.filter(s=>!s.data||s.data<=hoje2);
   const saiFuturas2 = fluxoSaidas.filter(s=>s.data&&s.data>hoje2); // global
   const totalSaiPassadas2 = saiPassadas2.reduce((s,e)=>s+(e.valor||0),0);
   const totalSaiFut2 = saiFuturas2.reduce((s,e)=>s+(e.valor||0),0);
