@@ -1954,17 +1954,17 @@ function renderEntradasLista(lista) {
     <th style="padding:8px;"></th>
   </tr></thead>`;
 
-  el.innerHTML = `
-    ${lista.length ? `<div class="form-card" style="margin-bottom:12px;">
-      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;">ENTRADAS RECEBIDAS</div>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowsEnt(lista)}</tbody></table>
-    </div>` : ''}
-    ${futuras.length ? `<div class="form-card">
-      <div style="font-size:12px;font-weight:600;color:#7C5CBF;margin-bottom:10px;">🔮 ENTRADAS FUTURAS — ${fmtMoney(totalFut)}</div>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowsEnt(futuras)}</tbody></table>
-    </div>` : ''}
-    ${!lista.length && !futuras.length ? '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhuma entrada registrada.</div>' : ''}
-  `;
+  const futurasHTML = futuras.length ? `<div class="form-card">
+    <div style="font-size:12px;font-weight:600;color:#7C5CBF;margin-bottom:10px;">🔮 ENTRADAS FUTURAS — ${fmtMoney(totalFut)}</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowsEnt(futuras)}</tbody></table>
+  </div>` : '<div style="text-align:center;color:var(--muted);padding:12px;font-size:13px;">Nenhuma entrada futura.</div>';
+
+  const recebidasHTML = lista.length ? `<div class="form-card" style="margin-bottom:12px;">
+    <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;">ENTRADAS RECEBIDAS</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowsEnt(lista)}</tbody></table>
+  </div>` : '';
+
+  el.innerHTML = recebidasHTML + futurasHTML;
 }
 
 function renderSaidasLista(lista) {
