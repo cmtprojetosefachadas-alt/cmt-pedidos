@@ -1940,6 +1940,7 @@ function renderEntradasLista(lista) {
       <td style="padding:8px;color:var(--muted);font-size:12px;">${e.obs||''}</td>
       <td style="padding:8px;text-align:right;font-weight:600;color:var(--green);">${fmtMoney(e.valor||0)}</td>
       <td style="padding:8px;display:flex;gap:4px;">
+        <button class="btn btn-primary" style="font-size:11px;padding:3px 8px;white-space:nowrap;" data-id="${e.id}" data-recebido="0" data-type="toggle-recebido">✅ Dar baixa</button>
         <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-type="edit-entrada">✏️</button>
         <button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button>
       </td>
