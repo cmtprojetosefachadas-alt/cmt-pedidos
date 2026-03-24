@@ -1388,7 +1388,140 @@ window.salvarEdicaoMaterial = async function() {
   showToast('Material atualizado!');
 };
 
-// ── GERAR PDF RELATÓRIO ──
+// ── GERAR PDF ORÇAMENTO INDIVIDUAL ──
+window.gerarPDFOrcamento = function(id) {
+  const o = window._orcamentos.find(x=>x.id===id);
+  if(!o) return;
+
+  const subMat  = Math.round((o.subMat||0)*100)/100;
+  const moVal   = Math.round((o.moVal||0)*100)/100;
+  const moPct   = o.moPct||25;
+  const taxaCard= o.taxaCartao||0;
+  const custo   = Math.round((o.custoTotal||0)*100)/100;
+  const venda   = Math.round((o.venda||0)*100)/100;
+  const lucro   = Math.round((o.lucro||0)*100)/100;
+  const margem  = o.margemPct||30;
+  const pagLabels = {'dinheiro':'Dinheiro / PIX','boleto':'Boleto','cartao_debito':'Cartão débito','cartao_credito':'Cartão crédito','cheque':'Cheque','transferencia':'Transferência'};
+  const pagLabel= pagLabels[o.pagamento]||'—';
+
+  const itensHTML = (o.itens||[]).map(i=>`
+    <tr>
+      <td>${i.nome}</td>
+      <td style="text-align:center">${i.qty} ${i.unit}</td>
+      <td style="text-align:right">R$ ${i.custo.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td style="text-align:right;font-weight:700">R$ ${(Math.round(i.custo*i.qty*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+    </tr>
+  `).join('');
+
+  const fmtR = v => 'R$ '+(Math.round((v||0)*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2});
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head>
+  <meta charset="UTF-8">
+  <title>Orçamento ${o.numero} — ${o.cliente}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;color:#1a1a1a;padding:40px;font-size:13px;background:#fff}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:3px solid #e8520a}
+    .logo-box .logo{font-size:28px;font-weight:900;color:#1a2332}.logo-box .logo span{color:#e8520a}
+    .logo-box .sub{font-size:12px;color:#888;margin-top:4px}
+    .orc-info{text-align:right}
+    .orc-num{font-size:22px;font-weight:800;color:#e8520a}
+    .orc-status{display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;margin-top:4px}
+    .status-ap{background:#e6f7ef;color:#0a8a4a}
+    .status-ag{background:#fff3e0;color:#e8520a}
+    .status-re{background:#fdecea;color:#cc2222}
+    .cliente-block{background:#f8f7f4;border-radius:10px;padding:16px 20px;margin-bottom:24px;display:flex;justify-content:space-between}
+    .cliente-block .label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px}
+    .cliente-block .val{font-size:14px;font-weight:700;color:#1a1a1a}
+    .cliente-block .desc{font-size:12px;color:#666;margin-top:2px}
+    h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#1a2332;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #eee}
+    table{width:100%;border-collapse:collapse;margin-bottom:24px}
+    th{text-align:left;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;padding:8px 12px;border-bottom:2px solid #eee;background:#f8f7f4}
+    td{padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:13px}
+    tr:last-child td{border-bottom:none}
+    tr:nth-child(even) td{background:#fafaf8}
+    .custo-block{background:#f8f7f4;border-radius:10px;padding:16px 20px;margin-bottom:24px}
+    .custo-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #eee}
+    .custo-row:last-child{border-bottom:none;font-weight:700;font-size:14px;padding-top:10px;margin-top:4px}
+    .custo-row.total{color:#e8520a}
+    .kpi-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px}
+    .kpi{background:#f8f7f4;border-radius:10px;padding:14px 16px;border-left:4px solid #e8520a}
+    .kpi.green{border-left-color:#0a8a4a}
+    .kpi.blue{border-left-color:#1a5fa8}
+    .kpi-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px}
+    .kpi-val{font-size:18px;font-weight:800;color:#1a1a1a}
+    .kpi-val.amber{color:#e8520a}.kpi-val.green{color:#0a8a4a}
+    .footer{margin-top:32px;padding-top:16px;border-top:1px solid #eee;display:flex;justify-content:space-between;font-size:11px;color:#aaa}
+    .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+    @media print{body{padding:20px}button{display:none!important}.no-print{display:none}}
+  </style>
+  </head><body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo-box">
+      <div class="logo">CMT <span>Projetos e Fachadas</span></div>
+      <div class="sub">Comunicação visual e fachadas comerciais</div>
+    </div>
+    <div class="orc-info">
+      <div class="orc-num">${o.numero||'#000'}</div>
+      <div style="font-size:12px;color:#888;margin-top:4px">Emitido em ${new Date(o.criadoEm||Date.now()).toLocaleDateString('pt-BR')}</div>
+      <div style="margin-top:6px"><span class="orc-status ${o.status==='Aprovado'?'status-ap':o.status==='Recusado'?'status-re':'status-ag'}">${o.status||'Aguardando'}</span></div>
+    </div>
+  </div>
+
+  <!-- CLIENTE -->
+  <div class="cliente-block">
+    <div>
+      <div class="label">Cliente</div>
+      <div class="val">${o.cliente}</div>
+      <div class="desc">${o.desc||''}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="label">Pagamento</div>
+      <div class="val">${pagLabel}${taxaCard?` (taxa ${taxaCard}%)`:''}</div>
+      ${o.alteradoEm?`<div class="desc">Última edição: ${new Date(o.alteradoEm).toLocaleDateString('pt-BR')} — ${o.alteradoPor}</div>`:''}
+    </div>
+  </div>
+
+  <!-- ITENS -->
+  <h2>Itens do orçamento</h2>
+  <table>
+    <thead><tr><th>Material / Serviço</th><th style="text-align:center">Qtd</th><th style="text-align:right">Custo unit.</th><th style="text-align:right">Total</th></tr></thead>
+    <tbody>${itensHTML}</tbody>
+  </table>
+
+  <!-- COMPOSIÇÃO DO CUSTO -->
+  <h2>Composição do custo</h2>
+  <div class="custo-block">
+    <div class="custo-row"><span>Subtotal materiais</span><span>${fmtR(subMat)}</span></div>
+    <div class="custo-row"><span style="color:#6b46c1">Mão de obra (${moPct}% da venda)</span><span style="color:#6b46c1;font-weight:600">${fmtR(moVal)}</span></div>
+    ${taxaCard?`<div class="custo-row"><span style="color:#cc2222">Taxa ${pagLabel} (${taxaCard}%)</span><span style="color:#cc2222">${fmtR(Math.round(venda*taxaCard/100*100)/100)}</span></div>`:''}
+    <div class="custo-row total"><span>Custo total</span><span>${fmtR(custo)}</span></div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Valor de venda</div><div class="kpi-val amber">${fmtR(venda)}</div></div>
+    <div class="kpi green"><div class="kpi-label">Lucro estimado (${margem}%)</div><div class="kpi-val green">${fmtR(lucro)}</div></div>
+    <div class="kpi blue"><div class="kpi-label">Margem de contribuição</div><div class="kpi-val" style="color:#1a5fa8">${margem}%</div></div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span>CMT Projetos e Fachadas — Documento interno</span>
+    <span>Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>
+  </div>
+
+  <script>window.onload=()=>window.print()<\/script>
+  </body></html>`;
+
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+};
+
+
 window.gerarPDFRelatorio = function() {
   const mes = parseInt(document.getElementById('sel-mes')?.value||3);
   const nomes = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -1797,7 +1930,10 @@ window.abrirModal = function(id) {
     </div>`:''}
     <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
       <div style="font-size:12px;color:var(--muted)">Status: <span class="badge ${badgeClass(o.status)}">${o.status}</span></div>
-      <button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="abrirEdicaoOrcamento('${id}')">✏️ Editar itens</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="gerarPDFOrcamento('${id}')">📄 PDF</button>
+        <button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="abrirEdicaoOrcamento('${id}')">✏️ Editar itens</button>
+      </div>
     </div>
   `;
   document.getElementById('modal-overlay').classList.add('open');
