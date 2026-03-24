@@ -399,7 +399,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <h3>+ Nova entrada</h3>
         <div class="fg2">
           <div class="field"><label>Cliente / Pedido</label>
-            <select id="fx-ent-pedido" onchange="toggleClienteManual(this)"><option value="">— Selecionar —</option></select>
+            <select id="fx-ent-pedido"><option value="">— Selecionar —</option></select>
           </div>
           <div class="field" id="fx-cliente-manual-wrap" style="display:none;">
             <label>Ou digitar nome manualmente</label>
@@ -2286,11 +2286,14 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
 
 
 // Toggle cliente manual input
-window.toggleClienteManual = function(sel) {
+document.getElementById('fx-ent-pedido').addEventListener('change', function() {
   const wrap = document.getElementById('fx-cliente-manual-wrap');
-  if(wrap) wrap.style.display = sel.value === '' ? 'block' : 'none';
-  if(sel.value !== '') document.getElementById('fx-ent-cliente-manual').value = '';
-};
+  if(wrap) wrap.style.display = this.value === '' ? 'block' : 'none';
+  if(this.value !== '') {
+    const m = document.getElementById('fx-ent-cliente-manual');
+    if(m) m.value = '';
+  }
+});
 
 // Show/hide parcelas field based on tipo
 document.getElementById('fx-ent-tipo').addEventListener('change', function() {
