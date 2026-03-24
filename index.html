@@ -1873,9 +1873,8 @@ window.renderFluxo = function renderFluxo() {
   // Para mes atual ou passado: só entradas recebidas ou data <= hoje
   // Para mes futuro: todas as entradas daquele mês (pois todas são futuras)
   // REGRA: só soma se deu baixa (recebido===true) OU data passada/hoje sem campo recebido
-  const entPassadas = entMes.filter(e=>
-    e.recebido===true || (e.recebido!==true && e.recebido!==false && e.data && e.data <= hoje)
-  );
+  // REGRA FINAL: só soma se recebido===true (deu baixa manualmente)
+  const entPassadas = entMes.filter(e=> e.recebido===true);
   // Futuras = data futura E recebido===false (não recebido ainda)
   // All future entries not yet received (global, not filtered by mes)
   const entFuturas = fluxoEntradas.filter(e=>e.data && e.data > hoje && e.recebido!==true);
