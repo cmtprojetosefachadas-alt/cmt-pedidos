@@ -340,7 +340,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="section-header">
       <span class="section-title">💵 Fluxo de Caixa</span>
       <div style="display:flex;gap:8px;">
-        <select id="fluxo-mes-sel" style="padding:6px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" onchange="renderFluxo()"></select>
+        <select id="fluxo-mes-sel" style="padding:6px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;"></select>
         <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;" id="btn-pdf-fluxo">🖨️ PDF</button>
       </div>
     </div>
@@ -1848,7 +1848,7 @@ async function carregarFluxoData() {
   } catch(e){ console.error(e); }
 }
 
-function renderFluxo() {
+window.renderFluxo = function renderFluxo() {
   popularFluxoMeses();
   popularFluxoMeses();
   const sel = document.getElementById('fluxo-mes-sel');
@@ -2284,6 +2284,11 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
 });
 
 
+
+// Mes selector change
+document.getElementById('fluxo-mes-sel').addEventListener('change', function() {
+  renderFluxo();
+});
 
 // Toggle cliente manual input
 document.getElementById('fx-ent-pedido').addEventListener('change', function() {
