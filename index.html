@@ -399,7 +399,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <h3>+ Nova entrada</h3>
         <div class="fg2">
           <div class="field"><label>Cliente / Pedido</label>
-            <select id="fx-ent-pedido"><option value="">— Selecionar —</option></select>
+            <select id="fx-ent-pedido" onchange="toggleClienteManual(this)"><option value="">— Selecionar —</option></select>
+          </div>
+          <div class="field" id="fx-cliente-manual-wrap" style="display:none;">
+            <label>Ou digitar nome manualmente</label>
+            <input type="text" id="fx-ent-cliente-manual" placeholder="Ex: João da Silva"/>
           </div>
           <div class="field"><label>Tipo</label>
             <select id="fx-ent-tipo">
@@ -2077,7 +2081,10 @@ function popularCatSelect() {
 document.getElementById('btn-add-entrada').addEventListener('click', async()=>{
   const pedSel = document.getElementById('fx-ent-pedido');
   const pedidoId = pedSel.value;
-  const clienteNome = pedSel.options[pedSel.selectedIndex]?.dataset?.nome||pedSel.options[pedSel.selectedIndex]?.text?.split(' ·')[0]||'';
+  const manualNome = document.getElementById('fx-ent-cliente-manual')?.value?.trim()||'';
+  const clienteNome = pedidoId
+    ? (pedSel.options[pedSel.selectedIndex]?.dataset?.nome||pedSel.options[pedSel.selectedIndex]?.text?.split(' ·')[0]||'')
+    : manualNome;
   const tipo = document.getElementById('fx-ent-tipo').value;
   const valor = parseFloat(document.getElementById('fx-ent-valor').value)||0;
   const data = document.getElementById('fx-ent-data').value;
@@ -2119,6 +2126,7 @@ document.getElementById('btn-add-entrada').addEventListener('click', async()=>{
   document.getElementById('fx-ent-valor').value='';
   document.getElementById('fx-ent-obs').value='';
   document.getElementById('fx-ent-compensacao').value='';
+  document.getElementById('fx-ent-cliente-manual').value='';
   await carregarFluxoData();
 });
 
@@ -2276,6 +2284,13 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
 });
 
 
+
+// Toggle cliente manual input
+window.toggleClienteManual = function(sel) {
+  const wrap = document.getElementById('fx-cliente-manual-wrap');
+  if(wrap) wrap.style.display = sel.value === '' ? 'block' : 'none';
+  if(sel.value !== '') document.getElementById('fx-ent-cliente-manual').value = '';
+};
 
 // Show/hide parcelas field based on tipo
 document.getElementById('fx-ent-tipo').addEventListener('change', function() {
