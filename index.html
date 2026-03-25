@@ -1985,62 +1985,73 @@ window.renderFluxo = function renderFluxo() {
   // Normaliza mes para formato MM/YYYY
   const normMes = m => {
     if(!m) return '';
-    if(m.length===5) return m.substring(0,3)+'20'+m.substring(3); // "03/26" -> "03/2026"
-    if(m.length===7) return m; // "03/2026" ok
+    if(m.length===5) return m.substring(0,3)+'20'+m.substring(3);
+    if(m.length===7) return m;
     return m;
   };
   const getMesFromData = d => d ? d.substring(5,7)+'/'+d.substring(0,4) : '';
   const hoje = new Date().toISOString().split('T')[0];
+  const mesAtual = hoje.substring(5,7)+'/'+hoje.substring(0,4);
+  const isMesAtual = mesNum === mesAtual;
+  const isMesFuturo = mesNum > mesAtual;
+
+  // Entradas do mês selecionado
   const entMes = fluxoEntradas.filter(e=>{
     const fromMes = normMes(e.mes);
     const fromData = getMesFromData(e.data);
     return fromMes === mesNum || fromData === mesNum;
   });
-  // Só soma entradas com data <= hoje
-  // REGRA ABSOLUTA: só conta se recebido===true (deu baixa manualmente)
-  const entPassadas = entMes.filter(e=> e.recebido===true);
-  // Futuras = data futura E recebido===false (não recebido ainda)
-  // Entradas futuras GLOBAL = tudo que ainda não deu baixa
-  const entFuturas = fluxoEntradas.filter(e=>e.recebido!==true);
+
+  // Saídas do mês selecionado
   const saiMes = fluxoSaidas.filter(s=>{
     const sm = normMes(s.mes) || getMesFromData(s.data);
     return sm === mesNum;
   });
-  const totalEnt = entPassadas.reduce((s,e)=>s+(e.valor||0),0);
-  const totalFuturo = entFuturas.reduce((s,e)=>s+(e.valor||0),0);
-  const totalSai = saiMes.reduce((s,e)=>s+(e.valor||0),0);
-  const saldo = totalEnt - totalSai;
 
-  // Aberto = valor dos pedidos do mês - entradas recebidas
+  // Entradas futuras GLOBAIS (todas que ainda não deram baixa)
+  const entFuturas = fluxoEntradas.filter(e=>e.recebido!==true);
+  const totalFuturo = entFuturas.reduce((s,e)=>s+(e.valor||0),0);
+
+  // Saídas futuras GLOBAIS
+  const saiFuturasGlobal = fluxoSaidas.filter(s=>s.futura||(s.data&&s.data>hoje));
+  const totalSaiFut2 = saiFuturasGlobal.reduce((s,e)=>s+(e.valor||0),0);
+
+  // Lógica por mês:
+  // Mês atual: mostra só entradas com baixa dada e saídas já pagas
+  // Mês passado: idem
+  // Mês futuro: mostra todas as entradas previstas e todas as saídas previstas
+  const entParaExibir = isMesFuturo
+    ? entMes.reduce((s,e)=>s+(e.valor||0),0)
+    : entMes.filter(e=>e.recebido===true).reduce((s,e)=>s+(e.valor||0),0);
+
+  const saiParaExibir = isMesFuturo
+    ? saiMes.reduce((s,e)=>s+(e.valor||0),0)
+    : saiMes.filter(s=>!s.futura&&(!s.data||s.data<=hoje)).reduce((s,e)=>s+(e.valor||0),0);
+
+  const saldoFinal = entParaExibir - saiParaExibir;
+
+  // Para lista de saídas na tela
+  const saiPassadas2 = saiMes.filter(s=>!s.futura&&(!s.data||s.data<=hoje));
+
+  // Aberto = pedidos do mês - entradas recebidas
   const pedMes = pedidos.filter(p=>p.mes===mesNum||(p.dataConversao&&p.dataConversao.substring(3)===mesNum));
   const totalPed = pedMes.reduce((s,p)=>s+(p.valor||0),0);
-  const aberto = Math.max(totalPed - totalEnt, 0);
+  const aberto = Math.max(totalPed - entParaExibir, 0);
 
   const el = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
-  const hoje2 = new Date().toISOString().split('T')[0];
-  const mesAtual = hoje2.substring(5,7)+'/'+hoje2.substring(0,4);
-  const isMesAtual = mesNum === mesAtual;
-  // Saídas pagas do mês selecionado
-  const saiPassadas2 = saiMes.filter(s=>!s.futura&&(!s.data||s.data<=hoje2));
-  // Saídas futuras GLOBAIS (todos os meses) para o card de saídas futuras
-  const saiFuturas2 = fluxoSaidas.filter(s=>s.futura||(s.data&&s.data>hoje2));
-  const totalSaiPassadas2 = saiPassadas2.reduce((s,e)=>s+(e.valor||0),0);
-  const totalSaiFut2 = saiFuturas2.reduce((s,e)=>s+(e.valor||0),0);
-  // Saldo: entradas do mês - saídas do mês (só do mês selecionado)
-  const entParaSaldo = isMesAtual ? totalEnt : entMes.reduce((s,e)=>s+(e.valor||0),0);
-  const saiParaSaldo = saiMes.reduce((s,e)=>s+(e.valor||0),0);
-  const saldoFinal = entParaSaldo - saiParaSaldo;
 
-  el('fx-entradas', fmtMoney(isMesAtual ? totalEnt : entMes.reduce((s,e)=>s+(e.valor||0),0)));
-  el('fx-saidas', fmtMoney(totalSaiPassadas2));
+  el('fx-entradas', fmtMoney(entParaExibir));
+  el('fx-saidas', fmtMoney(saiParaExibir));
   el('fx-aberto', fmtMoney(aberto));
   el('fx-futuro-val', fmtMoney(totalFuturo));
   el('fx-saidas-fut-val', fmtMoney(totalSaiFut2));
   const saldoEl = document.getElementById('fx-saldo');
   if(saldoEl){ saldoEl.textContent = fmtMoney(saldoFinal); saldoEl.style.color = saldoFinal>=0?'var(--green)':'var(--red)'; }
 
-  renderEntradasLista(entPassadas);
-  renderSaidasLista(saiPassadas2);
+  // Lista de entradas e saídas na tela
+  const entParaLista = isMesFuturo ? entMes : entMes.filter(e=>e.recebido===true);
+  renderEntradasLista(entParaLista);
+  renderSaidasLista(isMesFuturo ? saiMes : saiPassadas2);
   popularPedidoSelect();
   popularCatSelect();
 }
@@ -2352,24 +2363,24 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
   const normM = m => m ? (m.length===5 ? m.substring(0,3)+'20'+m.substring(3) : m) : '';
   const getM = d => d ? d.substring(5,7)+'/'+d.substring(0,4) : '';
   const hojeP = new Date().toISOString().split('T')[0];
+  const mesAtualP = hojeP.substring(5,7)+'/'+hojeP.substring(0,4);
+  const isMesFuturoP = mesNum > mesAtualP;
+
   const entMes = fluxoEntradas.filter(e=> normM(e.mes||getM(e.data))===mesNum);
   const saiMes = fluxoSaidas.filter(s=> normM(s.mes||getM(s.data))===mesNum);
-  const entPassadasP = entMes.filter(e=>e.recebido===true);
-  const entFuturasP = fluxoEntradas.filter(e=>{
-    const em = normM(e.mes||getM(e.data));
-    return e.recebido!==true && em===mesNum;
-  });
-  // Separar saídas realizadas (pagas) das futuras (a pagar)
-  const saiRealizadas = saiMes.filter(s=>!s.futura&&(!s.data||s.data<=hojeP));
-  const saiFuturasP = saiMes.filter(s=>s.futura||(s.data&&s.data>hojeP));
-  const totalEnt = entPassadasP.reduce((s,e)=>s+(e.valor||0),0);
-  const totalFuturo = entFuturasP.reduce((s,e)=>s+(e.valor||0),0);
-  const totalSai = saiRealizadas.reduce((s,e)=>s+(e.valor||0),0);
+
+  // Mesma lógica da tela
+  const totalEntExibir = isMesFuturoP
+    ? entMes.reduce((s,e)=>s+(e.valor||0),0)
+    : entMes.filter(e=>e.recebido===true).reduce((s,e)=>s+(e.valor||0),0);
+  const totalSaiExibir = isMesFuturoP
+    ? saiMes.reduce((s,e)=>s+(e.valor||0),0)
+    : saiMes.filter(s=>!s.futura&&(!s.data||s.data<=hojeP)).reduce((s,e)=>s+(e.valor||0),0);
+
+  const saiRealizadas = isMesFuturoP ? saiMes : saiMes.filter(s=>!s.futura&&(!s.data||s.data<=hojeP));
+  const saiFuturasP = isMesFuturoP ? [] : saiMes.filter(s=>s.futura||(s.data&&s.data>hojeP));
+  const totalFuturo = fluxoEntradas.filter(e=>e.recebido!==true&&normM(e.mes||getM(e.data))===mesNum).reduce((s,e)=>s+(e.valor||0),0);
   const totalSaiFut = saiFuturasP.reduce((s,e)=>s+(e.valor||0),0);
-  const mesAtualP = hojeP.substring(5,7)+'/'+hojeP.substring(0,4);
-  const isMesAtualP = mesNum === mesAtualP;
-  const totalEntExibir = isMesAtualP ? totalEnt : entMes.reduce((s,e)=>s+(e.valor||0),0);
-  const totalSaiExibir = isMesAtualP ? totalSai : saiMes.reduce((s,e)=>s+(e.valor||0),0);
   const saldo = totalEntExibir - totalSaiExibir;
 
   const win = window.open('','_blank');
