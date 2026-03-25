@@ -757,7 +757,10 @@ function clienteCard(p){
       ${p.foto1?`<img src="${p.foto1}" style="width:100%;height:80px;object-fit:cover;border-radius:6px;"/>`:'' }
       ${p.foto2?`<img src="${p.foto2}" style="width:100%;height:80px;object-fit:cover;border-radius:6px;"/>`:'' }
     </div>`:''}
-    ${finalizado?`<button class="btn" onclick="event.stopPropagation();reativarPedido('${p.id}')" style="margin-top:10px;font-size:12px;padding:5px 12px;width:100%;">↩ Reativar pedido</button>`:''}
+    ${finalizado?`<div style="display:flex;gap:6px;margin-top:10px;">
+      <button class="btn" onclick="event.stopPropagation();reativarPedido('${p.id}')" style="font-size:12px;padding:5px 12px;flex:1;">↩ Reativar</button>
+      <button class="btn btn-red" onclick="event.stopPropagation();excluirFinalizado('${p.id}')" style="font-size:12px;padding:5px 12px;">🗑️ Excluir</button>
+    </div>`:''}
   </div>`;
 }
 
@@ -1653,6 +1656,14 @@ window.reativarPedido = async function(id) {
   showToast('✓ Pedido reativado!');
 };
 
+window.excluirFinalizado = async function(id) {
+  const p = pedidos.find(x=>x.id===id);
+  if(!p) return;
+  if(!confirm(`Excluir permanentemente o pedido de "${p.nome}"?\n\nEsta ação não pode ser desfeita.`)) return;
+  await deleteDoc(doc(db,'pedidos',id));
+  showToast('🗑️ Pedido excluído!');
+};
+
 // VISÃO GERAL
 function popularMeses() {
   const sel = document.getElementById('visao-mes-sel');
@@ -2008,14 +2019,16 @@ window.renderFluxo = function renderFluxo() {
   const el = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
   const hoje2 = new Date().toISOString().split('T')[0];
   const mesAtual = hoje2.substring(5,7)+'/'+hoje2.substring(0,4);
+  const isMesAtual = mesNum === mesAtual;
+  // Saídas pagas do mês selecionado
   const saiPassadas2 = saiMes.filter(s=>!s.futura&&(!s.data||s.data<=hoje2));
+  // Saídas futuras GLOBAIS (todos os meses) para o card de saídas futuras
   const saiFuturas2 = fluxoSaidas.filter(s=>s.futura||(s.data&&s.data>hoje2));
   const totalSaiPassadas2 = saiPassadas2.reduce((s,e)=>s+(e.valor||0),0);
   const totalSaiFut2 = saiFuturas2.reduce((s,e)=>s+(e.valor||0),0);
-  // Saldo: se mês atual usa entradas recebidas - saídas pagas; se mês futuro usa total entradas do mês - saídas do mês
-  const isMesAtual = mesNum === mesAtual;
+  // Saldo: entradas do mês - saídas do mês (só do mês selecionado)
   const entParaSaldo = isMesAtual ? totalEnt : entMes.reduce((s,e)=>s+(e.valor||0),0);
-  const saiParaSaldo = isMesAtual ? totalSaiPassadas2 : totalSai;
+  const saiParaSaldo = saiMes.reduce((s,e)=>s+(e.valor||0),0);
   const saldoFinal = entParaSaldo - saiParaSaldo;
 
   el('fx-entradas', fmtMoney(isMesAtual ? totalEnt : entMes.reduce((s,e)=>s+(e.valor||0),0)));
