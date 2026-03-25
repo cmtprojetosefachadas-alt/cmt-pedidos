@@ -2219,7 +2219,10 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
   const entMes = fluxoEntradas.filter(e=> normM(e.mes||getM(e.data))===mesNum);
   const saiMes = fluxoSaidas.filter(s=> normM(s.mes||getM(s.data))===mesNum);
   const entPassadasP = entMes.filter(e=>e.recebido===true);
-  const entFuturasP = fluxoEntradas.filter(e=>e.recebido!==true); // todos não recebidos
+  const entFuturasP = fluxoEntradas.filter(e=>{
+    const em = normM(e.mes||getM(e.data));
+    return e.recebido!==true && em===mesNum;
+  });
   const totalEnt = entPassadasP.reduce((s,e)=>s+(e.valor||0),0);
   const totalFuturo = entFuturasP.reduce((s,e)=>s+(e.valor||0),0);
   const totalSai = saiMes.reduce((s,e)=>s+(e.valor||0),0);
