@@ -1875,8 +1875,8 @@ window.renderFluxo = function renderFluxo() {
   // REGRA ABSOLUTA: só conta se recebido===true (deu baixa manualmente)
   const entPassadas = entMes.filter(e=> e.recebido===true);
   // Futuras = data futura E recebido===false (não recebido ainda)
-  // Entradas futuras GLOBAL (todos os meses)
-  const entFuturas = fluxoEntradas.filter(e=>e.data && e.data > hoje && e.recebido!==true);
+  // Entradas futuras GLOBAL = tudo que ainda não deu baixa
+  const entFuturas = fluxoEntradas.filter(e=>e.recebido!==true);
   const saiMes = fluxoSaidas.filter(s=>{
     const sm = normMes(s.mes) || getMesFromData(s.data);
     return sm === mesNum;
@@ -1894,7 +1894,7 @@ window.renderFluxo = function renderFluxo() {
   const el = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
   const hoje2 = new Date().toISOString().split('T')[0];
   const saiPassadas2 = saiMes.filter(s=>!s.data||s.data<=hoje2);
-  const saiFuturas2 = fluxoSaidas.filter(s=>s.data&&s.data>hoje2); // global
+  const saiFuturas2 = fluxoSaidas.filter(s=>s.data&&s.data>hoje2);
   const totalSaiPassadas2 = saiPassadas2.reduce((s,e)=>s+(e.valor||0),0);
   const totalSaiFut2 = saiFuturas2.reduce((s,e)=>s+(e.valor||0),0);
 
@@ -1919,7 +1919,7 @@ function renderEntradasLista(lista) {
   const el = document.getElementById('fx-entradas-lista');
   if(!el)return;
   const hoje = new Date().toISOString().split('T')[0];
-  const futuras = (fluxoEntradas||[]).filter(e=>e.data && e.data > hoje && e.recebido!==true);
+  const futuras = (fluxoEntradas||[]).filter(e=>e.recebido!==true);
   futuras.sort((a,b)=>a.data.localeCompare(b.data));
   const totalFut = futuras.reduce((s,e)=>s+(e.valor||0),0);
 
@@ -2010,7 +2010,7 @@ function renderFuturos() {
   // Mostra todas entradas com data futura OU pendentes
   const hojeStr = new Date().toISOString().split('T')[0];
   // Mostra TODOS os futuros (global, todos os meses)
-  const futuros = fluxoEntradas.filter(e=>e.data && e.data > hojeStr && e.recebido!==true);
+  const futuros = fluxoEntradas.filter(e=>e.recebido!==true);
   futuros.sort((a,b)=>a.data.localeCompare(b.data));
   futuros.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
   if(!futuros.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum recebimento pendente.</div>'; return; }
