@@ -942,7 +942,7 @@ async function openModal(id){
   document.getElementById('modal-bg').classList.add('open');
 }
 
-function toggleEnderecoEdit(){
+window.toggleEnderecoEdit=function(){
   document.getElementById('endereco-view').style.display='none';
   const ed=document.getElementById('endereco-edit');
   ed.style.display='flex';
@@ -951,7 +951,7 @@ function toggleEnderecoEdit(){
   btn.style.color='var(--brand)';
   btn.style.borderColor='var(--brand)';
 }
-function cancelEnderecoEdit(){
+window.cancelEnderecoEdit=function(){
   document.getElementById('endereco-view').style.display='block';
   const ed=document.getElementById('endereco-edit');
   ed.style.display='none';
@@ -960,7 +960,7 @@ function cancelEnderecoEdit(){
   btn.style.color='var(--muted)';
   btn.style.borderColor='var(--border2)';
 }
-async function salvarEndereco(){
+window.salvarEndereco=async function(){
   if(!currentPedidoId)return;
   const enderecoEntrega={
     rua:document.getElementById('end-rua').value.trim(),
