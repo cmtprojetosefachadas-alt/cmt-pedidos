@@ -2319,9 +2319,13 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
     const em = normM(e.mes||getM(e.data));
     return e.recebido!==true && em===mesNum;
   });
+  // Separar saídas realizadas (pagas) das futuras (a pagar)
+  const saiRealizadas = saiMes.filter(s=>!s.futura&&(!s.data||s.data<=hojeP));
+  const saiFuturasP = saiMes.filter(s=>s.futura||(s.data&&s.data>hojeP));
   const totalEnt = entPassadasP.reduce((s,e)=>s+(e.valor||0),0);
   const totalFuturo = entFuturasP.reduce((s,e)=>s+(e.valor||0),0);
-  const totalSai = saiMes.reduce((s,e)=>s+(e.valor||0),0);
+  const totalSai = saiRealizadas.reduce((s,e)=>s+(e.valor||0),0);
+  const totalSaiFut = saiFuturasP.reduce((s,e)=>s+(e.valor||0),0);
   const saldo = totalEnt - totalSai;
 
   const win = window.open('','_blank');
@@ -2350,23 +2354,30 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
 
   <div class="grid">
     <div class="card"><div class="card-label">Total entradas</div><div class="card-val green">${fmtMoney(totalEnt)}</div></div>
-    <div class="card"><div class="card-label">Total saídas</div><div class="card-val red">${fmtMoney(totalSai)}</div></div>
+    <div class="card"><div class="card-label">Saídas realizadas</div><div class="card-val red">${fmtMoney(totalSai)}</div></div>
     <div class="card"><div class="card-label">Saldo do mês</div><div class="card-val ${saldo>=0?'green':'red'}">${fmtMoney(saldo)}</div></div>
   </div>
 
-  <h2>📥 Entradas</h2>
-  ${entMes.length ? `<table>
+  <h2>📥 Entradas recebidas</h2>
+  ${entPassadasP.length ? `<table>
     <thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Observação</th><th style="text-align:right;">Valor</th></tr></thead>
     <tbody>${entPassadasP.map(e=>`<tr><td>${e.data?e.data.split('-').reverse().join('/'):'—'}</td><td>${e.clienteNome||'—'}</td><td>${e.tipo||'Entrada'}</td><td>${e.obs||''}</td><td style="text-align:right;color:#0F6E56;font-weight:600;">${fmtMoney(e.valor||0)}</td></tr>`).join('')}</tbody>
     <tfoot><tr><td colspan="4">Total entradas</td><td style="text-align:right;color:#0F6E56;">${fmtMoney(totalEnt)}</td></tr></tfoot>
   </table>` : '<p style="color:#6b6b6b;">Nenhuma entrada registrada.</p>'}
 
-  <h2>📤 Saídas</h2>
-  ${saiMes.length ? `<table>
+  <h2>📤 Saídas realizadas (pagas)</h2>
+  ${saiRealizadas.length ? `<table>
     <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Referência</th><th style="text-align:right;">Valor</th></tr></thead>
-    <tbody>${saiMes.map(s=>`<tr><td>${s.data?s.data.split('-').reverse().join('/'):'—'}</td><td>${s.desc||'—'}</td><td>${s.cat||'—'}</td><td>${s.ref||s.obs||''}</td><td style="text-align:right;color:#A32D2D;font-weight:600;">${fmtMoney(s.valor||0)}</td></tr>`).join('')}</tbody>
-    <tfoot><tr><td colspan="4">Total saídas</td><td style="text-align:right;color:#A32D2D;">${fmtMoney(totalSai)}</td></tr></tfoot>
-  </table>` : '<p style="color:#6b6b6b;">Nenhuma saída registrada.</p>'}
+    <tbody>${saiRealizadas.map(s=>`<tr><td>${s.data?s.data.split('-').reverse().join('/'):'—'}</td><td>${s.desc||'—'}</td><td>${s.cat||'—'}</td><td>${s.ref||s.obs||''}</td><td style="text-align:right;color:#A32D2D;font-weight:600;">${fmtMoney(s.valor||0)}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="4">Total saídas realizadas</td><td style="text-align:right;color:#A32D2D;">${fmtMoney(totalSai)}</td></tr></tfoot>
+  </table>` : '<p style="color:#6b6b6b;">Nenhuma saída realizada.</p>'}
+
+  <h2>📅 Saídas futuras (a pagar)</h2>
+  ${saiFuturasP.length ? `<table>
+    <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Referência</th><th style="text-align:right;">Valor</th></tr></thead>
+    <tbody>${saiFuturasP.map(s=>`<tr><td>${s.data?s.data.split('-').reverse().join('/'):'—'}</td><td>${s.desc||'—'}</td><td>${s.cat||'—'}</td><td>${s.ref||s.obs||''}</td><td style="text-align:right;color:#854F0B;font-weight:600;">${fmtMoney(s.valor||0)}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="4">Total a pagar</td><td style="text-align:right;color:#854F0B;">${fmtMoney(totalSaiFut)}</td></tr></tfoot>
+  </table>` : '<p style="color:#6b6b6b;">Nenhuma saída futura.</p>'}
 
   <h2>🔮 Recebimentos futuros</h2>
   ${entFuturasP.length ? `<table>
@@ -2379,10 +2390,11 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
   <table>
     <tbody>
       <tr><td style="font-size:14px;">Total entradas recebidas</td><td style="text-align:right;color:#0F6E56;font-size:14px;font-weight:600;">${fmtMoney(totalEnt)}</td></tr>
+      <tr><td style="font-size:14px;">Saídas realizadas (pagas)</td><td style="text-align:right;color:#A32D2D;font-size:14px;font-weight:600;">${fmtMoney(totalSai)}</td></tr>
+      <tr><td style="font-size:14px;">Saídas futuras (a pagar)</td><td style="text-align:right;color:#854F0B;font-size:14px;font-weight:600;">${fmtMoney(totalSaiFut)}</td></tr>
       <tr><td style="font-size:14px;">Recebimentos futuros</td><td style="text-align:right;color:#7C5CBF;font-size:14px;font-weight:600;">${fmtMoney(totalFuturo)}</td></tr>
-      <tr><td style="font-size:14px;">Total saídas</td><td style="text-align:right;color:#A32D2D;font-size:14px;font-weight:600;">${fmtMoney(totalSai)}</td></tr>
     </tbody>
-    <tfoot><tr style="background:#f0ede8;"><td style="font-size:15px;">Saldo do mês</td><td style="text-align:right;font-size:18px;color:${saldo>=0?'#0F6E56':'#A32D2D'};">${fmtMoney(saldo)}</td></tr></tfoot>
+    <tfoot><tr style="background:#f0ede8;"><td style="font-size:15px;">Saldo realizado</td><td style="text-align:right;font-size:18px;color:${saldo>=0?'#0F6E56':'#A32D2D'};">${fmtMoney(saldo)}</td></tr></tfoot>
   </table>
 
   <div class="footer">
