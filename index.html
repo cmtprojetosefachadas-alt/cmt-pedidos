@@ -453,7 +453,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             </select>
           </div>
         </div>
-        <div style="margin-top:12px;"><button class="btn btn-red" id="btn-add-saida">+ Registrar saída</button></div>
+        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;"><button class="btn btn-red" id="btn-add-saida">✅ Registrar saída</button><button class="btn" id="btn-add-saida-futura" style="border-color:var(--brand);color:var(--brand);">📅 Lançar futuro</button></div>
       </div>
       <div id="fx-saidas-lista"></div>
     </div>
@@ -1252,7 +1252,7 @@ document.addEventListener('click',async e=>{
     const id = e.target.dataset.id;
     const hoje = new Date().toISOString().split('T')[0];
     const mes = hoje.substring(5,7)+'/'+hoje.substring(0,4);
-    await updateDoc(doc(db,'fluxo_saidas',id),{data:hoje, mes});
+    await updateDoc(doc(db,'fluxo_saidas',id),{data:hoje, mes, futura:false});
     await carregarFluxoData();
     showToast('✅ Saída baixada!','toast-fluxo');
     return;
@@ -2058,8 +2058,8 @@ function renderSaidasLista(lista) {
   const el = document.getElementById('fx-saidas-lista');
   if(!el)return;
   const hoje = new Date().toISOString().split('T')[0];
-  const passadas = lista.filter(s=>!s.data||s.data<=hoje);
-  const futuras = fluxoSaidas.filter(s=>s.data&&s.data>hoje);
+  const passadas = lista.filter(s=>!s.futura&&(!s.data||s.data<=hoje));
+  const futuras = fluxoSaidas.filter(s=>s.futura||(s.data&&s.data>hoje));
 
   const tabelaRows = (arr, isFutura=false) => arr.map(s=>`
     <tr style="border-bottom:1px solid var(--border);">
@@ -2235,7 +2235,7 @@ document.getElementById('btn-add-entrada').addEventListener('click', async()=>{
   await carregarFluxoData();
 });
 
-document.getElementById('btn-add-saida').addEventListener('click', async()=>{
+async function salvarSaidaFluxo(futura=false){
   const desc = document.getElementById('fx-sai-desc').value.trim();
   const cat = document.getElementById('fx-sai-cat').value;
   const valor = parseFloat(document.getElementById('fx-sai-valor').value)||0;
@@ -2256,15 +2256,15 @@ document.getElementById('btn-add-saida').addEventListener('click', async()=>{
         desc: `${desc} (${i+1}/${numParcelas})`,
         cat, valor: valorParcela, data: dataStr,
         mes: dataStr.substring(5,7)+'/'+dataStr.substring(0,4),
-        ref: ref2, obs, criadoEm: serverTimestamp()
+        ref: ref2, obs, futura: futura||false, criadoEm: serverTimestamp()
       };
       await addDoc(collection(db,'fluxo_saidas'), saida);
     }
-    showToast(`📤 ${numParcelas} parcelas de saída registradas!`,'toast-fluxo');
+    showToast(futura?`📅 ${numParcelas} parcelas lançadas como futuras!`:`📤 ${numParcelas} parcelas de saída registradas!`,'toast-fluxo');
   } else {
-    const novaSaida = { desc, cat, valor, data, mes: data.substring(5,7)+'/'+data.substring(0,4), ref:ref2, obs, criadoEm: serverTimestamp() };
+    const novaSaida = { desc, cat, valor, data, mes: data.substring(5,7)+'/'+data.substring(0,4), ref:ref2, obs, futura: futura||false, criadoEm: serverTimestamp() };
     await addDoc(collection(db,'fluxo_saidas'), novaSaida);
-    showToast('📤 Saída registrada!','toast-fluxo');
+    showToast(futura?'📅 Lançado como saída futura!':'📤 Saída registrada!','toast-fluxo');
   }
 
   document.getElementById('fx-sai-desc').value='';
@@ -2273,7 +2273,10 @@ document.getElementById('btn-add-saida').addEventListener('click', async()=>{
   document.getElementById('fx-sai-obs').value='';
   document.getElementById('fx-sai-parcelas').value='1';
   await carregarFluxoData();
-});
+}
+
+document.getElementById('btn-add-saida').addEventListener('click', ()=>salvarSaidaFluxo(false));
+document.getElementById('btn-add-saida-futura').addEventListener('click', ()=>salvarSaidaFluxo(true));
 
 document.getElementById('btn-add-cat').addEventListener('click', async()=>{
   const nome = document.getElementById('fx-cat-nova').value.trim();
