@@ -559,6 +559,38 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <button class="btn btn-wpp" style="font-size:12px;padding:6px 12px;" id="btn-enviar-cred">&#128172; Enviar acesso</button>
       </div>
     </div>
+    <!-- ENDEREÇO DE ENTREGA -->
+    <div id="endereco-section" style="border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:16px;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--surface2);border-bottom:1px solid var(--border);">
+        <span style="font-size:12px;font-weight:600;color:var(--muted);">📦 ENDEREÇO DE ENTREGA</span>
+        <button id="btn-toggle-end" onclick="toggleEnderecoEdit()" style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:4px;">✏️ Editar</button>
+      </div>
+      <!-- VIEW MODE -->
+      <div id="endereco-view" style="padding:10px 14px;">
+        <span id="endereco-texto" style="font-size:13px;color:var(--text);">—</span>
+      </div>
+      <!-- EDIT MODE -->
+      <div id="endereco-edit" style="display:none;padding:12px 14px;display:none;flex-direction:column;gap:8px;">
+        <div style="display:grid;grid-template-columns:1fr 90px;gap:8px;">
+          <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">Rua / Logradouro</label><input type="text" id="end-rua" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" placeholder="Rua das Flores, 482"/></div>
+          <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">Número</label><input type="text" id="end-num" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" placeholder="482"/></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">Bairro</label><input type="text" id="end-bairro" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" placeholder="Jardim Paulista"/></div>
+          <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">CEP</label><input type="text" id="end-cep" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" placeholder="14091-340"/></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 70px;gap:8px;">
+          <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">Cidade</label><input type="text" id="end-cidade" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" placeholder="Ribeirão Preto"/></div>
+          <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">UF</label><input type="text" id="end-uf" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" placeholder="SP"/></div>
+        </div>
+        <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">Complemento / Referência</label><input type="text" id="end-ref" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" placeholder="Próximo ao mercado central"/></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:2px;">
+          <button onclick="cancelEnderecoEdit()" style="font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;">Cancelar</button>
+          <button onclick="salvarEndereco()" style="font-size:12px;padding:6px 16px;border-radius:6px;border:none;background:var(--brand);color:#fff;cursor:pointer;font-weight:600;">Salvar endereço</button>
+        </div>
+      </div>
+    </div>
+
     <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;">ETAPAS DO PEDIDO</div>
     <div class="etapas-wrap" id="etapas-wrap"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 14px;">
@@ -886,9 +918,66 @@ async function openModal(id){
   f2.innerHTML=p.foto2?`<img src="${p.foto2}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"/>`:'<span style="font-size:12px;color:var(--muted);">📷 Foto 2</span>';
   if(d1)d1.style.display=p.foto1?'block':'none';
   if(d2)d2.style.display=p.foto2?'block':'none';
+  // Endereço de entrega
+  const endTexto=document.getElementById('endereco-texto');
+  const end=p.enderecoEntrega;
+  if(end&&(end.rua||end.cidade)){
+    const partes=[end.rua,end.num,end.bairro,end.cidade&&end.uf?end.cidade+' — '+end.uf:end.cidade||end.uf,end.cep?'CEP: '+end.cep:'',end.ref].filter(Boolean);
+    endTexto.textContent=partes.join(', ');
+    endTexto.style.color='var(--text)';
+  } else {
+    endTexto.textContent='Nenhum endereço cadastrado.';
+    endTexto.style.color='var(--muted)';
+  }
+  document.getElementById('end-rua').value=end?.rua||'';
+  document.getElementById('end-num').value=end?.num||'';
+  document.getElementById('end-bairro').value=end?.bairro||'';
+  document.getElementById('end-cep').value=end?.cep||'';
+  document.getElementById('end-cidade').value=end?.cidade||'';
+  document.getElementById('end-uf').value=end?.uf||'';
+  document.getElementById('end-ref').value=end?.ref||'';
+  cancelEnderecoEdit();
   renderEtapas(p.etapa||0);
   await renderPosvenda(id);
   document.getElementById('modal-bg').classList.add('open');
+}
+
+function toggleEnderecoEdit(){
+  document.getElementById('endereco-view').style.display='none';
+  const ed=document.getElementById('endereco-edit');
+  ed.style.display='flex';
+  const btn=document.getElementById('btn-toggle-end');
+  btn.textContent='✏️ Editando...';
+  btn.style.color='var(--brand)';
+  btn.style.borderColor='var(--brand)';
+}
+function cancelEnderecoEdit(){
+  document.getElementById('endereco-view').style.display='block';
+  const ed=document.getElementById('endereco-edit');
+  ed.style.display='none';
+  const btn=document.getElementById('btn-toggle-end');
+  btn.textContent='✏️ Editar';
+  btn.style.color='var(--muted)';
+  btn.style.borderColor='var(--border2)';
+}
+async function salvarEndereco(){
+  if(!currentPedidoId)return;
+  const enderecoEntrega={
+    rua:document.getElementById('end-rua').value.trim(),
+    num:document.getElementById('end-num').value.trim(),
+    bairro:document.getElementById('end-bairro').value.trim(),
+    cep:document.getElementById('end-cep').value.trim(),
+    cidade:document.getElementById('end-cidade').value.trim(),
+    uf:document.getElementById('end-uf').value.trim(),
+    ref:document.getElementById('end-ref').value.trim()
+  };
+  await updateDoc(doc(db,'pedidos',currentPedidoId),{enderecoEntrega});
+  const endTexto=document.getElementById('endereco-texto');
+  const partes=[enderecoEntrega.rua,enderecoEntrega.num,enderecoEntrega.bairro,enderecoEntrega.cidade&&enderecoEntrega.uf?enderecoEntrega.cidade+' — '+enderecoEntrega.uf:enderecoEntrega.cidade||enderecoEntrega.uf,enderecoEntrega.cep?'CEP: '+enderecoEntrega.cep:'',enderecoEntrega.ref].filter(Boolean);
+  endTexto.textContent=partes.length?partes.join(', '):'Nenhum endereço cadastrado.';
+  endTexto.style.color=partes.length?'var(--text)':'var(--muted)';
+  cancelEnderecoEdit();
+  showToast('✓ Endereço salvo!');
 }
 
 function renderEtapas(atual){
