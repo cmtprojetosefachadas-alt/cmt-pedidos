@@ -701,7 +701,8 @@ function showTab(tab){
   if(tab==='visao')renderVisaoGeral();
   if(tab==='fluxo'){popularFluxoMeses();renderFluxo();}
   if(tab==='novo-orc'){
-    if(!document.getElementById('f-num')?.dataset.editId){
+    const editId=(document.getElementById('f-num')?.dataset.editId||'').trim();
+    if(!editId){
       editingItens=[];renderItens();
       const hoje=new Date();
       const iso=d=>d.toISOString().split('T')[0];
@@ -709,6 +710,7 @@ function showTab(tab){
       document.getElementById('f-data').value=iso(hoje);
       document.getElementById('f-validade').value=iso(val);
       document.getElementById('f-num').value='ORC-'+(1005+orcamentos.length+1);
+      document.getElementById('f-num').dataset.editId='';
       atualizarSelectClientes();
     }
   }
@@ -1525,14 +1527,12 @@ document.addEventListener('click',async e=>{
   if(e.target.id==='btn-editar-orc'){
     const o=orcamentos.find(x=>x.id===currentOrcId);if(!o)return;
     document.getElementById('orc-modal-bg').classList.remove('open');
-    // Marca como editando ANTES de showTab
     document.getElementById('f-num').dataset.editId=currentOrcId;
     showTab('novo-orc');
-    atualizarSelectClientes();
     setTimeout(()=>{
+      atualizarSelectClientes();
       document.getElementById('f-num').value=o.num||'';
       document.getElementById('f-obs').value=o.obs||'';
-      // Preenche datas
       if(o.data){
         const partes=o.data.split('/');
         if(partes.length===3) document.getElementById('f-data').value=`${partes[2]}-${partes[1]}-${partes[0]}`;
@@ -1541,17 +1541,14 @@ document.addEventListener('click',async e=>{
         const partes=o.validade.split('/');
         if(partes.length===3) document.getElementById('f-validade').value=`${partes[2]}-${partes[1]}-${partes[0]}`;
       }
-      // Preenche itens
       editingItens=[...(o.itens||[])];
       renderItens();
-      // Seleciona cliente
       const sel=document.getElementById('f-cliente');
       for(let i=0;i<sel.options.length;i++){
         if(sel.options[i].value===o.nome){sel.selectedIndex=i;break;}
       }
-      // Guarda id para atualizar ao salvar
       document.getElementById('f-num').dataset.editId=currentOrcId;
-    },150);
+    },300);
     return;
   }
   // PDF do orçamento salvo
