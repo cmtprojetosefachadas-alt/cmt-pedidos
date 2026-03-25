@@ -1098,6 +1098,7 @@ document.addEventListener('click',async e=>{
     const novoStatus=!jaRecebido;
     await updateDoc(doc(db,'fluxo_entradas',id),{recebido:novoStatus});
     await carregarFluxoData();
+    renderFluxo();
     showToast(jaRecebido?'↩ Marcado como pendente':'✅ Recebido! Movido para Entradas','toast-fluxo');
     return;
   }
@@ -1871,16 +1872,8 @@ window.renderFluxo = function renderFluxo() {
     return fromMes === mesNum || fromData === mesNum;
   });
   // Só soma entradas com data <= hoje
-  // Para mes atual ou passado: só entradas recebidas ou data <= hoje
-  // Para mes futuro: todas as entradas daquele mês (pois todas são futuras)
-  // REGRA: só soma se deu baixa (recebido===true) OU data passada/hoje sem campo recebido
-  // REGRA FINAL: só soma se recebido===true OU (sem campo recebido E data <= hoje)
-  const entPassadas = entMes.filter(e=> {
-    if(e.recebido===true) return true; // deu baixa
-    if(e.recebido===false) return false; // explicitamente pendente
-    // sem campo recebido: só conta se data já passou
-    return e.data && e.data <= hoje;
-  });
+  // REGRA ABSOLUTA: só conta se recebido===true (deu baixa manualmente)
+  const entPassadas = entMes.filter(e=> e.recebido===true);
   // Futuras = data futura E recebido===false (não recebido ainda)
   // Entradas futuras GLOBAL (todos os meses)
   const entFuturas = fluxoEntradas.filter(e=>e.data && e.data > hoje && e.recebido!==true);
@@ -2225,7 +2218,7 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
   const hojeP = new Date().toISOString().split('T')[0];
   const entMes = fluxoEntradas.filter(e=> normM(e.mes||getM(e.data))===mesNum);
   const saiMes = fluxoSaidas.filter(s=> normM(s.mes||getM(s.data))===mesNum);
-  const entPassadasP = entMes.filter(e=>e.recebido===true||(e.data&&e.data<=hojeP));
+  const entPassadasP = entMes.filter(e=>e.recebido===true);
   const entFuturasP = entMes.filter(e=>e.recebido!==true&&e.data&&e.data>hojeP);
   const totalEnt = entPassadasP.reduce((s,e)=>s+(e.valor||0),0);
   const totalFuturo = entFuturasP.reduce((s,e)=>s+(e.valor||0),0);
