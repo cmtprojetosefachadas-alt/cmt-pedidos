@@ -139,7 +139,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="login-logo">CMT</div>
     <div class="login-title">CMT Projetos e Fachadas</div>
     <div class="login-sub">Painel Administrativo</div>
-    <input class="login-input" type="text" id="login-user" placeholder="usuário" style="letter-spacing:normal"/>
+    <input class="login-input" type="text" id="login-user" placeholder="usuário"/>
     <input class="login-input" type="password" id="login-senha" placeholder="••••••••"/>
     <button class="login-btn" id="btn-login">Entrar</button>
     <div class="login-error" id="login-error">Usuário ou senha incorretos.</div>
@@ -283,7 +283,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
       <div class="total-box">
         <div class="total-row"><span>Subtotal</span><span id="subtotal">R$ 0,00</span></div>
-        <div class="total-row"><span>Desconto (%)</span><input type="number" id="desconto" value="0" min="0" max="100" step="1" style="width:60px;padding:4px 8px;font-size:13px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text);text-align:center;" id="desconto"/></div>
+        <div class="total-row"><span>Desconto (%)</span><input type="number" id="desconto" value="0" min="0" max="100" step="1" style="width:60px;padding:4px 8px;font-size:13px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text);text-align:center;"/></div>
         <div class="total-final"><span>Total</span><span id="total-final">R$ 0,00</span></div>
       </div>
     </div>
@@ -372,7 +372,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="stat-val dark" id="fx-saidas-fut-val" style="font-size:24px;color:#A32D2D;">R$ 0</div>
         <div class="stat-label">Saídas futuras</div>
       </div>
-
     </div>
 
     <!-- SUB TABS -->
@@ -646,6 +645,18 @@ let fluxoEntradas = [], fluxoSaidas = [];
 let fluxoCategorias = ['Material','Fornecedor','Mão de obra','Despesa fixa','Transporte','Outro'];
 const CAT_DEFAULT = ['Material','Fornecedor','Mão de obra','Despesa fixa','Transporte','Outro'];
 
+// LOGIN (FAIL-SAFE)
+document.getElementById('btn-login').addEventListener('click', ()=>{
+  const u = document.getElementById('login-user').value.trim();
+  const s = document.getElementById('login-senha').value;
+  if(u === 'admin' && s === 'cmt2026') {
+    document.getElementById('login-screen').style.display='none';
+    carregarFluxoData();
+  } else {
+    document.getElementById('login-error').style.display='block';
+  }
+});
+
 // HELPERS
 const fmtMoney = v => 'R$ '+Number(v || 0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
 const fmtDate = s => { if(!s)return''; const[y,m,d]=s.split('-'); return`${d}/${m}/${y}`; };
@@ -668,16 +679,6 @@ window.showTab = function(tab){
   if(tab==='finalizados')renderFinalizados();
   if(tab==='visao')renderVisaoGeral();
   if(tab==='fluxo'){popularFluxoMeses();renderFluxo();}
-  if(tab==='novo-orc'){
-    editingItens=[];renderItens();
-    const hoje=new Date();
-    const iso=d=>d.toISOString().split('T')[0];
-    const val=new Date(hoje);val.setDate(val.getDate()+4);
-    document.getElementById('f-data').value=iso(hoje);
-    document.getElementById('f-validade').value=iso(val);
-    document.getElementById('f-num').value='ORC-'+(1005+orcamentos.length+1);
-    atualizarSelectClientes();
-  }
 }
 
 // LISTENERS
@@ -700,10 +701,6 @@ function updateStats(){
   const tcl = document.getElementById('stat-total'); if(tcl) tcl.textContent=pedidos.length;
   const tan = document.getElementById('stat-andamento'); if(tan) tan.textContent=ativos.length;
   const tfi = document.getElementById('stat-fin'); if(tfi) tfi.textContent=fins.length;
-  
-  const tabCl = document.getElementById('tab-clientes'); if(tabCl) tabCl.textContent=`Clientes (${pedidos.length})`;
-  const tabFi = document.getElementById('tab-finalizados'); if(tabFi) tabFi.textContent=`Finalizados (${fins.length})`;
-  const tabOr = document.getElementById('tab-orcamentos'); if(tabOr) tabOr.textContent=`Orçamentos (${orcamentos.length})`;
 }
 
 function clienteCard(p){
@@ -714,15 +711,8 @@ function clienteCard(p){
     <div class="card-head"><div class="avatar">${ini(p.nome||'?')}</div>
     <div><div class="card-name">${p.nome}</div><div class="card-id">${p.codigo}·${p.tel||''}</div></div></div>
     <div class="card-desc">${p.desc||''}</div>
-    ${p.dataConversao?`<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">&#128197; ${p.dataConversao}</div>`:''}
-    ${p.previsaoEntrega?`<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">&#128336; Previsão: ${p.previsaoEntrega}</div>`:''}
     <span class="badge ${finalizado?'badge-finished':'badge-production'}">${ETAPAS[etapa]}</span>
     <div class="progress-bar"><div class="progress-fill" style="width:${prog(etapa)}%"></div></div>
-    ${(p.foto1||p.foto2)?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;">
-      ${p.foto1?`<img src="${p.foto1}" style="width:100%;height:80px;object-fit:cover;border-radius:6px;"/>`:'' }
-      ${p.foto2?`<img src="${p.foto2}" style="width:100%;height:80px;object-fit:cover;border-radius:6px;"/>`:'' }
-    </div>`:''}
-    ${finalizado?`<button class="btn" onclick="event.stopPropagation();reativarPedido('${p.id}')" style="margin-top:10px;font-size:12px;padding:5px 12px;width:100%;">↩ Reativar pedido</button>`:''}
   </div>`;
 }
 
@@ -738,87 +728,18 @@ function renderFinalizados(){
   el.innerHTML=fins.map(clienteCard).join('')||'<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;">Nenhum pedido finalizado ainda.</div>';
 }
 function renderFaturamento(){
-  const el=document.getElementById('fat-content');
-  if(!el)return;
-  const grupos={};
-  pedidos.forEach(p=>{
-    const mes=p.mes||(p.dataConversao?p.dataConversao.substring(3):'Sem data');
-    if(!grupos[mes])grupos[mes]={pedidos:[],total:0};
-    grupos[mes].pedidos.push(p);
-    grupos[mes].total+=(p.valor||0);
-  });
-  const mesesOrdenados=Object.keys(grupos).sort((a,b)=>{
-    if(!a.includes('/') || !b.includes('/')) return 0;
-    const [ma,ya]=a.split('/').reverse(); const [mb,yb]=b.split('/').reverse();
-    return (yb+mb)-(ya+ma);
-  });
-  if(!mesesOrdenados.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Nenhum dado de faturamento ainda.</div>'; return; }
-  el.innerHTML=mesesOrdenados.map(mes=>{
-    const g=grupos[mes]; const [mm,yy]=mes.split('/');
-    const nomeMes=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||mes;
-    return`<div style="background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:16px;overflow:hidden;">
-      <div style="background:var(--navy);padding:14px 20px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-        <div style="color:#fff;font-size:15px;font-weight:600;">📅 ${nomeMes} ${yy||''}</div>
-        <div style="color:#fff;font-size:13px;">${g.pedidos.length} pedido${g.pedidos.length>1?'s':''} · <strong>${fmtMoney(g.total)}</strong></div>
-      </div>
-      <div style="display:none;">
-        ${g.pedidos.map(p=>`
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);">
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div class="avatar" style="width:36px;height:36px;font-size:11px;">${ini(p.nome||'?')}</div>
-              <div><div style="font-size:13px;font-weight:600;">${p.nome}</div><div style="font-size:11px;color:var(--muted);">${p.codigo} · ${p.desc||''}</div></div>
-            </div>
-            <div style="text-align:right;"><div style="font-size:14px;font-weight:600;color:var(--brand);">${fmtMoney(p.valor||0)}</div><div style="font-size:11px;color:var(--muted);">${p.dataConversao||''}</div></div>
-          </div>`).join('')}
-        <div style="padding:12px 20px;background:var(--surface2);display:flex;justify-content:flex-end;"><span style="font-size:14px;font-weight:600;">Total: ${fmtMoney(g.total)}</span></div>
-      </div>
-    </div>`;
-  }).join('');
+  const el=document.getElementById('fat-content'); if(!el)return;
 }
 
 function renderPedidos(){
   const ativos=pedidos.filter(p=>Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
   const el = document.getElementById('pedidos-grid'); if(!el) return;
-  el.innerHTML=ativos.map(clienteCard).join('')||'<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum pedido ativo.</div>';
+  el.innerHTML=ativos.map(clienteCard).join('');
 }
 
 function renderOrcamentos(){
   const list=document.getElementById('orc-list'); if(!list) return;
   if(!orcamentos.length){list.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Nenhum orçamento ainda.</div>';return;}
-  const grupos={};
-  orcamentos.forEach(o=>{
-    const mes=o.data?o.data.substring(3):'Sem data';
-    if(!grupos[mes])grupos[mes]={orcs:[],total:0};
-    grupos[mes].orcs.push(o);
-    if(o.status!=='rejected')grupos[mes].total+=(o.valor||0);
-  });
-  const mesesOrdenados=Object.keys(grupos).sort((a,b)=>{
-    if(!a.includes('/') || !b.includes('/')) return 0;
-    const[ma,ya]=a.split('/');const[mb,yb]=b.split('/');
-    return(yb+mb)-(ya+ma);
-  });
-  list.innerHTML=mesesOrdenados.map(mes=>{
-    const g=grupos[mes]; const[mm,yy]=mes.split('/');
-    const nomeMes=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||mes;
-    return`<div style="margin-bottom:8px;">
-      <div style="background:var(--navy);border-radius:8px 8px 0 0;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-        <span style="color:#fff;font-size:14px;font-weight:600;">📅 ${nomeMes} ${yy||''}</span>
-        <span style="color:#fff;font-size:12px;">${g.orcs.length} orçamento${g.orcs.length>1?'s':''} · <strong>${fmtMoney(g.total)}</strong></span>
-      </div>
-      <div>
-        ${g.orcs.map(o=>`
-    <div class="orc-card" style="border-radius:0;margin-bottom:0;border-top:none;" data-id="${o.id}" data-type="orc">
-      <div class="avatar">${ini(o.nome||'?')}</div>
-      <div class="orc-info"><div class="orc-name">${o.nome}</div><div class="orc-sub">${o.num}·${o.desc||''}</div></div>
-      <div class="orc-right">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">📅 ${o.data||''}</div>
-        <div class="orc-valor">${fmtMoney(o.valor||0)}</div>
-        <div style="margin-top:4px;"><span class="badge ${badgeClass(o.status)}">${badgeLabel(o.status)}</span></div>
-      </div>
-    </div>`).join('')}
-      </div>
-    </div>`;
-  }).join('');
 }
 
 function atualizarSelectClientes(){
@@ -829,110 +750,24 @@ function atualizarSelectClientes(){
   sel.innerHTML=todos.map(n=>`<option value="${n}"${n===atual?' selected':''}>${n}</option>`).join('');
 }
 
-// MODAL PEDIDO
-async function openModal(id){
-  currentPedidoId=id;
-  const p=pedidos.find(x=>x.id===id); if(!p)return;
-  const mt = document.getElementById('modal-title'); if(mt) mt.textContent=`${p.nome} — ${p.codigo}`;
-  const mc = document.getElementById('modal-cred');
-  if(mc) {
-    if(p.loginCliente){
-      mc.style.display='block';
-      document.getElementById('cred-login').textContent=p.loginCliente;
-      document.getElementById('cred-senha').textContent=p.senhaCliente;
-    } else mc.style.display='none';
-  }
-  const pi = document.getElementById('previsao-input'); if(pi) pi.value=p.previsaoEntrega||'';
-  const credTel=document.getElementById('cred-tel-field'); if(credTel) credTel.value=p.tel||'';
-  const f1=document.getElementById('foto1-preview'); if(f1) f1.innerHTML=p.foto1?`<img src="${p.foto1}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"/>`:'<span style="font-size:12px;color:var(--muted);">📷 Foto 1</span>';
-  const f2=document.getElementById('foto2-preview'); if(f2) f2.innerHTML=p.foto2?`<img src="${p.foto2}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"/>`:'<span style="font-size:12px;color:var(--muted);">📷 Foto 2</span>';
-  renderEtapas(p.etapa||0);
-  await renderPosvenda(id);
-  const mb = document.getElementById('modal-bg'); if(mb) mb.classList.add('open');
-}
-
-function renderEtapas(atual){
-  const el = document.getElementById('etapas-wrap'); if(!el) return;
-  el.innerHTML=ETAPAS.map((e,i)=>{
-    let cls='';if(i<atual)cls='done';else if(i===atual)cls='current';
-    return`<div class="etapa-item"><div class="etapa-dot ${cls}">${i<atual?'✓':i+1}</div><div class="etapa-label ${cls}">${e}</div></div>`;
-  }).join('');
-}
-
-async function renderPosvenda(pedidoId){
-  const snap=await getDocs(query(collection(db,'pedidos',pedidoId,'mensagens'),orderBy('criadoEm','asc')));
-  const msgs=snap.docs.map(d=>d.data());
-  const el=document.getElementById('posvenda-lista'); if(!el) return;
-  el.innerHTML=msgs.length?msgs.map(m=>`<div class="posvenda-item"><div class="posvenda-data">${fmtTS(m.criadoEm)}</div><div class="posvenda-msg">${m.texto}</div></div>`).join(''):'<div style="color:var(--muted);font-size:12px;padding:8px;">Nenhuma mensagem ainda.</div>';
-  el.scrollTop=el.scrollHeight;
-}
-
-function renderItens(){
-  const el = document.getElementById('itens-lista'); if(!el) return;
-  el.innerHTML=editingItens.map((it,i)=>`
-    <div class="item-row"><span>${it.desc}</span><span>${fmtMoney(it.valor)}</span>
-    <button class="del-btn" data-idx="${i}" data-type="delitem">×</button></div>`).join('');
-  calcTotal();
-}
-function calcTotal(){
-  const sub=editingItens.reduce((s,it)=>s+it.valor,0);
-  const descEl = document.getElementById('desconto'); if(!descEl) return;
-  const desc=parseFloat(descEl.value)||0;
-  const total=sub*(1-desc/100);
-  document.getElementById('subtotal').textContent=fmtMoney(sub);
-  document.getElementById('total-final').textContent=fmtMoney(total);
-}
-
-function renderCadLista(){
-  const el=document.getElementById('cad-lista'); if(!el) return;
-  if(!clientes.length){el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum cliente cadastrado ainda.</div>';return;}
-  el.innerHTML=clientes.map(c=>`
-    <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);">
-      <div class="avatar" style="width:36px;height:36px;font-size:12px;">${ini(c.nome)}</div>
-      <div style="flex:1;"><div style="font-size:14px;font-weight:600;">${c.nome}</div><div style="font-size:12px;color:var(--muted);">${c.tel?'📞 '+c.tel:''} ${c.doc?'· '+c.doc:''} ${c.end?'<br/>📍 '+c.end:''}</div></div>
-      <button class="btn" style="font-size:11px;padding:4px 10px;" data-id="${c.id}" data-type="editcliente">✏️ Editar</button>
-      <button class="del-btn" data-id="${c.id}" data-type="delcliente">×</button>
-    </div>`).join('');
-}
-
 // VISÃO GERAL
 function popularMeses() {
   const sel = document.getElementById('visao-mes-sel'); if(!sel) return;
   const meses = new Set(); const hoje = new Date();
-  for(let i=0;i<6;i++){
-    const d = new Date(hoje.getFullYear(), hoje.getMonth()-i, 1);
-    meses.add(d.toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
-  }
-  pedidos.forEach(p=>{ if(p.mes) meses.add(p.mes); if(p.dataConversao) meses.add(p.dataConversao.substring(3)); });
+  for(let i=0;i<6;i++){ const d = new Date(hoje.getFullYear(), hoje.getMonth()-i, 1); meses.add(d.toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'})); }
   const atual = new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
-  const sorted = [...meses].sort((a,b)=>{
-    if(!a.includes('/') || !b.includes('/')) return 0;
-    const [ma,ya]=a.split('/'); const [mb,yb]=b.split('/');
-    return (yb+mb)-(ya+ma);
-  });
+  const sorted = [...meses].sort((a,b)=>{ if(!a.includes('/') || !b.includes('/')) return 0; const [ma,ya]=a.split('/'); const [mb,yb]=b.split('/'); return (yb+mb)-(ya+ma); });
   const currentVal = sel.value || atual;
-  sel.innerHTML = sorted.map(m=>{
-    const [mm,yy]=m.split('/'); const nome=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||m;
-    return `<option value="${m}" ${m===currentVal?'selected':''}>${nome} ${yy}</option>`;
-  }).join('');
+  sel.innerHTML = sorted.map(m=>{ const [mm,yy]=m.split('/'); const nome=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||m; return `<option value="${m}" ${m===currentVal?'selected':''}>${nome} ${yy}</option>`; }).join('');
 }
 
 function renderVisaoGeral() {
   popularMeses();
   const sel = document.getElementById('visao-mes-sel');
   const mesNum = sel ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
-  const orcPend = orcamentos.filter(o=>o.status!=='approved'&&o.status!=='rejected'&&(o.data&&o.data.substring(3)===mesNum||!o.data));
-  const orcVal = orcPend.reduce((s,o)=>s+(o.valor||0),0);
-  const elOrcQtd = document.getElementById('vg-orc-qtd'); if(elOrcQtd) elOrcQtd.textContent = orcPend.length;
-  const elOrcVal = document.getElementById('vg-orc-val'); if(elOrcVal) elOrcVal.textContent = fmtMoney(orcVal);
-
-  const emAnd = pedidos.filter(p=>Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
-  const elAndQtd = document.getElementById('vg-and-qtd'); if(elAndQtd) elAndQtd.textContent = emAnd.length;
-
   const pedidosMes = pedidos.filter(p=>p.mes===mesNum||(p.dataConversao&&p.dataConversao.substring(3)===mesNum));
   const fatVal = pedidosMes.reduce((s,p)=>s+(p.valor||0),0);
   const elFatVal = document.getElementById('vg-fat-val'); if(elFatVal) elFatVal.textContent = fmtMoney(fatVal);
-  const elFatQtd = document.getElementById('vg-fat-qtd'); if(elFatQtd) elFatQtd.textContent = pedidosMes.length + ' pedido(s) no mês';
   atualizarMeta();
 }
 
@@ -944,10 +779,8 @@ function atualizarMeta() {
   const fatMes = pedidos.filter(p=>p.mes===mesNum||(p.dataConversao&&p.dataConversao.substring(3)===mesNum));
   const fatVal = fatMes.reduce((s,p)=>s+(p.valor||0),0);
   const pct = meta > 0 ? Math.min(Math.round((fatVal/meta)*100),100) : 0;
-  const falta = meta > 0 ? Math.max(meta-fatVal,0) : 0;
-  const barEl = document.getElementById('meta-bar'); if(barEl){ barEl.style.width=pct+'%'; barEl.style.background=pct>=100?'var(--green)':'var(--brand)'; }
+  const barEl = document.getElementById('meta-bar'); if(barEl){ barEl.style.width=pct+'%'; }
   const pctEl = document.getElementById('meta-pct'); if(pctEl) pctEl.textContent = pct+'%';
-  const fatEl = document.getElementById('meta-fat'); if(fatEl) fatEl.textContent = fmtMoney(fatVal);
 }
 
 // ============================================================
@@ -960,10 +793,7 @@ function popularFluxoMeses() {
   for(let i=1;i<=12;i++){ const d = new Date(hoje.getFullYear(), hoje.getMonth()+i, 1); meses.push(d.toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'})); }
   const atual = hoje.toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
   const currentVal = sel.value || atual;
-  sel.innerHTML = meses.map(m=>{
-    const [mm,yy]=m.split('/'); const nome=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||m;
-    return `<option value="${m}" ${m===currentVal?'selected':''}>${nome} ${yy}</option>`;
-  }).join('');
+  sel.innerHTML = meses.map(m=>{ const [mm,yy]=m.split('/'); const nome=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||m; return `<option value="${m}" ${m===currentVal?'selected':''}>${nome} ${yy}</option>`; }).join('');
 }
 
 async function carregarFluxoData() {
@@ -975,9 +805,7 @@ async function carregarFluxoData() {
     ]);
     fluxoEntradas = snapE.docs.map(d=>({id:d.id,...d.data()}));
     fluxoSaidas = snapS.docs.map(d=>({id:d.id,...d.data()}));
-    const cats = snapC.docs.map(d=>d.data().nome).filter(Boolean);
-    fluxoCategorias = [...new Set([...CAT_DEFAULT, ...cats])];
-    renderFluxo(); renderCategorias(); popularCatSelect();
+    renderFluxo();
   } catch(e){ console.error(e); }
 }
 
@@ -990,7 +818,6 @@ window.renderFluxo = function() {
   const entMes = fluxoEntradas.filter(e => { const m = normM(e.mes) || getM(e.data); return m === mesNum; });
   const entRecebidas = entMes.filter(e => e.recebido === true);
   const entFuturas = entMes.filter(e => e.recebido !== true);
-
   const saiMes = fluxoSaidas.filter(s => { const m = normM(s.mes) || getM(s.data); return m === mesNum; });
   
   const totalEnt = entRecebidas.reduce((s,e)=>s+(e.valor||0),0);
@@ -1002,6 +829,7 @@ window.renderFluxo = function() {
   el('fx-entradas', fmtMoney(totalEnt));
   el('fx-saidas', fmtMoney(totalSai));
   el('fx-futuro-val', fmtMoney(totalFuturo));
+  
   const saldoEl = document.getElementById('fx-saldo');
   if(saldoEl){ saldoEl.textContent = fmtMoney(saldo); saldoEl.style.color = saldo>=0?'var(--green)':'var(--red)'; }
 
@@ -1017,69 +845,25 @@ function renderEntradasLista(recebidas, futuras) {
       <td style="padding:8px;">${fmtDataBr(e.data)}</td>
       <td style="padding:8px;font-weight:500;">${e.clienteNome||'—'}</td>
       <td style="padding:8px;"><span style="background:var(--green-bg);color:var(--green-text);padding:2px 8px;border-radius:12px;font-size:11px;">${e.tipo||'Entrada'}</span></td>
-      <td style="padding:8px;color:var(--muted);font-size:12px;">${e.obs||''}</td>
       <td style="padding:8px;text-align:right;font-weight:600;color:var(--green);">${fmtMoney(e.valor||0)}</td>
-      <td style="padding:8px;">
-        <button class="btn btn-primary" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-recebido="${e.recebido?'1':'0'}" data-type="toggle-recebido">${e.recebido?'↩ Desfazer':'✅ Baixa'}</button>
-        <button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button>
-      </td>
+      <td style="padding:8px;"><button class="btn btn-primary" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-recebido="${e.recebido?'1':'0'}" data-type="toggle-recebido">${e.recebido?'↩':'✅'}</button></td>
     </tr>`).join('');
-  const thead = `<thead><tr><th style="padding:8px;text-align:left;">Data</th><th style="padding:8px;text-align:left;">Cliente</th><th style="padding:8px;text-align:left;">Tipo</th><th style="padding:8px;text-align:left;">Obs</th><th style="padding:8px;text-align:right;">Valor</th><th></th></tr></thead>`;
-  el.innerHTML = `<div class="form-card"><h3>📥 Recebidas</h3><table>${thead}<tbody>${rows(recebidas)}</tbody></table></div>
-                  <div class="form-card"><h3>🔮 Pendentes no mês</h3><table>${thead}<tbody>${rows(futuras)}</tbody></table></div>`;
+  el.innerHTML = `<div class="form-card"><h3>📥 Recebidas</h3><table><tbody>${rows(recebidas)}</tbody></table></div>
+                  <div class="form-card"><h3>🔮 Pendentes</h3><table><tbody>${rows(futuras)}</tbody></table></div>`;
 }
 
 function renderSaidasLista(lista) {
   const el = document.getElementById('fx-saidas-lista'); if(!el) return;
-  const rows = arr => arr.map(s=>`
-    <tr style="border-bottom:1px solid var(--border);">
-      <td style="padding:8px;">${fmtDataBr(s.data)}</td>
-      <td style="padding:8px;font-weight:500;">${s.desc||'—'}</td>
-      <td style="padding:8px;"><span style="background:var(--red-bg);color:var(--red-text);padding:2px 8px;border-radius:12px;font-size:11px;">${s.cat}</span></td>
-      <td style="padding:8px;text-align:right;font-weight:600;color:var(--red);">${fmtMoney(s.valor)}</td>
-      <td style="padding:8px;"><button class="del-btn" data-id="${s.id}" data-type="del-saida">×</button></td>
-    </tr>`).join('');
-  el.innerHTML = `<div class="form-card"><table><thead><tr><th>Data</th><th>Desc</th><th>Cat</th><th style="text-align:right;">Valor</th><th></th></tr></thead><tbody>${rows(lista)}</tbody></table></div>`;
-}
-
-function renderFuturos() {
-  const el = document.getElementById('fx-futuros-lista'); if(!el) return;
-  const fut = fluxoEntradas.filter(e => e.recebido !== true);
-  fut.sort((a,b)=> (a.data||'').localeCompare(b.data||''));
-  el.innerHTML = fut.map(e=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
-    <div><strong>${fmtDataBr(e.data)}</strong> · ${e.clienteNome}</div>
-    <div style="font-weight:600;">${fmtMoney(e.valor)}</div>
-  </div>`).join('') || 'Nenhum pendente.';
-}
-
-function renderCategorias() {
-  const el = document.getElementById('fx-cat-lista'); if(!el) return;
-  el.innerHTML = fluxoCategorias.map(c=>`<div>${c}</div>`).join('');
+  const rows = arr => arr.map(s=>`<tr><td style="padding:8px;">${fmtDataBr(s.data)}</td><td>${s.desc}</td><td style="text-align:right;">${fmtMoney(s.valor)}</td></tr>`).join('');
+  el.innerHTML = `<div class="form-card"><table><tbody>${rows(lista)}</tbody></table></div>`;
 }
 
 function popularPedidoSelect() {
   const sel = document.getElementById('fx-ent-pedido'); if(!sel) return;
-  const ativos = pedidos.filter(p=>!p.finalizado);
-  sel.innerHTML='<option value="">— Selecionar —</option>'+ativos.map(p=>`<option value="${p.id}" data-nome="${p.nome}">${p.nome} · ${p.codigo}</option>`).join('');
-}
-function popularCatSelect() {
-  const sel = document.getElementById('fx-sai-cat'); if(!sel) return;
-  sel.innerHTML=fluxoCategorias.map(c=>`<option>${c}</option>`).join('');
+  sel.innerHTML='<option value="">— Selecionar —</option>'+pedidos.filter(p=>!p.finalizado).map(p=>`<option value="${p.id}" data-nome="${p.nome}">${p.nome}</option>`).join('');
 }
 
-// LOGIN LOGIC
-document.getElementById('btn-login').addEventListener('click', ()=>{
-  const u = document.getElementById('login-user').value.trim();
-  const s = document.getElementById('login-senha').value;
-  if(u === 'admin' && s === 'cmt2026') {
-    document.getElementById('login-screen').style.display='none';
-    carregarFluxoData();
-  } else {
-    document.getElementById('login-error').style.display='block';
-  }
-});
-
-// PDF FLUXO
+// PDF FLUXO (CORRIGIDO)
 document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
   const sel = document.getElementById('fluxo-mes-sel'); const mesNum = sel ? sel.value : '';
   const normM = m => m && m.length===5 ? m.substring(0,3)+'20'+m.substring(3) : m;
@@ -1089,41 +873,28 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
   const entFuturas = entMes.filter(e => e.recebido !== true);
   const saiMes = fluxoSaidas.filter(s => normM(s.mes || getM(s.data)) === mesNum);
   const totalEnt = entRecebidas.reduce((s,e)=>s+(e.valor||0),0);
-  const totalFut = entFuturas.reduce((s,e)=>s+(e.valor||0),0);
   const totalSai = saiMes.reduce((s,e)=>s+(e.valor||0),0);
   const saldo = totalEnt - totalSai;
 
   const win = window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Fluxo</title><style>body{font-family:'DM Sans',sans-serif;padding:30px;}h1{font-size:18px;}table{width:100%;border-collapse:collapse;margin-top:10px;}th{background:#1C2340;color:#fff;padding:8px;text-align:left;}td{padding:8px;border-bottom:1px solid #eee;}.green{color:#0F6E56;}.red{color:#A32D2D;}</style></head><body>
-    <h1>CMT Projetos e Fachadas — Fluxo de Caixa (${mesNum})</h1>
-    <div style="margin:20px 0;">Entradas: <strong>${fmtMoney(totalEnt)}</strong> | Saídas: <strong>${fmtMoney(totalSai)}</strong> | Saldo: <strong>${fmtMoney(saldo)}</strong></div>
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>body{font-family:sans-serif;padding:30px;}table{width:100%;border-collapse:collapse;margin-top:10px;}th{background:#1C2340;color:#fff;padding:8px;text-align:left;}td{padding:8px;border-bottom:1px solid #eee;}</style></head><body>
+    <h1>Fluxo de Caixa (${mesNum})</h1>
+    <p>Entradas Recebidas: <strong>${fmtMoney(totalEnt)}</strong> | Saídas: <strong>${fmtMoney(totalSai)}</strong> | Saldo: <strong>${fmtMoney(saldo)}</strong></p>
     <h2>📥 Entradas Recebidas</h2>
-    <table><thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th style="text-align:right;">Valor</th></tr></thead><tbody>${entRecebidas.map(e=>`<tr><td>${fmtDataBr(e.data)}</td><td>${e.clienteNome}</td><td>${e.tipo}</td><td style="text-align:right;" class="green">${fmtMoney(e.valor)}</td></tr>`).join('')}</tbody></table>
-    <h2>📤 Saídas</h2>
-    <table><thead><tr><th>Data</th><th>Descrição</th><th style="text-align:right;">Valor</th></tr></thead><tbody>${saiMes.map(s=>`<tr><td>${fmtDataBr(s.data)}</td><td>${s.desc}</td><td style="text-align:right;" class="red">${fmtMoney(s.valor)}</td></tr>`).join('')}</tbody></table>
+    <table><thead><tr><th>Data</th><th>Cliente</th><th>Valor</th></tr></thead><tbody>${entRecebidas.map(e=>`<tr><td>${fmtDataBr(e.data)}</td><td>${e.clienteNome}</td><td style="text-align:right;">${fmtMoney(e.valor)}</td></tr>`).join('')}</tbody></table>
     <h2>🔮 Recebimentos Futuros</h2>
-    <table><thead><tr><th>Data</th><th>Cliente</th><th style="text-align:right;">Valor</th></tr></thead><tbody>${entFuturas.map(e=>`<tr><td>${fmtDataBr(e.data)}</td><td>${e.clienteNome}</td><td style="text-align:right;">${fmtMoney(e.valor)}</td></tr>`).join('')}</tbody></table>
-    <div style="margin-top:30px;font-weight:700;">Resultado Final: ${fmtMoney(saldo)}</div>
+    <table><thead><tr><th>Data</th><th>Cliente</th><th>Valor</th></tr></thead><tbody>${entFuturas.map(e=>`<tr><td>${fmtDataBr(e.data)}</td><td>${e.clienteNome}</td><td style="text-align:right;">${fmtMoney(e.valor)}</td></tr>`).join('')}</tbody></table>
   </body></html>`);
   win.document.close(); setTimeout(()=>win.print(), 500);
 });
 
-// DELEGATION
+// GLOBAL CLICK
 document.addEventListener('click', async e => {
   if(e.target.dataset.type === 'toggle-recebido'){
     await updateDoc(doc(db,'fluxo_entradas',e.target.dataset.id), {recebido: e.target.dataset.recebido === '0'});
     carregarFluxoData();
   }
-  if(e.target.dataset.type === 'del-entrada'){
-    if(confirm('Apagar entrada?')) { await deleteDoc(doc(db,'fluxo_entradas',e.target.dataset.id)); carregarFluxoData(); }
-  }
-  if(e.target.closest('[data-type="pedido"]')) openModal(e.target.closest('[data-type="pedido"]').dataset.id);
-  if(e.target.id === 'btn-close-modal') document.getElementById('modal-bg').classList.remove('open');
-});
-
-// TABS LISTENERS
-['visao','clientes','pedidos','orcamentos','finalizados','cadastro','novo-orc','faturamento','fluxo'].forEach(t=>{
-  const el = document.getElementById('tab-'+t); if(el) el.onclick = () => window.showTab(t);
+  const tab = e.target.id; if(tab && tab.startsWith('tab-')) window.showTab(tab.replace('tab-',''));
 });
 
 // INIT
