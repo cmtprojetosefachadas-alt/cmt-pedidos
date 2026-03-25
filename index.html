@@ -701,14 +701,16 @@ function showTab(tab){
   if(tab==='visao')renderVisaoGeral();
   if(tab==='fluxo'){popularFluxoMeses();renderFluxo();}
   if(tab==='novo-orc'){
-    editingItens=[];renderItens();
-    const hoje=new Date();
-    const iso=d=>d.toISOString().split('T')[0];
-    const val=new Date(hoje);val.setDate(val.getDate()+4);
-    document.getElementById('f-data').value=iso(hoje);
-    document.getElementById('f-validade').value=iso(val);
-    document.getElementById('f-num').value='ORC-'+(1005+orcamentos.length+1);
-    atualizarSelectClientes();
+    if(!document.getElementById('f-num')?.dataset.editId){
+      editingItens=[];renderItens();
+      const hoje=new Date();
+      const iso=d=>d.toISOString().split('T')[0];
+      const val=new Date(hoje);val.setDate(val.getDate()+4);
+      document.getElementById('f-data').value=iso(hoje);
+      document.getElementById('f-validade').value=iso(val);
+      document.getElementById('f-num').value='ORC-'+(1005+orcamentos.length+1);
+      atualizarSelectClientes();
+    }
   }
 }
 
@@ -1089,12 +1091,23 @@ document.getElementById('login-senha').addEventListener('keydown',e=>{if(e.key==
 document.getElementById('btn-savelink').addEventListener('click',()=>showToast('Link salvo!'));
 
 // TABS
-['visao','clientes','pedidos','orcamentos','finalizados','cadastro','novo-orc','faturamento','fluxo'].forEach(t=>{
+['visao','clientes','pedidos','orcamentos','finalizados','cadastro','faturamento','fluxo'].forEach(t=>{
   document.getElementById('tab-'+t).addEventListener('click',()=>showTab(t));
+});
+document.getElementById('tab-novo-orc').addEventListener('click',()=>{
+  // Limpa editId ao clicar em + Novo Orçamento
+  const fn=document.getElementById('f-num');
+  if(fn) fn.dataset.editId='';
+  showTab('novo-orc');
 });
 document.getElementById('link-fin').addEventListener('click',()=>showTab('finalizados'));
 document.getElementById('btn-voltar-orc').addEventListener('click',()=>showTab('orcamentos'));
-document.getElementById('btn-editar-pdf').addEventListener('click',()=>showTab('novo-orc'));
+document.getElementById('btn-editar-pdf').addEventListener('click',()=>{
+  // preserva o editId, só troca de aba
+  const editId=document.getElementById('f-num')?.dataset.editId||'';
+  showTab('novo-orc');
+  if(editId) document.getElementById('f-num').dataset.editId=editId;
+});
 document.getElementById('btn-imprimir').addEventListener('click',()=>window.print());
 
 // PDF e WPP
@@ -1512,11 +1525,22 @@ document.addEventListener('click',async e=>{
   if(e.target.id==='btn-editar-orc'){
     const o=orcamentos.find(x=>x.id===currentOrcId);if(!o)return;
     document.getElementById('orc-modal-bg').classList.remove('open');
-    // Preenche o formulário com os dados do orçamento
+    // Marca como editando ANTES de showTab
+    document.getElementById('f-num').dataset.editId=currentOrcId;
     showTab('novo-orc');
+    atualizarSelectClientes();
     setTimeout(()=>{
       document.getElementById('f-num').value=o.num||'';
       document.getElementById('f-obs').value=o.obs||'';
+      // Preenche datas
+      if(o.data){
+        const partes=o.data.split('/');
+        if(partes.length===3) document.getElementById('f-data').value=`${partes[2]}-${partes[1]}-${partes[0]}`;
+      }
+      if(o.validade){
+        const partes=o.validade.split('/');
+        if(partes.length===3) document.getElementById('f-validade').value=`${partes[2]}-${partes[1]}-${partes[0]}`;
+      }
       // Preenche itens
       editingItens=[...(o.itens||[])];
       renderItens();
@@ -1527,7 +1551,7 @@ document.addEventListener('click',async e=>{
       }
       // Guarda id para atualizar ao salvar
       document.getElementById('f-num').dataset.editId=currentOrcId;
-    },100);
+    },150);
     return;
   }
   // PDF do orçamento salvo
