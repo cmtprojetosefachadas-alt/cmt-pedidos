@@ -291,6 +291,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <h3>Observações</h3>
       <div class="field"><textarea id="f-obs" placeholder="Ex: Prazo de entrega: 15 dias úteis..."></textarea></div>
     </div>
+    <div class="form-card">
+      <h3>🛡️ Garantias</h3>
+      <div class="field"><textarea id="f-garantias" placeholder="Ex: Garantia de 1 ano contra defeitos de fabricação. Mão de obra garantida por 6 meses..."></textarea></div>
+    </div>
     <div class="actions">
       <button class="btn btn-primary" id="btn-pdf">&#128444; Visualizar / Imprimir PDF</button>
       <button class="btn btn-wpp" id="btn-wpp-orc">&#128172; Enviar por WhatsApp</button>
@@ -711,6 +715,8 @@ function showTab(tab){
       document.getElementById('f-validade').value=iso(val);
       document.getElementById('f-num').value='ORC-'+(1005+orcamentos.length+1);
       document.getElementById('f-num').dataset.editId='';
+      document.getElementById('f-obs').value='';
+      document.getElementById('f-garantias').value='';
       atualizarSelectClientes();
     }
   }
@@ -1038,6 +1044,7 @@ function gerarPDFHTML(){
   const dt=document.getElementById('f-data').value;
   const dtv=document.getElementById('f-validade').value;
   const obs=document.getElementById('f-obs').value||'Sem observações.';
+  const garantias=document.getElementById('f-garantias').value||'';
   const sub=editingItens.reduce((s,it)=>s+it.valor,0);
   const desc=parseFloat(document.getElementById('desconto').value)||0;
   const total=sub*(1-desc/100);
@@ -1057,6 +1064,7 @@ function gerarPDFHTML(){
       <div class="pdf-total-final">Total: ${fmtMoney(total)}</div>
     </div>
     <div class="pdf-obs"><strong>Observações:</strong><br/>${obs.replace(/\n/g,'<br/>')}</div>
+    ${garantias?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>🛡️ Garantias:</strong><br/>${garantias.replace(/\n/g,'<br/>')}</div>`:''}
     <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${fmtDate(dt)}</span></div>
     <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
       <div style="text-align:center;width:45%;">
@@ -1139,7 +1147,8 @@ document.getElementById('btn-salvar-orc').addEventListener('click',async()=>{
     data:dataFmt,
     validade:fmtDate(document.getElementById('f-validade').value),
     itens:editingItens,
-    obs:document.getElementById('f-obs').value
+    obs:document.getElementById('f-obs').value,
+    garantias:document.getElementById('f-garantias').value
   };
   if(editId){
     await updateDoc(doc(db,'orcamentos',editId),dados);
@@ -1536,6 +1545,7 @@ document.addEventListener('click',async e=>{
       atualizarSelectClientes();
       document.getElementById('f-num').value=o.num||'';
       document.getElementById('f-obs').value=o.obs||'';
+      document.getElementById('f-garantias').value=o.garantias||'';
       if(o.data){
         const partes=o.data.split('/');
         if(partes.length===3) document.getElementById('f-data').value=`${partes[2]}-${partes[1]}-${partes[0]}`;
@@ -1574,6 +1584,7 @@ document.addEventListener('click',async e=>{
         <div class="pdf-total-final">Total: ${fmtMoney(o.valor||0)}</div>
       </div>
       ${o.obs?`<div class="pdf-obs"><strong>Observações:</strong><br/>${o.obs.replace(/\n/g,'<br/>')}</div>`:''}
+      ${o.garantias?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>🛡️ Garantias:</strong><br/>${o.garantias.replace(/\n/g,'<br/>')}</div>`:''}
       <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${o.data||''}</span></div>
       <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
         <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>CMT Projetos e Fachadas</strong><br/>CNPJ: 53.466.209/0001-01</div></div>
