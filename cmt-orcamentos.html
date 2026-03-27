@@ -379,19 +379,62 @@ body {
       <!-- Cliente -->
       <div class="card">
         <div class="card-title"><span class="dot"></span>Dados do pedido</div>
-        <div class="field-row">
-          <div class="field-group">
-            <label class="field-label">Cliente</label>
-            <select class="field" id="sel-cliente">
-              <option value="">Selecione o cliente...</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label class="field-label">Número do orçamento</label>
-            <input class="field" id="orc-num" value="#001" readonly style="opacity:.5">
+
+        <!-- Toggle: cliente do sistema ou avulso -->
+        <div style="display:flex;gap:6px;margin-bottom:14px">
+          <button id="tab-cliente-sistema" onclick="toggleTipoCliente('sistema')" style="flex:1;padding:8px;border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--accent);background:var(--accent);color:#fff;transition:all .2s">
+            👤 Cliente cadastrado
+          </button>
+          <button id="tab-cliente-avulso" onclick="toggleTipoCliente('avulso')" style="flex:1;padding:8px;border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border2);background:#fff;color:var(--muted);transition:all .2s">
+            📋 Proposta avulsa
+          </button>
+        </div>
+
+        <!-- Cliente do sistema -->
+        <div id="bloco-cliente-sistema">
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label">Cliente</label>
+              <select class="field" id="sel-cliente">
+                <option value="">Selecione o cliente...</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Número do orçamento</label>
+              <input class="field" id="orc-num" value="#001" readonly style="opacity:.5">
+            </div>
           </div>
         </div>
-        <div class="field-group">
+
+        <!-- Cliente avulso (proposta) -->
+        <div id="bloco-cliente-avulso" style="display:none">
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label">Nome / Empresa</label>
+              <input class="field" id="av-nome" placeholder="Ex: João Silva / Padaria do João">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Número do orçamento</label>
+              <input class="field" id="orc-num-av" value="#001" readonly style="opacity:.5">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group" style="margin:0">
+              <label class="field-label">Telefone / WhatsApp</label>
+              <input class="field" id="av-tel" placeholder="(16) 99999-9999">
+            </div>
+            <div class="field-group" style="margin:0">
+              <label class="field-label">E-mail</label>
+              <input class="field" id="av-email" placeholder="email@empresa.com.br">
+            </div>
+          </div>
+          <div class="field-group" style="margin-top:14px">
+            <label class="field-label">Endereço / Cidade</label>
+            <input class="field" id="av-end" placeholder="Ex: Rua das Flores, 123 — Franca/SP">
+          </div>
+        </div>
+
+        <div class="field-group" style="margin-top:14px">
           <label class="field-label">Descrição do serviço</label>
           <input class="field" id="orc-desc" placeholder="Ex: Fachada ACM — loja unidade centro...">
         </div>
@@ -1789,11 +1832,11 @@ window.salvarOrcamento = async function() {
   const items = Object.values(window._itensSelecionados);
   if(!items.length){showToast('Adicione pelo menos um material!');return;}
   const clienteEl = document.getElementById('sel-cliente');
-  const cliente = clienteEl.tagName==='SELECT'
-    ? clienteEl.options[clienteEl.selectedIndex]?.text||''
-    : clienteEl.value;
-  if(!cliente||cliente==='Selecione o cliente...'){showToast('Selecione o cliente!');return;}
+  const cliente = getNomeCliente();
+  if(!cliente||cliente==='Selecione o cliente...'){showToast('Preencha o nome do cliente!');return;}
   const desc = document.getElementById('orc-desc').value||'Sem descrição';
+  // Dados avulso
+  const avulso = getTipoCliente()==='avulso' ? getDadosClienteAvulso() : null;
   const margem = parseInt(document.getElementById('margem-slider').value)||30;
   const moPct = parseFloat(document.getElementById('mo-pct').value)||0;
   const subMat = items.reduce((a,i)=>a+i.custo*i.qty,0);
@@ -1812,6 +1855,7 @@ window.salvarOrcamento = async function() {
     subMat, moVal, moPct, margemPct:margem,
     custoTotal, venda, lucro,
     pagamento, taxaCartao,
+    avulso: avulso||null,
     status:'Aguardando',
     criadoEm: agora,
     alteradoEm: null, alteradoPor: null,
@@ -1836,6 +1880,12 @@ window.limparOrcamento = function() {
   document.getElementById('margem-display').textContent='30%';
   document.getElementById('mo-pct').value=25;
   document.getElementById('total-block').style.display='none';
+  // Reset avulso fields
+  if(document.getElementById('av-nome')) document.getElementById('av-nome').value='';
+  if(document.getElementById('av-tel')) document.getElementById('av-tel').value='';
+  if(document.getElementById('av-email')) document.getElementById('av-email').value='';
+  if(document.getElementById('av-end')) document.getElementById('av-end').value='';
+  toggleTipoCliente('sistema');
 };
 
 // ── LISTA ──
@@ -2028,6 +2078,12 @@ window.abrirModal = function(id) {
 
   document.getElementById('modal-body').innerHTML = `
     <div style="margin-bottom:14px;color:var(--muted);font-size:13px">${o.desc||''}</div>
+    ${o.avulso&&(o.avulso.tel||o.avulso.email||o.avulso.end)?`
+    <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap">
+      ${o.avulso.tel?`<span style="font-size:12px;color:var(--muted)">📱 ${o.avulso.tel}</span>`:''}
+      ${o.avulso.email?`<span style="font-size:12px;color:var(--muted)">✉️ ${o.avulso.email}</span>`:''}
+      ${o.avulso.end?`<span style="font-size:12px;color:var(--muted)">📍 ${o.avulso.end}</span>`:''}
+    </div>`:''}
     ${itens}
 
     <!-- Discriminação de custos -->
@@ -2214,6 +2270,47 @@ window.abrirEdicaoOrcamento = function(id) {
   sel.dispatchEvent(new Event('change'));
   renderEditItens();
   document.getElementById('modal-editar-orc').classList.add('open');
+};
+
+window.toggleTipoCliente = function(tipo) {
+  const sistema = document.getElementById('bloco-cliente-sistema');
+  const avulso  = document.getElementById('bloco-cliente-avulso');
+  const tabSis  = document.getElementById('tab-cliente-sistema');
+  const tabAv   = document.getElementById('tab-cliente-avulso');
+  if(tipo==='sistema') {
+    sistema.style.display='block'; avulso.style.display='none';
+    tabSis.style.background='var(--accent)'; tabSis.style.color='#fff'; tabSis.style.borderColor='var(--accent)';
+    tabAv.style.background='#fff'; tabAv.style.color='var(--muted)'; tabAv.style.borderColor='var(--border2)';
+  } else {
+    sistema.style.display='none'; avulso.style.display='block';
+    tabAv.style.background='var(--accent)'; tabAv.style.color='#fff'; tabAv.style.borderColor='var(--accent)';
+    tabSis.style.background='#fff'; tabSis.style.color='var(--muted)'; tabSis.style.borderColor='var(--border2)';
+    // Sync numero
+    const num = document.getElementById('orc-num').value;
+    document.getElementById('orc-num-av').value = num;
+  }
+};
+
+window.getTipoCliente = function() {
+  return document.getElementById('bloco-cliente-avulso').style.display==='none'?'sistema':'avulso';
+};
+
+window.getNomeCliente = function() {
+  if(getTipoCliente()==='avulso') {
+    return document.getElementById('av-nome').value.trim();
+  }
+  const el = document.getElementById('sel-cliente');
+  if(!el) return '';
+  if(el.tagName==='SELECT') return el.options[el.selectedIndex]?.text||'';
+  return el.value;
+};
+
+window.getDadosClienteAvulso = function() {
+  return {
+    tel:   document.getElementById('av-tel')?.value.trim()||'',
+    email: document.getElementById('av-email')?.value.trim()||'',
+    end:   document.getElementById('av-end')?.value.trim()||''
+  };
 };
 
 window.toggleCartaoTaxaNovo = function() {
