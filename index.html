@@ -2144,10 +2144,13 @@ function popularSaiFutMesSel() {
 function renderSaidasLista(lista) {
   const el = document.getElementById('fx-saidas-lista');
   if(!el)return;
-  popularSaiFutMesSel();
   const hoje = new Date().toISOString().split('T')[0];
   const passadas = lista.filter(s=>!s.futura&&(!s.data||s.data<=hoje));
   const mesFiltro = (document.getElementById('sai-fut-mes-sel')||{}).value || '';
+  popularSaiFutMesSel();
+  // Restaura o valor após popular
+  const selSai = document.getElementById('sai-fut-mes-sel');
+  if(selSai && mesFiltro) selSai.value = mesFiltro;
   let futuras = fluxoSaidas.filter(s=>s.futura||(s.data&&s.data>hoje));
   if(mesFiltro) {
     futuras = futuras.filter(s=>{
