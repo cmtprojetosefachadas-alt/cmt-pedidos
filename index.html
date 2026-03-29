@@ -393,7 +393,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="form-card" style="margin-bottom:8px;padding:12px 18px;">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           <span style="font-size:13px;font-weight:600;color:#7C5CBF;">Filtrar entradas futuras por mês:</span>
-          <select id="ent-fut-mes-sel" style="padding:6px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" onchange="renderFluxo()">
+          <select id="ent-fut-mes-sel" style="padding:6px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" onchange="renderEntradasLista(window._entRealizadas||[])">
             <option value="">Todos os meses</option>
           </select>
         </div>
@@ -2071,6 +2071,7 @@ window.renderFluxo = function renderFluxo() {
   const saldoEl = document.getElementById('fx-saldo');
   if(saldoEl){ saldoEl.textContent = fmtMoney(saldoFinal); saldoEl.style.color = saldoFinal>=0?'var(--green)':'var(--red)'; }
 
+  window._entRealizadas = entRealizadas;
   renderEntradasLista(entRealizadas);
   renderSaidasLista(saiRealizadas);
   popularPedidoSelect();
@@ -2080,7 +2081,7 @@ window.renderFluxo = function renderFluxo() {
 function fmtDataBr(s) { if(!s)return''; const[y,m,d]=s.split('-'); return`${d}/${m}/${y}`; }
 function dataToMes(s) { if(!s)return''; const parts=s.split('-'); if(parts.length===3) return parts[2]+'/'+parts[1]+'/'+parts[0].substring(2); return s; }
 
-function renderEntradasLista(lista) {
+window.renderEntradasLista = function renderEntradasLista(lista) {
   const el = document.getElementById('fx-entradas-lista');
   if(!el)return;
   const hoje = new Date().toISOString().split('T')[0];
