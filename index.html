@@ -436,8 +436,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
     <!-- SAIDAS -->
     <div id="fxpanel-saidas" style="display:none;">
+      <div class="form-card" style="margin-bottom:8px;padding:12px 18px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <span style="font-size:13px;font-weight:600;color:#A32D2D;">Filtrar saidas futuras por mes:</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <select id="sai-fut-mes-sel" style="padding:6px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" onchange="renderFluxo()">
+              <option value="">Todos os meses</option>
+            </select>
+          </div>
+        </div>
+      </div>
       <div class="form-card" style="margin-bottom:16px;">
-        <h3>+ Nova saída</h3>
+        <h3>+ Nova saida</h3>
         <div class="fg2">
           <div class="field"><label>Descrição</label><input type="text" id="fx-sai-desc" placeholder="Ex: Chapa ACM fornecedor X"/></div>
           <div class="field"><label>Categoria</label>
@@ -2110,12 +2120,44 @@ function renderEntradasLista(lista) {
   el.innerHTML = recebidasHTML + futurasHTML;
 }
 
+function popularSaiFutMesSel() {
+  const sel = document.getElementById('sai-fut-mes-sel');
+  if(!sel) return;
+  const currentVal = sel.value;
+  const futuras = fluxoSaidas.filter(s=>(s.futura||(s.data&&s.data>new Date().toISOString().split('T')[0])) && s.data);
+  const mesesSet = new Set();
+  futuras.forEach(s=>{
+    const [y,m] = s.data.split('-');
+    mesesSet.add(m+'/'+y);
+  });
+  const mesesSorted = [...mesesSet].sort((a,b)=>{
+    const [ma,ya]=a.split('/'); const [mb,yb]=b.split('/');
+    return (ya+ma).localeCompare(yb+mb);
+  });
+  const nomeMes = mm => ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)];
+  sel.innerHTML = `<option value="">Todos os meses</option>` + mesesSorted.map(m=>{
+    const [mm,yy]=m.split('/');
+    return `<option value="${m}" ${m===currentVal?'selected':''}>${nomeMes(mm)} ${yy}</option>`;
+  }).join('');
+}
+
 function renderSaidasLista(lista) {
   const el = document.getElementById('fx-saidas-lista');
   if(!el)return;
+  popularSaiFutMesSel();
   const hoje = new Date().toISOString().split('T')[0];
   const passadas = lista.filter(s=>!s.futura&&(!s.data||s.data<=hoje));
-  const futuras = fluxoSaidas.filter(s=>s.futura||(s.data&&s.data>hoje));
+  const mesFiltro = (document.getElementById('sai-fut-mes-sel')||{}).value || '';
+  let futuras = fluxoSaidas.filter(s=>s.futura||(s.data&&s.data>hoje));
+  if(mesFiltro) {
+    futuras = futuras.filter(s=>{
+      if(!s.data) return false;
+      const [y,m] = s.data.split('-');
+      return (m+'/'+y) === mesFiltro;
+    });
+  }
+  const totalFutGlobal = fluxoSaidas.filter(s=>s.futura||(s.data&&s.data>hoje)).reduce((s,e)=>s+(e.valor||0),0);
+  const totalFutFiltro = futuras.reduce((s,e)=>s+(e.valor||0),0);
 
   const tabelaRows = (arr, isFutura=false) => arr.map(s=>`
     <tr style="border-bottom:1px solid var(--border);">
@@ -2145,11 +2187,17 @@ function renderSaidasLista(lista) {
       <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;">SAÍDAS REALIZADAS</div>
       <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${tabelaRows(passadas, false)}</tbody></table>
     </div>` : ''}
-    ${futuras.length ? `<div class="form-card">
-      <div style="font-size:12px;font-weight:600;color:#A32D2D;margin-bottom:10px;">📤 SAÍDAS FUTURAS — ${fmtMoney(futuras.reduce((s,e)=>s+(e.valor||0),0))}</div>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${tabelaRows(futuras, true)}</tbody></table>
+    ${futuras.length || mesFiltro ? `<div class="form-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:600;color:#A32D2D;">📤 SAÍDAS FUTURAS${mesFiltro?' — MÊS FILTRADO':''}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${mesFiltro?`<span style="background:var(--red-bg);color:var(--red);padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;">${mesFiltro}: ${fmtMoney(totalFutFiltro)}</span>`:''}
+          <span style="background:var(--surface2);color:var(--muted);padding:3px 10px;border-radius:6px;font-size:12px;">Global: ${fmtMoney(totalFutGlobal)}</span>
+        </div>
+      </div>
+      ${futuras.length ? `<table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${tabelaRows(futuras, true)}</tbody></table>` : '<div style="text-align:center;color:var(--muted);padding:12px;font-size:13px;">Nenhuma saída futura neste mês.</div>'}
     </div>` : ''}
-    ${!passadas.length && !futuras.length ? '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhuma saída registrada.</div>' : ''}
+    ${!passadas.length && !futuras.length && !mesFiltro ? '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhuma saída registrada.</div>' : ''}
   `;
 }
 
