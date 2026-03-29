@@ -465,7 +465,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <!-- FUTUROS -->
     <div id="fxpanel-futuro" style="display:none;">
       <div class="form-card">
-        <h3>🔮 Recebimentos futuros</h3>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+          <h3 style="margin:0;">🔮 Recebimentos futuros</h3>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;color:var(--muted);">Filtrar mês:</span>
+            <select id="fut-mes-sel" style="padding:6px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" onchange="renderFuturos()">
+              <option value="">Todos</option>
+            </select>
+          </div>
+        </div>
         <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Cheques pré-datados e parcelas com data futura</p>
         <div id="fx-futuros-lista"></div>
       </div>
@@ -2145,17 +2153,62 @@ function renderSaidasLista(lista) {
   `;
 }
 
-function renderFuturos() {
+function popularFutMesSel() {
+  const sel = document.getElementById('fut-mes-sel');
+  if(!sel) return;
+  const currentVal = sel.value;
+  const futuros = fluxoEntradas.filter(e=>e.recebido!==true && e.data);
+  const mesesSet = new Set();
+  futuros.forEach(e=>{
+    // e.data = "YYYY-MM-DD"
+    const [y,m] = e.data.split('-');
+    mesesSet.add(m+'/'+y);
+  });
+  const mesesSorted = [...mesesSet].sort((a,b)=>{
+    const [ma,ya]=a.split('/'); const [mb,yb]=b.split('/');
+    return (ya+ma).localeCompare(yb+mb);
+  });
+  const nomeMes = mm => ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)];
+  sel.innerHTML = `<option value="">Todos</option>` + mesesSorted.map(m=>{
+    const [mm,yy]=m.split('/');
+    return `<option value="${m}" ${m===currentVal?'selected':''}>${nomeMes(mm)} ${yy}</option>`;
+  }).join('');
+}
+
+window.renderFuturos = function renderFuturos() {
   const el = document.getElementById('fx-futuros-lista');
   if(!el)return;
-  // Mostra todas entradas com data futura OU pendentes
-  const hojeStr = new Date().toISOString().split('T')[0];
-  // Mostra TODOS os futuros (global, todos os meses)
-  const futuros = fluxoEntradas.filter(e=>e.recebido!==true);
-  futuros.sort((a,b)=>a.data.localeCompare(b.data));
+  popularFutMesSel();
+  const sel = document.getElementById('fut-mes-sel');
+  const mesFiltro = sel ? sel.value : '';
+  // Todos pendentes
+  let futuros = fluxoEntradas.filter(e=>e.recebido!==true);
+  // Filtra por mês se selecionado
+  if(mesFiltro) {
+    futuros = futuros.filter(e=>{
+      if(!e.data) return false;
+      const [y,m] = e.data.split('-');
+      return (m+'/'+y) === mesFiltro;
+    });
+  }
   futuros.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
-  if(!futuros.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum recebimento pendente.</div>'; return; }
-  el.innerHTML=futuros.map(e=>`
+  const totalFiltro = futuros.reduce((s,e)=>s+(e.valor||0),0);
+  const totalGlobal = fluxoEntradas.filter(e=>e.recebido!==true).reduce((s,e)=>s+(e.valor||0),0);
+
+  if(!futuros.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">'+(mesFiltro?'Nenhum recebimento neste mês.':'Nenhum recebimento pendente.')+'</div>'; return; }
+
+  const resumoHTML = `<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+    <div style="background:var(--surface2);border-radius:8px;padding:10px 16px;flex:1;text-align:center;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">${mesFiltro?'Total do mês filtrado':'Total pendente global'}</div>
+      <div style="font-size:18px;font-weight:600;color:#7C5CBF;">${fmtMoney(totalFiltro)}</div>
+    </div>
+    ${mesFiltro?`<div style="background:var(--surface2);border-radius:8px;padding:10px 16px;flex:1;text-align:center;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">Total pendente global</div>
+      <div style="font-size:18px;font-weight:600;color:var(--muted);">${fmtMoney(totalGlobal)}</div>
+    </div>`:''}
+  </div>`;
+
+  el.innerHTML= resumoHTML + futuros.map(e=>`
     <div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);">
       <div style="background:var(--amber-bg);color:var(--amber-text);padding:4px 10px;border-radius:8px;font-size:11px;white-space:nowrap;text-align:center;">
         📅 ${fmtDataBr(e.data)}${e.compensacao?'<br/>Comp: '+fmtDataBr(e.compensacao):''}
