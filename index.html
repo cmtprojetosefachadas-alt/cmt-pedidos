@@ -391,6 +391,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <!-- ENTRADAS -->
     <div id="fxpanel-entradas">
       <div class="form-card" style="margin-bottom:8px;padding:12px 18px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <span style="font-size:13px;font-weight:600;color:#7C5CBF;">Filtrar entradas futuras por mês:</span>
+          <select id="ent-fut-mes-sel" style="padding:6px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" onchange="renderFluxo()">
+            <option value="">Todos os meses</option>
+          </select>
+        </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span style="font-size:13px;color:var(--muted);flex:1;">Excluir todas as entradas de um cliente:</span>
           <select id="fx-del-cliente-sel" style="padding:6px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;min-width:200px;">
@@ -2078,9 +2084,31 @@ function renderEntradasLista(lista) {
   const el = document.getElementById('fx-entradas-lista');
   if(!el)return;
   const hoje = new Date().toISOString().split('T')[0];
-  const futuras = (fluxoEntradas||[]).filter(e=>e.recebido!==true);
-  futuras.sort((a,b)=>a.data.localeCompare(b.data));
-  const totalFut = futuras.reduce((s,e)=>s+(e.valor||0),0);
+
+  // Lê filtro ANTES de popular o select
+  const mesFiltro = (document.getElementById('ent-fut-mes-sel')||{}).value || '';
+
+  // Popula o select com meses disponíveis
+  const selEnt = document.getElementById('ent-fut-mes-sel');
+  if(selEnt) {
+    const futAll = (fluxoEntradas||[]).filter(e=>e.recebido!==true && e.data);
+    const mesesSet = new Set();
+    futAll.forEach(e=>{ const[y,m]=e.data.split('-'); mesesSet.add(m+'/'+y); });
+    const nomeMes = mm=>['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)];
+    const mesesSorted = [...mesesSet].sort((a,b)=>{const[ma,ya]=a.split('/');const[mb,yb]=b.split('/');return(ya+ma).localeCompare(yb+mb);});
+    selEnt.innerHTML = `<option value="">Todos os meses</option>` + mesesSorted.map(m=>{const[mm,yy]=m.split('/');return`<option value="${m}" ${m===mesFiltro?'selected':''}>${nomeMes(mm)} ${yy}</option>`;}).join('');
+    if(mesFiltro) selEnt.value = mesFiltro;
+  }
+
+  // Aplica filtro nas futuras
+  let futuras = (fluxoEntradas||[]).filter(e=>e.recebido!==true);
+  if(mesFiltro) {
+    futuras = futuras.filter(e=>{ if(!e.data)return false; const[y,m]=e.data.split('-'); return(m+'/'+y)===mesFiltro; });
+  }
+  futuras.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+
+  const totalFutGlobal = (fluxoEntradas||[]).filter(e=>e.recebido!==true).reduce((s,e)=>s+(e.valor||0),0);
+  const totalFutFiltro = futuras.reduce((s,e)=>s+(e.valor||0),0);
 
   const rowsEnt = arr => arr.map(e=>`
     <tr style="border-bottom:1px solid var(--border);">
@@ -2107,9 +2135,15 @@ function renderEntradasLista(lista) {
     <th style="padding:8px;"></th>
   </tr></thead>`;
 
-  const futurasHTML = futuras.length ? `<div class="form-card">
-    <div style="font-size:12px;font-weight:600;color:#7C5CBF;margin-bottom:10px;">🔮 ENTRADAS FUTURAS — ${fmtMoney(totalFut)}</div>
-    <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowsEnt(futuras)}</tbody></table>
+  const futurasHTML = futuras.length || mesFiltro ? `<div class="form-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:600;color:#7C5CBF;">🔮 ENTRADAS FUTURAS${mesFiltro?' — MÊS FILTRADO':''}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${mesFiltro?`<span style="background:var(--green-bg);color:var(--green-text);padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;">${mesFiltro}: ${fmtMoney(totalFutFiltro)}</span>`:''}
+        <span style="background:var(--surface2);color:var(--muted);padding:3px 10px;border-radius:6px;font-size:12px;">Global: ${fmtMoney(totalFutGlobal)}</span>
+      </div>
+    </div>
+    ${futuras.length ? `<table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowsEnt(futuras)}</tbody></table>` : '<div style="text-align:center;color:var(--muted);padding:12px;font-size:13px;">Nenhuma entrada futura neste mês.</div>'}
   </div>` : '<div style="text-align:center;color:var(--muted);padding:12px;font-size:13px;">Nenhuma entrada futura.</div>';
 
   const recebidasHTML = lista.length ? `<div class="form-card" style="margin-bottom:12px;">
