@@ -1238,6 +1238,9 @@ async function init() {
   // Controle de acesso: só admin vê aba Usuários
   const navU = document.getElementById('nav-usuarios');
   if(navU) navU.style.display = isAdmin?'':'none';
+  // Controle de acesso: despesas só quem tem permissão
+  const navD = document.querySelectorAll('.nav-btn');
+  navD.forEach(b=>{ if(b.textContent==='Despesas') b.style.display = temPermissao('lancar_despesas')?'':'none'; });
 }
 
 // ── MATERIAIS ──
@@ -2580,10 +2583,11 @@ const TODAS_PERMISSOES = [
   { key:'ver_relatorio',   label:'Ver relatório' },
   { key:'gerar_pdf',       label:'Gerar PDF' },
   { key:'gerenciar_mat',   label:'Gerenciar materiais' },
+  { key:'lancar_despesas', label:'Lançar despesas' },
   { key:'gerenciar_users', label:'Gerenciar usuários' },
 ];
-const PERMS_ADMIN  = Object.fromEntries(['criar_orc','editar_orc','aprovar_orc','remover_orc','ver_relatorio','gerar_pdf','gerenciar_mat','gerenciar_users'].map(k=>[k,true]));
-const PERMS_PADRAO = { criar_orc:true, editar_orc:false, aprovar_orc:false, remover_orc:false, ver_relatorio:false, gerar_pdf:false, gerenciar_mat:false, gerenciar_users:false };
+const PERMS_ADMIN  = Object.fromEntries(['criar_orc','editar_orc','aprovar_orc','remover_orc','ver_relatorio','gerar_pdf','gerenciar_mat','lancar_despesas','gerenciar_users'].map(k=>[k,true]));
+const PERMS_PADRAO = { criar_orc:true, editar_orc:false, aprovar_orc:false, remover_orc:false, ver_relatorio:false, gerar_pdf:false, gerenciar_mat:false, lancar_despesas:false, gerenciar_users:false };
 
 function temPermissao(key) {
   if(!_usuarioLogado) return false;
@@ -2741,6 +2745,7 @@ function popularSelectOrcamentos() {
 }
 
 async function lancarDespesa() {
+  if(!temPermissao('lancar_despesas')) { showToast('Sem permissão para lançar despesas!'); return; }
   const orcId = document.getElementById('desp-orc').value;
   const desc  = document.getElementById('desp-desc').value.trim();
   const cat   = document.getElementById('desp-cat').value;
