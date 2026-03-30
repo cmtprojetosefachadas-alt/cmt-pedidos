@@ -363,6 +363,7 @@ body {
     <button class="nav-btn active" onclick="showScreen('orcamento',this)">Novo orçamento</button>
     <button class="nav-btn" onclick="showScreen('lista',this)">Orçamentos</button>
     <button class="nav-btn" onclick="showScreen('relatorio',this)">Relatório</button>
+    <button class="nav-btn" onclick="showScreen('despesas',this)">Despesas</button>
     <button class="nav-btn" onclick="showScreen('materiais',this)">Materiais</button>
     <button class="nav-btn" id="nav-usuarios" onclick="showScreen('usuarios',this)">Usuários</button>
   </nav>
@@ -755,8 +756,94 @@ body {
 
 </div><!-- /main -->
 
+<!-- ===== DESPESAS ===== -->
+<div class="screen" id="screen-despesas">
+  <div class="orc-header">
+    <h2>Despesas por orçamento</h2>
+  </div>
+
+  <!-- KPIs -->
+  <div id="desp-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px"></div>
+
+  <!-- Formulário lançamento -->
+  <div class="card" style="padding:20px;margin-bottom:20px">
+    <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px">Lançar despesa</div>
+    <div style="display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr;gap:10px;margin-bottom:10px">
+      <div>
+        <label class="field-label">Orçamento / Cliente</label>
+        <select class="field" id="desp-orc"></select>
+      </div>
+      <div>
+        <label class="field-label">Descrição</label>
+        <input class="field" id="desp-desc" placeholder="Ex: Lona banner 3x2m">
+      </div>
+      <div>
+        <label class="field-label">Categoria</label>
+        <select class="field" id="desp-cat">
+          <option value="Material">Material</option>
+          <option value="Mão de obra">Mão de obra</option>
+          <option value="Frete">Frete</option>
+          <option value="Alimentação">Alimentação</option>
+          <option value="Outros">Outros</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Valor (R$)</label>
+        <input class="field" id="desp-valor" type="number" min="0" step="0.01" placeholder="0,00">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr auto;gap:10px;align-items:flex-end">
+      <div>
+        <label class="field-label">Observação (opcional)</label>
+        <input class="field" id="desp-obs" placeholder="Ex: NF 1234, fornecedor...">
+      </div>
+      <div>
+        <label class="field-label">Data</label>
+        <input class="field" id="desp-data" type="date">
+      </div>
+      <button class="btn btn-primary" style="margin-bottom:1px" onclick="lancarDespesa()">+ Lançar</button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <span style="font-size:14px;font-weight:700">Lançamentos</span>
+    <select class="field" id="desp-filtro-orc" style="width:240px;padding:7px 12px" onchange="renderDespesas()">
+      <option value="">Todos os orçamentos</option>
+    </select>
+    <select class="field" id="desp-filtro-cat" style="width:160px;padding:7px 12px" onchange="renderDespesas()">
+      <option value="">Todas categorias</option>
+      <option value="Material">Material</option>
+      <option value="Mão de obra">Mão de obra</option>
+      <option value="Frete">Frete</option>
+      <option value="Alimentação">Alimentação</option>
+      <option value="Outros">Outros</option>
+    </select>
+    <span id="desp-total-label" style="margin-left:auto;font-size:13px;font-weight:700;color:var(--text)"></span>
+  </div>
+
+  <!-- Tabela -->
+  <div class="card">
+    <div class="orc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th><th>Orçamento</th><th>Descrição</th>
+            <th>Categoria</th><th>Valor</th><th>Obs.</th>
+            <th>Lançado por</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="desp-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Comparativo por orçamento -->
+  <div style="margin-top:20px" id="desp-comparativo"></div>
+</div>
+
 <!-- MODAL EDITAR USUÁRIO -->
-<div class="modal-overlay" id="modal-editar-usuario" onclick="if(event.target===this)this.classList.remove('open')">
+<div class="modal-overlay" id="modal-editar-usuario" onclick="if(event.target===this)this.classList.remove('open')">>
   <div class="modal" style="max-width:500px">
     <h3>Editar usuário</h3>
     <input type="hidden" id="eu-id">
@@ -1140,6 +1227,7 @@ async function init() {
   await carregarMateriais();
   await carregarClientes();
   await carregarOrcamentos();
+  await carregarDespesas();
   renderCatalogo();
   renderListaOrcamentos();
   renderRelatorio();
@@ -1224,9 +1312,16 @@ function popularSelectCategorias(selectId, valorAtual) {
   const sel = document.getElementById(selectId);
   if(!sel) return;
   const cats = getCategorias();
-  const val = valorAtual||sel.value||'';
-  sel.innerHTML = cats.map(c=>`<option value="${c}" ${c===val?'selected':''}>${c}</option>`).join('')
+  // valorAtual tem prioridade, depois o valor atual do select, depois vazio
+  const val = valorAtual !== undefined ? valorAtual : (sel.value||'');
+  // Garante que a categoria atual está na lista mesmo que não exista nos materiais
+  const todasCats = (val && !cats.includes(val) && val !== '__nova__')
+    ? [...cats.filter(c=>c!=='Outros'), val, 'Outros']
+    : cats;
+  sel.innerHTML = todasCats.map(c=>`<option value="${c}" ${c===val?'selected':''}>${c}</option>`).join('')
     + '<option value="__nova__">+ Nova categoria...</option>';
+  // Força o valor selecionado
+  if(val && val !== '__nova__') sel.value = val;
 }
 
 function renderListaCategorias() {
@@ -1405,11 +1500,8 @@ window.editarCustoMaterial = function(id) {
   document.getElementById('edit-mat-id').value   = id;
   document.getElementById('edit-mat-nome').value  = m.nome;
   document.getElementById('edit-mat-custo').value = m.custo;
-  // Seleciona categoria
-  const catSel = document.getElementById('edit-mat-cat');
-  for(let i=0;i<catSel.options.length;i++) {
-    if(catSel.options[i].value===m.cat) { catSel.selectedIndex=i; break; }
-  }
+  // Repopula o select de categoria com a categoria atual já selecionada
+  popularSelectCategorias('edit-mat-cat', m.cat);
   // Seleciona unidade
   const unitSel = document.getElementById('edit-mat-unit');
   for(let i=0;i<unitSel.options.length;i++) {
@@ -2621,8 +2713,209 @@ window.showScreen = function(name,btn) {
   if(name==='materiais') renderTabelaMateriais();
   if(name==='lista') renderListaOrcamentos();
   if(name==='usuarios') renderTabelaUsuarios();
+  if(name==='despesas') iniciarDespesas();
   if(name==='materiais') { renderFiltrosCategorias(); renderListaCategorias(); popularSelectCategorias('g-nm-cat'); }
 };
+
+// ══════════════════════════════
+// MÓDULO DESPESAS
+// ══════════════════════════════
+
+function iniciarDespesas() {
+  // Data padrão = hoje
+  const hoje = new Date().toISOString().split('T')[0];
+  document.getElementById('desp-data').value = hoje;
+  popularSelectOrcamentos();
+  renderDespesasKPIs();
+  renderDespesas();
+  renderComparativo();
+}
+
+function popularSelectOrcamentos() {
+  const orcs = (window._orcamentos||[]);
+  const opts = orcs.map(o=>`<option value="${o.id}">#${o.num||'?'} — ${o.cliente}</option>`).join('');
+  document.getElementById('desp-orc').innerHTML = '<option value="">Selecione o orçamento...</option>' + opts;
+  // Filtro
+  const filtro = document.getElementById('desp-filtro-orc');
+  filtro.innerHTML = '<option value="">Todos os orçamentos</option>' + opts;
+}
+
+async function lancarDespesa() {
+  const orcId = document.getElementById('desp-orc').value;
+  const desc  = document.getElementById('desp-desc').value.trim();
+  const cat   = document.getElementById('desp-cat').value;
+  const valor = parseFloat(document.getElementById('desp-valor').value)||0;
+  const obs   = document.getElementById('desp-obs').value.trim();
+  const data  = document.getElementById('desp-data').value;
+
+  if(!orcId)  { showToast('Selecione o orçamento!'); return; }
+  if(!desc)   { showToast('Preencha a descrição!'); return; }
+  if(!valor)  { showToast('Preencha o valor!'); return; }
+
+  const orc = (window._orcamentos||[]).find(o=>o.id===orcId);
+
+  const desp = {
+    orcId, orcNum: orc?.num||'?', orcCliente: orc?.cliente||'?',
+    desc, cat, valor, obs, data,
+    lancadoPor: _usuarioLogado?.nome||'Sistema',
+    criadoEm: new Date().toISOString()
+  };
+
+  try {
+    await addDoc(collection(db,'cmt_despesas'), desp);
+  } catch(e) { console.error(e); }
+
+  // Limpa campos
+  document.getElementById('desp-desc').value='';
+  document.getElementById('desp-valor').value='';
+  document.getElementById('desp-obs').value='';
+
+  showToast('Despesa lançada! ✅');
+  await carregarDespesas();
+  renderDespesasKPIs();
+  renderDespesas();
+  renderComparativo();
+}
+
+let _despesas = [];
+
+async function carregarDespesas() {
+  try {
+    const snap = await getDocs(collection(db,'cmt_despesas'));
+    _despesas = snap.docs.map(d=>({id:d.id,...d.data()}));
+    _despesas.sort((a,b)=>new Date(b.criadoEm)-new Date(a.criadoEm));
+  } catch(e) { _despesas=[]; }
+}
+
+function renderDespesasKPIs() {
+  const total     = _despesas.reduce((a,d)=>a+d.valor,0);
+  const porCat    = {};
+  _despesas.forEach(d=>{ porCat[d.cat]=(porCat[d.cat]||0)+d.valor; });
+  const topCat    = Object.entries(porCat).sort((a,b)=>b[1]-a[1])[0];
+  const orcsComDesp = new Set(_despesas.map(d=>d.orcId)).size;
+  // Custo orçado total (aprovados)
+  const orcTotalCusto = (window._orcamentos||[]).filter(o=>o.status==='Aprovado').reduce((a,o)=>a+(o.custo||0),0);
+
+  const kpiEl = document.getElementById('desp-kpis');
+  if(!kpiEl) return;
+  kpiEl.innerHTML = `
+    <div class="card" style="padding:16px;border-left:4px solid var(--accent)">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;font-weight:700">Total gasto</div>
+      <div style="font-size:24px;font-weight:800;color:var(--accent)">${fmt(total)}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">${_despesas.length} lançamentos</div>
+    </div>
+    <div class="card" style="padding:16px;border-left:4px solid var(--green)">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;font-weight:700">Custo orçado (aprovados)</div>
+      <div style="font-size:24px;font-weight:800;color:var(--green)">${fmt(orcTotalCusto)}</div>
+      <div style="font-size:11px;color:${total>orcTotalCusto?'var(--red)':'var(--green)'};margin-top:2px;font-weight:600">${total>orcTotalCusto?'⚠️ Acima do orçado':'✅ Dentro do orçado'}</div>
+    </div>
+    <div class="card" style="padding:16px;border-left:4px solid var(--blue)">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;font-weight:700">Orçamentos com gasto</div>
+      <div style="font-size:24px;font-weight:800;color:var(--blue)">${orcsComDesp}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">obras em andamento</div>
+    </div>
+    <div class="card" style="padding:16px;border-left:4px solid var(--purple,#7b5fc9)">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;font-weight:700">Maior gasto</div>
+      <div style="font-size:24px;font-weight:800">${topCat?topCat[0]:'—'}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">${topCat?fmt(topCat[1]):''}</div>
+    </div>
+  `;
+}
+
+function renderDespesas() {
+  const filtroOrc = document.getElementById('desp-filtro-orc')?.value||'';
+  const filtroCat = document.getElementById('desp-filtro-cat')?.value||'';
+  let lista = _despesas.filter(d=>{
+    if(filtroOrc && d.orcId!==filtroOrc) return false;
+    if(filtroCat && d.cat!==filtroCat) return false;
+    return true;
+  });
+
+  const totalFiltrado = lista.reduce((a,d)=>a+d.valor,0);
+  const label = document.getElementById('desp-total-label');
+  if(label) label.textContent = lista.length ? `Total: ${fmt(totalFiltrado)} (${lista.length} lançamentos)` : '';
+
+  const catColors = {
+    'Material':'var(--accent)','Mão de obra':'var(--green)',
+    'Frete':'var(--blue)','Alimentação':'#e67e22','Outros':'var(--muted)'
+  };
+
+  const tbody = document.getElementById('desp-tbody');
+  if(!tbody) return;
+  if(!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px">Nenhuma despesa lançada ainda.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = lista.map(d=>`
+    <tr>
+      <td style="white-space:nowrap;font-size:12px">${fmtData(d.data||d.criadoEm)}</td>
+      <td><span style="font-weight:600">#${d.orcNum}</span> <span style="font-size:12px;color:var(--muted)">${d.orcCliente}</span></td>
+      <td style="font-weight:500">${d.desc}</td>
+      <td><span style="background:${catColors[d.cat]||'var(--muted)'};color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px">${d.cat}</span></td>
+      <td style="font-weight:700;color:var(--accent);white-space:nowrap">${fmt(d.valor)}</td>
+      <td style="font-size:12px;color:var(--muted)">${d.obs||'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${d.lancadoPor||'—'}</td>
+      <td><button onclick="excluirDespesa('${d.id}')" style="background:none;border:none;color:var(--muted2);cursor:pointer;font-size:16px;padding:2px 6px" title="Excluir">🗑</button></td>
+    </tr>
+  `).join('');
+}
+
+function renderComparativo() {
+  const el = document.getElementById('desp-comparativo');
+  if(!el) return;
+  const orcs = (window._orcamentos||[]).filter(o=>o.status==='Aprovado');
+  if(!orcs.length) { el.innerHTML=''; return; }
+
+  const rows = orcs.map(o=>{
+    const gastos = _despesas.filter(d=>d.orcId===o.id).reduce((a,d)=>a+d.valor,0);
+    const orcado = o.custo||0;
+    const diff   = orcado - gastos;
+    const pct    = orcado>0?Math.round(gastos/orcado*100):0;
+    const cor    = gastos>orcado?'var(--red)':gastos/orcado>0.8?'var(--amber)':'var(--green)';
+    return `
+      <tr>
+        <td><span style="font-weight:600">#${o.num||'?'}</span> ${o.cliente}</td>
+        <td style="font-weight:700">${fmt(orcado)}</td>
+        <td style="font-weight:700;color:var(--accent)">${fmt(gastos)}</td>
+        <td style="font-weight:700;color:${diff>=0?'var(--green)':'var(--red)'}">${diff>=0?'+':''} ${fmt(diff)}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
+              <div style="height:100%;border-radius:3px;background:${cor};width:${Math.min(pct,100)}%"></div>
+            </div>
+            <span style="font-size:12px;font-weight:600;color:${cor};width:36px">${pct}%</span>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="card">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
+        <span style="font-size:13px;font-weight:700">Comparativo: Orçado vs Gasto real (obras aprovadas)</span>
+      </div>
+      <div class="orc-table-wrap">
+        <table>
+          <thead><tr>
+            <th>Cliente</th><th>Custo orçado</th><th>Gasto real</th><th>Saldo</th><th>Utilização</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+window.excluirDespesa = async function(id) {
+  if(!confirm('Excluir este lançamento?')) return;
+  try { await deleteDoc(doc(db,'cmt_despesas',id)); } catch(e){}
+  _despesas = _despesas.filter(d=>d.id!==id);
+  renderDespesasKPIs();
+  renderDespesas();
+  renderComparativo();
+  showToast('Lançamento excluído.');
+};
+
+window.lancarDespesa = lancarDespesa;
 
 // ── PWA INSTALL BANNER (iOS Safari) ──
 (function() {
