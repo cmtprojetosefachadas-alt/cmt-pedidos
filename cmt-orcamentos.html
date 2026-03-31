@@ -2962,7 +2962,14 @@ function renderDespesasKPIs() {
 }
 
 function renderDespesas() {
+  // Captura filtros ANTES de qualquer rebuild de select
+  const _filtroOrc = document.getElementById('desp-filtro-orc')?.value||'';
+  const _filtroCat = document.getElementById('desp-filtro-cat')?.value||'';
+  const _filtroMes = document.getElementById('desp-filtro-mes')?.value||'';
   popularFiltroMes();
+  // Restaura filtros após rebuild
+  if(_filtroCat) { const s=document.getElementById('desp-filtro-cat'); if(s) s.value=_filtroCat; }
+  if(_filtroMes) { const s=document.getElementById('desp-filtro-mes'); if(s) s.value=_filtroMes; }
   const lista = getDespesasFiltradas();
 
   const totalFiltrado = lista.reduce((a,d)=>a+d.valor,0);
