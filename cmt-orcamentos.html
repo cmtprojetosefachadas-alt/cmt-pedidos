@@ -862,7 +862,7 @@ body {
     <select class="field" id="desp-filtro-orc" style="width:220px;padding:7px 12px" onchange="renderDespesas()">
       <option value="">Todos os orçamentos</option>
     </select>
-    <select class="field" id="desp-filtro-cat" style="width:150px;padding:7px 12px" onchange="renderDespesas()"></select>
+    <select class="field" id="desp-filtro-cat" style="width:150px;padding:7px 12px" onchange="renderDespesas();renderDespesasKPIs();renderComparativo()"></select>
     <span id="desp-total-label" style="margin-left:auto;font-size:13px;font-weight:700;color:var(--text)"></span>
   </div>
 
@@ -2792,18 +2792,24 @@ function iniciarDespesas() {
 }
 
 function popularCategoriasDesp() {
-  const catsMat   = [...new Set((window._materiais||[]).map(m=>m.cat).filter(Boolean))];
+  const catsMat    = [...new Set((window._materiais||[]).map(m=>m.cat).filter(Boolean))];
   const catsExtras = (window._categoriasExtras||[]).map(c=>c.nome||c).filter(Boolean);
   const catsFixas  = ['Mão de obra','Frete','Alimentação','Pró-labore','Outros'];
   const todas = [...new Set([...catsMat, ...catsExtras, ...CATS_FIXAS, ...catsFixas])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
 
-  const optsHtml   = todas.map(c=>`<option value="${c}">${c}</option>`).join('');
-  const optsFilHtml= `<option value="">Todas categorias</option>` + todas.map(c=>`<option value="${c}">${c}</option>`).join('');
-
   const selCat = document.getElementById('desp-cat');
   const selFil = document.getElementById('desp-filtro-cat');
-  if(selCat) selCat.innerHTML = optsHtml;
-  if(selFil) selFil.innerHTML = optsFilHtml;
+
+  // Preserva valor atual antes de rebuild
+  const curCat = selCat?.value||'';
+  const curFil = selFil?.value||'';
+
+  if(selCat) selCat.innerHTML = todas.map(c=>`<option value="${c}">${c}</option>`).join('');
+  if(selFil) selFil.innerHTML = `<option value="">Todas categorias</option>` + todas.map(c=>`<option value="${c}">${c}</option>`).join('');
+
+  // Restaura valores
+  if(selCat && curCat) selCat.value = curCat;
+  if(selFil && curFil) selFil.value = curFil;
 }
 
 function popularSelectOrcamentos() {
