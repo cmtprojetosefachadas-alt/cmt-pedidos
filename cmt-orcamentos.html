@@ -856,13 +856,13 @@ body {
   <!-- Filtros -->
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
     <span style="font-size:14px;font-weight:700">Lançamentos</span>
-    <select class="field" id="desp-filtro-mes" style="width:160px;padding:7px 12px" onchange="renderDespesas();renderDespesasKPIs();renderComparativo()">
+    <select class="field" id="desp-filtro-mes" style="width:160px;padding:7px 12px" onchange="window.renderDespesas();window.renderDespesasKPIs();window.renderComparativo()">
       <option value="">Todos os meses</option>
     </select>
-    <select class="field" id="desp-filtro-orc" style="width:220px;padding:7px 12px" onchange="renderDespesas()">
+    <select class="field" id="desp-filtro-orc" style="width:220px;padding:7px 12px" onchange="window.renderDespesas()">
       <option value="">Todos os orçamentos</option>
     </select>
-    <select class="field" id="desp-filtro-cat" style="width:150px;padding:7px 12px" onchange="renderDespesas();renderDespesasKPIs();renderComparativo()"></select>
+    <select class="field" id="desp-filtro-cat" style="width:150px;padding:7px 12px" onchange="window.renderDespesas();window.renderDespesasKPIs();window.renderComparativo()"></select>
     <span id="desp-total-label" style="margin-left:auto;font-size:13px;font-weight:700;color:var(--text)"></span>
   </div>
 
@@ -1264,10 +1264,10 @@ async function init() {
   atualizarNumeroOrcamento();
   renderFiltrosCategorias();
   popularSelectCategorias('g-nm-cat');
-  // Controle de acesso: só admin vê aba Usuários
+  // Controle de acesso
+  const isAdmin = _usuarioLogado?.perfil==='admin';
   const navU = document.getElementById('nav-usuarios');
   if(navU) navU.style.display = isAdmin?'':'none';
-  // Controle de acesso: despesas só quem tem permissão
   const navD = document.querySelectorAll('.nav-btn');
   navD.forEach(b=>{ if(b.textContent==='Despesas') b.style.display = temPermissao('lancar_despesas')?'':'none'; });
 }
@@ -2876,9 +2876,12 @@ function getDespesasFiltradas() {
   const filtroOrc = document.getElementById('desp-filtro-orc')?.value||'';
   const filtroCat = document.getElementById('desp-filtro-cat')?.value||'';
   const filtroMes = getFiltroMes();
+
+  const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+
   return _despesas.filter(d=>{
     if(filtroOrc && d.orcId!==filtroOrc) return false;
-    if(filtroCat && d.cat!==filtroCat) return false;
+    if(filtroCat && norm(d.cat) !== norm(filtroCat)) return false;
     if(filtroMes) {
       const dt = new Date(d.data||d.criadoEm);
       const mesAno = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
@@ -3127,6 +3130,10 @@ window.lancarDespesaManual = async function() {
 };
 
 window.lancarDespesa = lancarDespesa;
+window.renderDespesas = renderDespesas;
+window.renderDespesasKPIs = renderDespesasKPIs;
+window.renderComparativo = renderComparativo;
+window.iniciarDespesas = iniciarDespesas;
 
 window.gerarPDFDespesas = function() {
   const lista  = getDespesasFiltradas();
