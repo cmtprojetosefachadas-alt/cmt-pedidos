@@ -856,10 +856,13 @@ body {
   <!-- Filtros -->
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
     <span style="font-size:14px;font-weight:700">Lançamentos</span>
-    <select class="field" id="desp-filtro-orc" style="width:240px;padding:7px 12px" onchange="renderDespesas()">
+    <select class="field" id="desp-filtro-mes" style="width:160px;padding:7px 12px" onchange="renderDespesas();renderDespesasKPIs();renderComparativo()">
+      <option value="">Todos os meses</option>
+    </select>
+    <select class="field" id="desp-filtro-orc" style="width:220px;padding:7px 12px" onchange="renderDespesas()">
       <option value="">Todos os orçamentos</option>
     </select>
-    <select class="field" id="desp-filtro-cat" style="width:160px;padding:7px 12px" onchange="renderDespesas()"></select>
+    <select class="field" id="desp-filtro-cat" style="width:150px;padding:7px 12px" onchange="renderDespesas()"></select>
     <span id="desp-total-label" style="margin-left:auto;font-size:13px;font-weight:700;color:var(--text)"></span>
   </div>
 
@@ -2839,49 +2842,102 @@ async function carregarDespesas() {
   } catch(e) { _despesas=[]; }
 }
 
+function getFiltroMes() {
+  return document.getElementById('desp-filtro-mes')?.value||'';
+}
+
+function getDespesasFiltradas() {
+  const filtroOrc = document.getElementById('desp-filtro-orc')?.value||'';
+  const filtroCat = document.getElementById('desp-filtro-cat')?.value||'';
+  const filtroMes = getFiltroMes();
+  return _despesas.filter(d=>{
+    if(filtroOrc && d.orcId!==filtroOrc) return false;
+    if(filtroCat && d.cat!==filtroCat) return false;
+    if(filtroMes) {
+      const dt = new Date(d.data||d.criadoEm);
+      const mesAno = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      if(mesAno !== filtroMes) return false;
+    }
+    return true;
+  });
+}
+
+function popularFiltroMes() {
+  const meses = [...new Set(_despesas.map(d=>{
+    const dt = new Date(d.data||d.criadoEm);
+    return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+  }))].sort().reverse();
+  const nomes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const sel = document.getElementById('desp-filtro-mes');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Todos os meses</option>' +
+    meses.map(m=>{
+      const [y,mo] = m.split('-');
+      return `<option value="${m}" ${m===cur?'selected':''}>${nomes[parseInt(mo)-1]}/${y}</option>`;
+    }).join('');
+}
+
 function renderDespesasKPIs() {
-  const total     = _despesas.reduce((a,d)=>a+d.valor,0);
-  const porCat    = {};
-  _despesas.forEach(d=>{ porCat[d.cat]=(porCat[d.cat]||0)+d.valor; });
-  const topCat    = Object.entries(porCat).sort((a,b)=>b[1]-a[1])[0];
-  const orcsComDesp = new Set(_despesas.map(d=>d.orcId)).size;
-  // Custo orçado total (aprovados)
-  const orcTotalCusto = (window._orcamentos||[]).filter(o=>o.status==='Aprovado').reduce((a,o)=>a+(o.custo||0),0);
+  const lista = getDespesasFiltradas();
+  const total = lista.reduce((a,d)=>a+d.valor,0);
+
+  // Gastos por cliente (top 4)
+  const porCliente = {};
+  lista.forEach(d=>{
+    const key = d.orcCliente||'Manual';
+    porCliente[key] = (porCliente[key]||0)+d.valor;
+  });
+  const topClientes = Object.entries(porCliente).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  const maxVal = topClientes[0]?.[1]||1;
+
+  // Custo orçado (aprovados) com campo correto
+  const filtroMes = getFiltroMes();
+  const orcsAprov = (window._orcamentos||[]).filter(o=>o.status==='Aprovado');
+  const orcTotalCusto = orcsAprov.reduce((a,o)=>a+(o.custoTotal||0),0);
+
+  // Categoria top
+  const porCat = {};
+  lista.forEach(d=>{ porCat[d.cat]=(porCat[d.cat]||0)+d.valor; });
+  const topCat = Object.entries(porCat).sort((a,b)=>b[1]-a[1])[0];
 
   const kpiEl = document.getElementById('desp-kpis');
   if(!kpiEl) return;
   kpiEl.innerHTML = `
-    <div class="card" style="padding:16px;border-left:4px solid var(--accent)">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;font-weight:700">Total gasto</div>
+    <div class="card" style="padding:16px;border-left:4px solid var(--accent);grid-column:span 1">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;font-weight:700">Total gasto${filtroMes?' (mês)':''}</div>
       <div style="font-size:24px;font-weight:800;color:var(--accent)">${fmt(total)}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">${_despesas.length} lançamentos</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">${lista.length} lançamentos</div>
     </div>
     <div class="card" style="padding:16px;border-left:4px solid var(--green)">
       <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;font-weight:700">Custo orçado (aprovados)</div>
       <div style="font-size:24px;font-weight:800;color:var(--green)">${fmt(orcTotalCusto)}</div>
       <div style="font-size:11px;color:${total>orcTotalCusto?'var(--red)':'var(--green)'};margin-top:2px;font-weight:600">${total>orcTotalCusto?'⚠️ Acima do orçado':'✅ Dentro do orçado'}</div>
     </div>
-    <div class="card" style="padding:16px;border-left:4px solid var(--blue)">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;font-weight:700">Orçamentos com gasto</div>
-      <div style="font-size:24px;font-weight:800;color:var(--blue)">${orcsComDesp}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">obras em andamento</div>
+    <div class="card" style="padding:16px;border-left:4px solid #7b5fc9">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;font-weight:700">Gastos por cliente</div>
+      ${topClientes.length ? topClientes.map(([nome,val])=>`
+        <div style="margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
+            <span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px">${nome}</span>
+            <span style="font-weight:700;color:var(--accent)">${fmt(val)}</span>
+          </div>
+          <div style="height:4px;background:var(--bg3);border-radius:2px;overflow:hidden">
+            <div style="height:100%;background:#7b5fc9;border-radius:2px;width:${Math.round(val/maxVal*100)}%"></div>
+          </div>
+        </div>`).join('') : '<div style="font-size:12px;color:var(--muted)">Nenhum lançamento</div>'}
     </div>
-    <div class="card" style="padding:16px;border-left:4px solid var(--purple,#7b5fc9)">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;font-weight:700">Maior gasto</div>
-      <div style="font-size:24px;font-weight:800">${topCat?topCat[0]:'—'}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">${topCat?fmt(topCat[1]):''}</div>
+    <div class="card" style="padding:16px;border-left:4px solid var(--blue)">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;font-weight:700">Maior categoria</div>
+      <div style="font-size:20px;font-weight:800;margin-bottom:4px">${topCat?topCat[0]:'—'}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--blue)">${topCat?fmt(topCat[1]):''}</div>
     </div>
   `;
 }
 
 function renderDespesas() {
-  const filtroOrc = document.getElementById('desp-filtro-orc')?.value||'';
-  const filtroCat = document.getElementById('desp-filtro-cat')?.value||'';
-  let lista = _despesas.filter(d=>{
-    if(filtroOrc && d.orcId!==filtroOrc) return false;
-    if(filtroCat && d.cat!==filtroCat) return false;
-    return true;
-  });
+  popularFiltroMes();
+  const lista = getDespesasFiltradas();
 
   const totalFiltrado = lista.reduce((a,d)=>a+d.valor,0);
   const label = document.getElementById('desp-total-label');
@@ -2903,7 +2959,7 @@ function renderDespesas() {
       <td style="white-space:nowrap;font-size:12px">${fmtData(d.data||d.criadoEm)}</td>
       <td><span style="font-weight:600">#${d.orcNum}</span> <span style="font-size:12px;color:var(--muted)">${d.orcCliente}</span></td>
       <td style="font-weight:500">${d.desc}</td>
-      <td><span style="background:${catColors[d.cat]||'var(--muted)'};color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px">${d.cat}</span></td>
+      <td><span style="background:${catColors[d.cat]||'#888'};color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px">${d.cat}</span></td>
       <td style="font-weight:700;color:var(--accent);white-space:nowrap">${fmt(d.valor)}</td>
       <td style="font-size:12px;color:var(--muted)">${d.obs||'—'}</td>
       <td style="font-size:12px;color:var(--muted)">${d.lancadoPor||'—'}</td>
@@ -2915,21 +2971,27 @@ function renderDespesas() {
 function renderComparativo() {
   const el = document.getElementById('desp-comparativo');
   if(!el) return;
+  const filtroMes = getFiltroMes();
   const orcs = (window._orcamentos||[]).filter(o=>o.status==='Aprovado');
   if(!orcs.length) { el.innerHTML=''; return; }
 
   const rows = orcs.map(o=>{
-    const gastos = _despesas.filter(d=>d.orcId===o.id).reduce((a,d)=>a+d.valor,0);
-    const orcado = o.custo||0;
-    const diff   = orcado - gastos;
-    const pct    = orcado>0?Math.round(gastos/orcado*100):0;
-    const cor    = gastos>orcado?'var(--red)':gastos/orcado>0.8?'var(--amber)':'var(--green)';
+    let gastos = _despesas.filter(d=>d.orcId===o.id);
+    if(filtroMes) gastos = gastos.filter(d=>{
+      const dt = new Date(d.data||d.criadoEm);
+      return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}` === filtroMes;
+    });
+    const totalGasto = gastos.reduce((a,d)=>a+d.valor,0);
+    const orcado = o.custoTotal||0;  // campo correto!
+    const diff   = orcado - totalGasto;
+    const pct    = orcado>0?Math.round(totalGasto/orcado*100):0;
+    const cor    = totalGasto>orcado?'var(--red)':totalGasto/orcado>0.8?'var(--amber)':'var(--green)';
     return `
       <tr>
         <td><span style="font-weight:600">#${o.num||'?'}</span> ${o.cliente}</td>
         <td style="font-weight:700">${fmt(orcado)}</td>
-        <td style="font-weight:700;color:var(--accent)">${fmt(gastos)}</td>
-        <td style="font-weight:700;color:${diff>=0?'var(--green)':'var(--red)'}">${diff>=0?'+':''} ${fmt(diff)}</td>
+        <td style="font-weight:700;color:var(--accent)">${fmt(totalGasto)}</td>
+        <td style="font-weight:700;color:${diff>=0?'var(--green)':'var(--red)'}">${diff>=0?'+':''}${fmt(diff)}</td>
         <td>
           <div style="display:flex;align-items:center;gap:8px">
             <div style="flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
