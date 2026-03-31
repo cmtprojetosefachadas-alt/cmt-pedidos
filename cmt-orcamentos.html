@@ -1331,10 +1331,12 @@ window.toggleCategorias = function() {
 };
 
 // ── CATEGORIAS ──
+const CATS_FIXAS = ['Pró-labore']; // Categorias que sempre aparecem
+
 function getCategorias() {
   const dosMateriais = window._materiais.map(m=>m.cat||'Outros');
   const extras = window._categoriasExtras||[];
-  const todas = [...new Set([...dosMateriais, ...extras])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const todas = [...new Set([...dosMateriais, ...extras, ...CATS_FIXAS])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
   const sem = todas.filter(c=>c!=='Outros');
   return [...sem, 'Outros'];
 }
@@ -2619,7 +2621,7 @@ const TODAS_PERMISSOES = [
   { key:'gerenciar_users', label:'Gerenciar usuários' },
 ];
 const PERMS_ADMIN  = Object.fromEntries(['criar_orc','editar_orc','aprovar_orc','remover_orc','ver_relatorio','gerar_pdf','gerenciar_mat','lancar_despesas','gerenciar_users'].map(k=>[k,true]));
-const PERMS_PADRAO = { criar_orc:true, editar_orc:false, aprovar_orc:false, remover_orc:false, ver_relatorio:false, gerar_pdf:false, gerenciar_mat:false, lancar_despesas:false, gerenciar_users:false };
+const PERMS_PADRAO = { criar_orc:false, editar_orc:false, aprovar_orc:false, remover_orc:false, ver_relatorio:false, gerar_pdf:false, gerenciar_mat:false, lancar_despesas:false, gerenciar_users:false };
 
 function temPermissao(key) {
   if(!_usuarioLogado) return false;
@@ -2662,7 +2664,7 @@ window.abrirEdicaoUsuario = function(u) {
   document.getElementById('eu-usuario').value = u.usuario;
   document.getElementById('eu-senha').value   = '';
   const isAdm = u.perfil==='admin';
-  const perms = isAdm ? PERMS_ADMIN : (u.permissoes||PERMS_PADRAO);
+  const perms = isAdm ? PERMS_ADMIN : (u.permissoes || {...PERMS_PADRAO});
   document.getElementById('eu-perms-grid').innerHTML = TODAS_PERMISSOES.map(p=>`
     <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);cursor:${isAdm?'default':'pointer'}">
       <input type="checkbox" id="perm-${p.key}" ${perms[p.key]?'checked':''} ${isAdm?'disabled':''}
@@ -2707,11 +2709,11 @@ async function renderTabelaUsuarios() {
   const tb = document.getElementById('usuarios-tbody');
   if(!tb) return;
   tb.innerHTML = usuarios.map(u=>{
-    const perms  = u.perfil==='admin' ? PERMS_ADMIN : (u.permissoes||PERMS_PADRAO);
+    const perms  = u.perfil==='admin' ? PERMS_ADMIN : (u.permissoes || {...PERMS_PADRAO});
     const ativas = TODAS_PERMISSOES.filter(p=>perms[p.key]);
     const tags   = ativas.slice(0,3).map(p=>`<span style="display:inline-block;font-size:10px;background:rgba(26,95,168,0.1);color:var(--blue);border-radius:4px;padding:2px 6px;margin:1px">${p.label}</span>`).join('');
     const mais   = ativas.length>3?`<span style="font-size:10px;color:var(--muted)">+${ativas.length-3}</span>`:'';
-    const uJson  = encodeURIComponent(JSON.stringify({id:u.id,nome:u.nome,usuario:u.usuario,perfil:u.perfil,permissoes:u.permissoes||PERMS_PADRAO}));
+    const uJson  = encodeURIComponent(JSON.stringify({id:u.id,nome:u.nome,usuario:u.usuario,perfil:u.perfil,permissoes:u.permissoes||{...PERMS_PADRAO}}));
     return `<tr>
       <td style="font-weight:600">${u.nome}</td>
       <td><code style="background:var(--bg3);padding:2px 8px;border-radius:4px;font-size:12px">${u.usuario}</code></td>
@@ -2945,7 +2947,8 @@ function renderDespesas() {
 
   const catColors = {
     'Material':'var(--accent)','Mão de obra':'var(--green)',
-    'Frete':'var(--blue)','Alimentação':'#e67e22','Outros':'var(--muted)'
+    'Frete':'var(--blue)','Alimentação':'#e67e22',
+    'Pró-labore':'#c0392b','Fixação':'#7b5fc9','Outros':'var(--muted)'
   };
 
   const tbody = document.getElementById('desp-tbody');
@@ -3141,7 +3144,7 @@ window.gerarPDFDespesas = function() {
     </tr>`;
   }).join('');
 
-  const catColors = {'Material':'#e8520a','Mão de obra':'#0a8a4a','Frete':'#1a5fa8','Alimentação':'#e67e22','Fixação':'#7b5fc9','ACM':'#1a2332','PVC':'#2980b9','Elétrico':'#f39c12','Outros':'#888'};
+  const catColors = {'Material':'#e8520a','Mão de obra':'#0a8a4a','Frete':'#1a5fa8','Alimentação':'#e67e22','Fixação':'#7b5fc9','Pró-labore':'#c0392b','ACM':'#1a2332','PVC':'#2980b9','Elétrico':'#f39c12','Outros':'#888'};
 
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
   <title>Relatório de Despesas — CMT</title>
