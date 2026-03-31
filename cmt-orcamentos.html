@@ -2792,17 +2792,13 @@ function iniciarDespesas() {
 }
 
 function popularCategoriasDesp() {
-  // Pega todas as categorias dos materiais já carregados
-  const catsMat = [...new Set((window._materiais||[]).map(m=>m.cat).filter(Boolean))];
-  // Pega categorias extras salvas
+  const catsMat   = [...new Set((window._materiais||[]).map(m=>m.cat).filter(Boolean))];
   const catsExtras = (window._categoriasExtras||[]).map(c=>c.nome||c).filter(Boolean);
-  // Fixas de despesa
-  const catsFixas = ['Mão de obra','Frete','Alimentação','Outros'];
-  // Junta tudo sem repetir e ordena
-  const todas = [...new Set([...catsMat, ...catsExtras, ...catsFixas])].sort();
+  const catsFixas  = ['Mão de obra','Frete','Alimentação','Pró-labore','Outros'];
+  const todas = [...new Set([...catsMat, ...catsExtras, ...CATS_FIXAS, ...catsFixas])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
 
-  const optsHtml = todas.map(c=>`<option value="${c}">${c}</option>`).join('');
-  const optsFilHtml = `<option value="">Todas categorias</option>` + todas.map(c=>`<option value="${c}">${c}</option>`).join('');
+  const optsHtml   = todas.map(c=>`<option value="${c}">${c}</option>`).join('');
+  const optsFilHtml= `<option value="">Todas categorias</option>` + todas.map(c=>`<option value="${c}">${c}</option>`).join('');
 
   const selCat = document.getElementById('desp-cat');
   const selFil = document.getElementById('desp-filtro-cat');
@@ -3069,8 +3065,8 @@ window.toggleTipoDesp = function(tipo) {
     tabSis.style.background='#fff'; tabSis.style.color='var(--muted)'; tabSis.style.borderColor='var(--border2)';
     // Popula categorias no select manual também
     const catsMat  = [...new Set((window._materiais||[]).map(m=>m.cat).filter(Boolean))];
-    const catsFixas = ['Mão de obra','Frete','Alimentação','Outros'];
-    const todas = [...new Set([...catsMat,...catsFixas])].sort();
+    const catsFixas = ['Mão de obra','Frete','Alimentação','Pró-labore','Outros'];
+    const todas = [...new Set([...catsMat, ...CATS_FIXAS, ...catsFixas])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
     const selM = document.getElementById('desp-m-cat');
     if(selM) selM.innerHTML = todas.map(c=>`<option value="${c}">${c}</option>`).join('');
     // Data padrão
