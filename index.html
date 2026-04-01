@@ -2155,12 +2155,15 @@ function atualizarMeta() {
 
 // Salvar meta no Firebase — usa o mês selecionado no select
 document.getElementById('btn-salvar-meta').addEventListener('click', async () => {
-  const val = document.getElementById('meta-input').value;
+  const val = document.getElementById('meta-input').value.trim();
+  if(!val) return;
   const sel = document.getElementById('visao-mes-sel');
   const mesSel = sel && sel.value ? normalizaMes(sel.value) : normalizaMes(new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
   const chave = 'meta-'+mesSel.replace('/','_');
   try {
     await setDoc(doc(db,'config',chave), {meta: val, mes: mesSel});
+    window._metaCache = window._metaCache || {};
+    window._metaCache[mesSel] = val;
     showToast('🎯 Meta de '+getMesNome(mesSel)+' salva: R$ '+val);
     atualizarMeta();
   } catch(e) {
@@ -2169,28 +2172,44 @@ document.getElementById('btn-salvar-meta').addEventListener('click', async () =>
   }
 });
 
-// Carregar meta do mês selecionado
-window.carregarMetaDoMes = async function(mesNum) {
+// Cache de metas por mês {MM/YYYY: valor}
+window._metaCache = {};
+window._metaCacheCarregado = false;
+
+// Carrega TODAS as metas uma única vez no inicio
+async function carregarTodasMetas() {
   try {
-    const mes = normalizaMes(mesNum);
-    const chave = 'meta-'+mes.replace('/','_');
     const snap = await getDocs(collection(db,'config'));
-    let metaEncontrada = '';
+    window._metaCache = {};
     snap.forEach(d=>{
-      if(d.id === chave && d.data().meta) metaEncontrada = d.data().meta;
+      if(d.data().meta && d.id.startsWith('meta-')) {
+        // chave: meta-MM_YYYY → MM/YYYY
+        const mes = d.id.replace('meta-','').replace('_','/');
+        window._metaCache[normalizaMes(mes)] = d.data().meta;
+      }
     });
-    const input = document.getElementById('meta-input');
-    if(input) {
-      input.value = metaEncontrada;
-      atualizarMeta();
-    }
-  } catch(e){}
+    window._metaCacheCarregado = true;
+  } catch(e){ console.error(e); }
 }
 
-// Carregar meta inicial
+// Aplica a meta do mês selecionado a partir do cache — síncrono, sem sobrescrever durante digitação
+window.carregarMetaDoMes = function(mesNum) {
+  if(!window._metaCacheCarregado) return; // ainda carregando, aguarda
+  const mes = normalizaMes(mesNum);
+  const val = window._metaCache[mes] || '';
+  const input = document.getElementById('meta-input');
+  if(input && document.activeElement !== input) {
+    // Só atualiza se o usuário NÃO está com o campo em foco (digitando)
+    input.value = val;
+  }
+  atualizarMeta();
+}
+
+// Inicializa: carrega todas as metas e aplica a do mês atual
 (async()=>{
+  await carregarTodasMetas();
   const mesAtual = normalizaMes(new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
-  await window.carregarMetaDoMes(mesAtual);
+  window.carregarMetaDoMes(mesAtual);
 })();
 
 // Card faturados click → relatório
