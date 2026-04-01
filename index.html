@@ -2111,8 +2111,8 @@ window.renderVisaoGeral = function renderVisaoGeral() {
   if(elFatQtd) elFatQtd.textContent = pedidosMes.length + ' pedido(s) no mês — ver relatório →';
   window._fatMes = pedidosMes; window._fatVal = fatVal; window._mesNome = getMesNome(mesNum);
 
-  // Meta
-  atualizarMeta();
+  // Meta — carrega a meta salva do mês selecionado
+  window.carregarMetaDoMes(mesNum);
 
   // Breakdown mini-cards
   const andMesPed = pedidosMes.filter(p=>!p.finalizado&&Number(p.etapa||0)<ETAPAS.length-1);
@@ -2153,13 +2153,15 @@ function atualizarMeta() {
   if(msgEl) msgEl.textContent = meta <= 0 ? 'Digite sua meta mensal' : pct>=100 ? '🎉 Meta atingida!' : 'Faltam '+fmtMoney(falta)+' para atingir a meta';
 }
 
-// Salvar meta no Firebase
+// Salvar meta no Firebase — usa o mês selecionado no select
 document.getElementById('btn-salvar-meta').addEventListener('click', async () => {
   const val = document.getElementById('meta-input').value;
-  const mesAtual = new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+  const sel = document.getElementById('visao-mes-sel');
+  const mesSel = sel && sel.value ? normalizaMes(sel.value) : normalizaMes(new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
+  const chave = 'meta-'+mesSel.replace('/','_');
   try {
-    await setDoc(doc(db,'config','meta-'+mesAtual.replace('/','_')), {meta: val, mes: mesAtual});
-    showToast('🎯 Meta salva: R$ '+val);
+    await setDoc(doc(db,'config',chave), {meta: val, mes: mesSel});
+    showToast('🎯 Meta de '+getMesNome(mesSel)+' salva: R$ '+val);
     atualizarMeta();
   } catch(e) {
     showToast('Erro ao salvar meta');
@@ -2167,18 +2169,28 @@ document.getElementById('btn-salvar-meta').addEventListener('click', async () =>
   }
 });
 
-// Carregar meta salva
-(async()=>{
+// Carregar meta do mês selecionado
+window.carregarMetaDoMes = async function(mesNum) {
   try {
-    const mesAtual = document.getElementById('visao-mes-sel')?.value || new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+    const mes = normalizaMes(mesNum);
+    const chave = 'meta-'+mes.replace('/','_');
     const snap = await getDocs(collection(db,'config'));
+    let metaEncontrada = '';
     snap.forEach(d=>{
-      if(d.data().meta && (d.id==='meta'||d.id==='meta-'+mesAtual.replace('/','_'))){
-        document.getElementById('meta-input').value=d.data().meta;
-        atualizarMeta();
-      }
+      if(d.id === chave && d.data().meta) metaEncontrada = d.data().meta;
     });
+    const input = document.getElementById('meta-input');
+    if(input) {
+      input.value = metaEncontrada;
+      atualizarMeta();
+    }
   } catch(e){}
+}
+
+// Carregar meta inicial
+(async()=>{
+  const mesAtual = normalizaMes(new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
+  await window.carregarMetaDoMes(mesAtual);
 })();
 
 // Card faturados click → relatório
