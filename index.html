@@ -1877,20 +1877,34 @@ window.excluirFinalizado = async function(id) {
 };
 
 // VISÃO GERAL
+function normalizaMes(m) {
+  // Garante sempre formato MM/YYYY com zero à esquerda
+  if(!m) return '';
+  const parts = m.split('/');
+  if(parts.length < 2) return m;
+  const mm = parts[0].padStart(2,'0');
+  const yy = parts[parts.length-1];
+  return mm+'/'+yy;
+}
+
 function popularMeses() {
   const sel = document.getElementById('visao-mes-sel');
   if(!sel) return;
   const meses = new Set();
   const hoje = new Date();
-  // Adiciona últimos 6 meses
   for(let i=0;i<6;i++){
     const d = new Date(hoje.getFullYear(), hoje.getMonth()-i, 1);
-    meses.add(d.toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
+    meses.add(normalizaMes(d.toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'})));
   }
-  pedidos.forEach(p=>{ if(p.mes) meses.add(p.mes); if(p.dataConversao) meses.add(p.dataConversao.substring(3)); });
-  orcamentos.forEach(o=>{ if(o.data) meses.add(o.data.substring(3)); });
-  const atual = new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
-  const sorted = [...meses].sort((a,b)=>{
+  pedidos.forEach(p=>{
+    if(p.mes) meses.add(normalizaMes(p.mes));
+    if(p.dataConversao) meses.add(normalizaMes(p.dataConversao.substring(3)));
+  });
+  orcamentos.forEach(o=>{
+    if(o.data) meses.add(normalizaMes(o.data.substring(3)));
+  });
+  const atual = normalizaMes(new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
+  const sorted = [...meses].filter(Boolean).sort((a,b)=>{
     const [ma,ya]=a.split('/'); const [mb,yb]=b.split('/');
     return (yb+mb)-(ya+ma);
   });
@@ -1917,7 +1931,7 @@ window.imprimirVisao = function imprimirVisao() {
   const fatVal = window._fatVal || 0;
 
   // Orçamentos por status — filtro correto com parênteses
-  const orcDoMes = orcamentos.filter(o => (o.data && o.data.substring(3) === mesNum));
+  const orcDoMes = orcamentos.filter(o => (o.data && normalizaMes(o.data.substring(3)) === mesNum));
   const orcSent    = orcDoMes.filter(o => o.status === 'sent');
   const orcAguard  = orcDoMes.filter(o => !o.status || o.status === 'pending');
   const orcAprov   = orcDoMes.filter(o => o.status === 'approved');
@@ -2034,7 +2048,7 @@ function renderVisaoGeral() {
   const mesNum = sel ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
 
   // ---- STATUS DE ORÇAMENTOS (todos do mês selecionado) ----
-  const orcDoMes = orcamentos.filter(o => (o.data && o.data.substring(3) === mesNum));
+  const orcDoMes = orcamentos.filter(o => o.data && normalizaMes(o.data.substring(3)) === mesNum);
   const orcSent    = orcDoMes.filter(o => o.status === 'sent');
   const orcAguard  = orcDoMes.filter(o => !o.status || o.status === 'pending');
   const orcAprov   = orcDoMes.filter(o => o.status === 'approved');
@@ -2089,7 +2103,7 @@ function renderVisaoGeral() {
   if(elAndQtd) elAndQtd.textContent = emAnd.length;
 
   // ---- FATURADOS NO MÊS ----
-  const pedidosMes = pedidos.filter(p=>p.mes===mesNum||(p.dataConversao&&p.dataConversao.substring(3)===mesNum));
+  const pedidosMes = pedidos.filter(p=>normalizaMes(p.mes)===mesNum||(p.dataConversao&&normalizaMes(p.dataConversao.substring(3))===mesNum));
   const fatVal = pedidosMes.reduce((s,p)=>s+(p.valor||0),0);
   const elFatVal = document.getElementById('vg-fat-val');
   const elFatQtd = document.getElementById('vg-fat-qtd');
@@ -2117,8 +2131,10 @@ function atualizarMeta() {
   const raw = input.value.replace(/\./g,'').replace(',','.');
   const meta = parseFloat(raw) || 0;
 
-  const mesNum = new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
-  const fatMes = pedidos.filter(p=>p.mes===mesNum||(p.dataConversao&&p.dataConversao.substring(3)===mesNum));
+  // Usa o mês selecionado na Visão Geral, não o mês atual fixo
+  const sel = document.getElementById('visao-mes-sel');
+  const mesNum = sel && sel.value ? sel.value : normalizaMes(new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
+  const fatMes = pedidos.filter(p=>normalizaMes(p.mes)===mesNum||(p.dataConversao&&normalizaMes(p.dataConversao.substring(3))===mesNum));
   const fatVal = fatMes.reduce((s,p)=>s+(p.valor||0),0);
 
   const pct = meta > 0 ? Math.min(Math.round((fatVal/meta)*100),100) : 0;
