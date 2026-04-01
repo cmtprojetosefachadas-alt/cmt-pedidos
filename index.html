@@ -1876,15 +1876,78 @@ window.excluirFinalizado = async function(id) {
   showToast('🗑️ Pedido excluído!');
 };
 
-// VISÃO GERAL
+// VISÃO GERAL — funções auxiliares (devem vir antes de renderVisaoGeral)
 function normalizaMes(m) {
-  // Garante sempre formato MM/YYYY com zero à esquerda
   if(!m) return '';
   const parts = m.split('/');
   if(parts.length < 2) return m;
   const mm = parts[0].padStart(2,'0');
   const yy = parts[parts.length-1];
   return mm+'/'+yy;
+}
+
+function extraiMes(data) {
+  if(!data) return '';
+  const parts = data.split('/');
+  if(parts.length >= 3) return normalizaMes(parts[1]+'/'+parts[2]);
+  if(parts.length === 2) return normalizaMes(data);
+  return '';
+}
+
+// Cache de metas por mês {MM/YYYY: valor}
+window._metaCache = {};
+window._metaCacheCarregado = false;
+
+async function carregarTodasMetas() {
+  try {
+    const snap = await getDocs(collection(db,'config'));
+    window._metaCache = {};
+    snap.forEach(d=>{
+      if(d.data().meta && d.id.startsWith('meta-')) {
+        const mes = d.id.replace('meta-','').replace('_','/');
+        window._metaCache[normalizaMes(mes)] = d.data().meta;
+      }
+    });
+    window._metaCacheCarregado = true;
+  } catch(e){ console.error(e); }
+}
+
+window.carregarMetaDoMes = function(mesNum) {
+  if(!window._metaCacheCarregado) return;
+  const mes = normalizaMes(mesNum);
+  const val = window._metaCache[mes] || '';
+  const input = document.getElementById('meta-input');
+  if(input && document.activeElement !== input) {
+    input.value = val;
+  }
+  atualizarMeta();
+}
+
+function atualizarMeta() {
+  const input = document.getElementById('meta-input');
+  if(!input) return;
+  const raw = input.value.replace(/\./g,'').replace(',','.');
+  const meta = parseFloat(raw) || 0;
+
+  const sel = document.getElementById('visao-mes-sel');
+  const mesNum = sel && sel.value ? normalizaMes(sel.value) : normalizaMes(new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
+  const fatMes = pedidos.filter(p => normalizaMes(p.mes) === mesNum || extraiMes(p.dataConversao) === mesNum);
+  const fatVal = fatMes.reduce((s,p)=>s+(p.valor||0),0);
+
+  const pct = meta > 0 ? Math.min(Math.round((fatVal/meta)*100),100) : 0;
+  const falta = meta > 0 ? Math.max(meta-fatVal,0) : 0;
+
+  const barEl = document.getElementById('meta-bar');
+  const pctEl = document.getElementById('meta-pct');
+  const fatEl = document.getElementById('meta-fat');
+  const faltaEl = document.getElementById('meta-falta');
+  const msgEl = document.getElementById('meta-msg');
+
+  if(barEl){ barEl.style.width=pct+'%'; barEl.style.background=pct>=100?'var(--green)':'var(--brand)'; }
+  if(pctEl) pctEl.textContent = pct+'%';
+  if(fatEl) fatEl.textContent = fmtMoney(fatVal);
+  if(faltaEl) faltaEl.textContent = meta > 0 ? fmtMoney(falta) : '—';
+  if(msgEl) msgEl.textContent = meta <= 0 ? 'Digite sua meta mensal' : pct>=100 ? '🎉 Meta atingida!' : 'Faltam '+fmtMoney(falta)+' para atingir a meta';
 }
 
 function popularMeses() {
@@ -2126,41 +2189,6 @@ window.renderVisaoGeral = function renderVisaoGeral() {
 }
 
 // Extrai MM/YYYY de uma data DD/MM/YYYY com segurança
-function extraiMes(data) {
-  if(!data) return '';
-  const parts = data.split('/');
-  if(parts.length >= 3) return normalizaMes(parts[1]+'/'+parts[2]); // DD/MM/YYYY → MM/YYYY
-  if(parts.length === 2) return normalizaMes(data); // já é MM/YYYY
-  return '';
-}
-
-function atualizarMeta() {
-  const input = document.getElementById('meta-input');
-  if(!input) return;
-  const raw = input.value.replace(/\./g,'').replace(',','.');
-  const meta = parseFloat(raw) || 0;
-
-  const sel = document.getElementById('visao-mes-sel');
-  const mesNum = sel && sel.value ? normalizaMes(sel.value) : normalizaMes(new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
-  const fatMes = pedidos.filter(p => normalizaMes(p.mes) === mesNum || extraiMes(p.dataConversao) === mesNum);
-  const fatVal = fatMes.reduce((s,p)=>s+(p.valor||0),0);
-
-  const pct = meta > 0 ? Math.min(Math.round((fatVal/meta)*100),100) : 0;
-  const falta = meta > 0 ? Math.max(meta-fatVal,0) : 0;
-
-  const barEl = document.getElementById('meta-bar');
-  const pctEl = document.getElementById('meta-pct');
-  const fatEl = document.getElementById('meta-fat');
-  const faltaEl = document.getElementById('meta-falta');
-  const msgEl = document.getElementById('meta-msg');
-
-  if(barEl){ barEl.style.width=pct+'%'; barEl.style.background=pct>=100?'var(--green)':'var(--brand)'; }
-  if(pctEl) pctEl.textContent = pct+'%';
-  if(fatEl) fatEl.textContent = fmtMoney(fatVal);
-  if(faltaEl) faltaEl.textContent = meta > 0 ? fmtMoney(falta) : '—';
-  if(msgEl) msgEl.textContent = meta <= 0 ? 'Digite sua meta mensal' : pct>=100 ? '🎉 Meta atingida!' : 'Faltam '+fmtMoney(falta)+' para atingir a meta';
-}
-
 // Salvar meta no Firebase — usa o mês selecionado no select
 document.getElementById('btn-salvar-meta').addEventListener('click', async () => {
   const val = document.getElementById('meta-input').value.trim();
@@ -2179,39 +2207,6 @@ document.getElementById('btn-salvar-meta').addEventListener('click', async () =>
     console.error(e);
   }
 });
-
-// Cache de metas por mês {MM/YYYY: valor}
-window._metaCache = {};
-window._metaCacheCarregado = false;
-
-// Carrega TODAS as metas uma única vez no inicio
-async function carregarTodasMetas() {
-  try {
-    const snap = await getDocs(collection(db,'config'));
-    window._metaCache = {};
-    snap.forEach(d=>{
-      if(d.data().meta && d.id.startsWith('meta-')) {
-        // chave: meta-MM_YYYY → MM/YYYY
-        const mes = d.id.replace('meta-','').replace('_','/');
-        window._metaCache[normalizaMes(mes)] = d.data().meta;
-      }
-    });
-    window._metaCacheCarregado = true;
-  } catch(e){ console.error(e); }
-}
-
-// Aplica a meta do mês selecionado a partir do cache — síncrono, sem sobrescrever durante digitação
-window.carregarMetaDoMes = function(mesNum) {
-  if(!window._metaCacheCarregado) return; // ainda carregando, aguarda
-  const mes = normalizaMes(mesNum);
-  const val = window._metaCache[mes] || '';
-  const input = document.getElementById('meta-input');
-  if(input && document.activeElement !== input) {
-    // Só atualiza se o usuário NÃO está com o campo em foco (digitando)
-    input.value = val;
-  }
-  atualizarMeta();
-}
 
 // Inicializa: carrega todas as metas e aplica a do mês atual
 (async()=>{
