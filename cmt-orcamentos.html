@@ -610,10 +610,22 @@ body {
   <div class="orc-header">
     <h2>Relatório mensal</h2>
     <select class="search-field" id="sel-mes" onchange="renderRelatorio()" style="width:180px">
-      <option value="3">Março 2026</option>
-      <option value="2">Fevereiro 2026</option>
-      <option value="1">Janeiro 2026</option>
     </select>
+    <script>
+    (function(){
+      const nomes=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+      const sel=document.getElementById('sel-mes');
+      const mesAtual=new Date().getMonth()+1;
+      const anoAtual=new Date().getFullYear();
+      for(let m=mesAtual;m>=1;m--){
+        const opt=document.createElement('option');
+        opt.value=m;
+        opt.textContent=nomes[m]+' '+anoAtual;
+        if(m===mesAtual) opt.selected=true;
+        sel.appendChild(opt);
+      }
+    })();
+    </script>
     <button class="btn-ghost" onclick="window.gerarPDFRelatorio()" style="background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700">
       ↓ Gerar PDF
     </button>
