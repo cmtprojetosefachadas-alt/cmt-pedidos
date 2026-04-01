@@ -786,14 +786,14 @@ const prog = e => Math.round((e/(ETAPAS.length-1))*100);
 function showToast(msg,id='toast'){const t=document.getElementById(id);if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
 
 // TABS
-function showTab(tab){
+async function showTab(tab){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   const tabEl=document.getElementById('tab-'+tab);
   const panelEl=document.getElementById('panel-'+tab);
   if(tabEl)tabEl.classList.add('active');
   if(panelEl)panelEl.classList.add('active');
-  if(tab==='finalizados')renderFinalizados();
+  if(tab==='finalizados') await renderFinalizados();
   if(tab==='visao')renderVisaoGeral();
   if(tab==='fluxo'){popularFluxoMeses();renderFluxo();}
   if(tab==='novo-orc'){
@@ -866,10 +866,18 @@ function renderClientes(){
   const ativos=pedidos.filter(p=>Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
   document.getElementById('clientes-grid').innerHTML=ativos.map(clienteCard).join('')||'<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum cliente ativo.</div>';
 }
-function renderFinalizados(){
+async function renderFinalizados(){
   const fins=pedidos.filter(p=>Number(p.etapa||0)>=ETAPAS.length-1||p.finalizado===true);
   const el=document.getElementById('finalizados-grid');
   if(!el)return;
+
+  // Carrega histórico de reversões de cada pedido finalizado
+  await Promise.all(fins.map(async p=>{
+    try {
+      const snap = await getDocs(query(collection(db,'pedidos',p.id,'historico'), orderBy('timestamp','asc')));
+      p._historico = snap.docs.map(d=>d.data()).filter(d=>d.tipo==='reversao');
+    } catch(e){ p._historico=[]; }
+  }));
   if(!fins.length){
     el.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Nenhum pedido finalizado ainda.</div>';
     return;
@@ -919,20 +927,25 @@ function renderFinalizados(){
       <div style="display:${aberto?'block':'none'};">
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;">
           ${g.pedidos.map(p=>`
-            <div style="border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:16px 18px;background:var(--surface);cursor:pointer;transition:background 0.15s;position:relative;" data-id="${p.id}" data-type="pedido-fin" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='var(--surface)'">
-              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div style="border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:16px 18px;background:var(--surface);transition:background 0.15s;position:relative;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='var(--surface)'">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;" data-id="${p.id}" data-type="pedido-fin">
                 <div class="avatar" style="width:36px;height:36px;font-size:11px;flex-shrink:0;">${ini(p.nome||'?')}</div>
                 <div style="min-width:0;">
                   <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.nome}</div>
                   <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">${p.codigo}</div>
                 </div>
               </div>
-              <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px;">${p.desc||'—'}</div>
-              <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px;cursor:pointer;" data-id="${p.id}" data-type="pedido-fin">${p.desc||'—'}</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;cursor:pointer;" data-id="${p.id}" data-type="pedido-fin">
                 <span style="background:#D1FAE5;color:#065F46;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:600;">✅ Finalizado</span>
                 <span style="font-size:14px;font-weight:600;color:var(--green);">${fmtMoney(p.valor||0)}</span>
               </div>
-              ${p.dataConversao?`<div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:right;">📅 ${p.dataConversao}</div>`:''}
+              ${p.dataConversao?`<div style="font-size:10px;color:var(--muted);margin-bottom:8px;">📅 ${p.dataConversao}</div>`:''}
+              ${p._historico&&p._historico.length?`<div style="background:#FEF3C7;border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:11px;color:#92400E;">⚠️ Revertido ${p._historico.length}x · Último: ${p._historico[p._historico.length-1].dataHora}</div>`:''}
+              <div style="display:flex;gap:6px;">
+                <button class="btn" onclick="event.stopPropagation();reativarPedido('${p.id}')" style="font-size:11px;padding:4px 10px;flex:1;">↩ Voltar pedido</button>
+                <button class="btn btn-red" onclick="event.stopPropagation();excluirFinalizado('${p.id}')" style="font-size:11px;padding:4px 10px;">🗑️</button>
+              </div>
             </div>`).join('')}
         </div>
         <div style="padding:12px 20px;background:var(--surface2);display:flex;justify-content:space-between;align-items:center;">
@@ -1863,9 +1876,29 @@ window.deletarFoto = async function(field) {
 };
 
 window.reativarPedido = async function(id) {
-  if(!confirm('Reativar este pedido?'))return;
-  await updateDoc(doc(db,'pedidos',id),{etapa:5,finalizado:false});
-  showToast('✓ Pedido reativado!');
+  const p = pedidos.find(x=>x.id===id);
+  if(!p) return;
+  const motivo = prompt(`↩ Voltar pedido de "${p.nome}" (${p.codigo})\n\nInforme o motivo da reversão (obrigatório):`);
+  if(motivo === null) return; // cancelou
+  if(!motivo.trim()) { alert('Motivo é obrigatório para registrar a reversão.'); return; }
+
+  const agora = new Date();
+  const dataHora = agora.toLocaleDateString('pt-BR') + ' às ' + agora.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+
+  // Volta o pedido para Em andamento
+  await updateDoc(doc(db,'pedidos',id), {etapa: ETAPAS.length-2, finalizado: false});
+
+  // Grava log imutável na subcoleção — não pode ser editado, só adicionado
+  await addDoc(collection(db,'pedidos',id,'historico'), {
+    tipo: 'reversao',
+    motivo: motivo.trim(),
+    dataHora: dataHora,
+    timestamp: serverTimestamp(),
+    pedidoNome: p.nome,
+    pedidoCodigo: p.codigo
+  });
+
+  showToast('↩ Pedido revertido e log registrado em '+dataHora);
 };
 
 window.excluirFinalizado = async function(id) {
