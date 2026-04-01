@@ -2042,7 +2042,7 @@ window.imprimirVisao = function imprimirVisao() {
   setTimeout(()=>win.print(),500);
 }
 
-function renderVisaoGeral() {
+window.renderVisaoGeral = function renderVisaoGeral() {
   popularMeses();
   const sel = document.getElementById('visao-mes-sel');
   const mesNum = sel ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
