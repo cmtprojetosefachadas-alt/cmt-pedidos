@@ -175,13 +175,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
     </div>
 
-    <div class="stats" style="margin-bottom:16px;grid-template-columns:repeat(5,1fr);">
-      <div class="stat" style="cursor:default;">
-        <div style="font-size:16px;margin-bottom:6px;">📋</div>
-        <div class="stat-val" id="vg-orc-qtd" style="font-size:24px;">0</div>
-        <div class="stat-label">Orçamentos pendentes</div>
-        <div style="font-size:12px;color:var(--brand);margin-top:4px;" id="vg-orc-val">R$ 0</div>
-      </div>
+    <div class="stats" style="margin-bottom:16px;grid-template-columns:repeat(3,1fr);">
       <div class="stat" style="cursor:default;">
         <div style="font-size:16px;margin-bottom:6px;">⚙️</div>
         <div class="stat-val dark" id="vg-and-qtd" style="font-size:24px;">0</div>
@@ -192,7 +186,61 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div style="font-size:16px;margin-bottom:6px;">✅</div>
         <div class="stat-val" id="vg-fat-val" style="font-size:24px;color:var(--green);">R$ 0</div>
         <div class="stat-label">Faturados no mês</div>
-        <div style="font-size:12px;color:var(--green);margin-top:4px;" id="vg-fat-qtd">0 entregues — ver relatório →</div>
+        <div style="font-size:12px;color:var(--green);margin-top:4px;" id="vg-fat-qtd">0 pedido(s) — ver relatório →</div>
+      </div>
+      <div class="stat" style="cursor:default;">
+        <div style="font-size:16px;margin-bottom:6px;">📋</div>
+        <div class="stat-val" id="vg-orc-qtd" style="font-size:24px;">0</div>
+        <div class="stat-label">Orçamentos ativos</div>
+        <div style="font-size:12px;color:var(--brand);margin-top:4px;" id="vg-orc-val">R$ 0 em negociação</div>
+      </div>
+    </div>
+
+    <!-- LINHA DE STATUS DE ORÇAMENTOS -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;">
+      <div class="stat" style="cursor:default;border-left:4px solid var(--blue-text);padding-left:18px;">
+        <div style="font-size:13px;margin-bottom:6px;">📤 Enviados</div>
+        <div style="font-size:22px;font-weight:600;color:var(--blue-text);" id="vg-orc-sent-qtd">0</div>
+        <div style="font-size:13px;font-weight:600;color:var(--blue-text);margin-top:2px;" id="vg-orc-sent-val">R$ 0</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;" id="vg-orc-sent-pct">—% do total</div>
+      </div>
+      <div class="stat" style="cursor:default;border-left:4px solid var(--amber-text);padding-left:18px;">
+        <div style="font-size:13px;margin-bottom:6px;">⏳ Aguardando</div>
+        <div style="font-size:22px;font-weight:600;color:var(--amber-text);" id="vg-orc-pend-qtd">0</div>
+        <div style="font-size:13px;font-weight:600;color:var(--amber-text);margin-top:2px;" id="vg-orc-pend-val">R$ 0</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;" id="vg-orc-pend-pct">—% do total</div>
+      </div>
+      <div class="stat" style="cursor:default;border-left:4px solid var(--green);padding-left:18px;">
+        <div style="font-size:13px;margin-bottom:6px;">✅ Aprovados</div>
+        <div style="font-size:22px;font-weight:600;color:var(--green);" id="vg-orc-aprov-qtd">0</div>
+        <div style="font-size:13px;font-weight:600;color:var(--green);margin-top:2px;" id="vg-orc-aprov-val">R$ 0</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;" id="vg-orc-aprov-pct">—% do total</div>
+      </div>
+      <div class="stat" style="cursor:default;border-left:4px solid var(--red);padding-left:18px;">
+        <div style="font-size:13px;margin-bottom:6px;">❌ Recusados</div>
+        <div style="font-size:22px;font-weight:600;color:var(--red);" id="vg-orc-rej-qtd">0</div>
+        <div style="font-size:13px;font-weight:600;color:var(--red);margin-top:2px;" id="vg-orc-rej-val">R$ 0</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;" id="vg-orc-rej-pct">—% do total</div>
+      </div>
+    </div>
+
+    <!-- BARRA VISUAL TAXA DE CONVERSÃO -->
+    <div class="form-card" style="margin-bottom:16px;padding:16px 22px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:13px;font-weight:600;">📊 Taxa de conversão de orçamentos</span>
+        <span style="font-size:12px;color:var(--muted);" id="vg-conv-label">—</span>
+      </div>
+      <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;gap:2px;" id="vg-conv-bar">
+        <div style="background:var(--blue-text);height:100%;transition:width 0.5s;" id="vg-bar-sent"></div>
+        <div style="background:var(--amber-text);height:100%;transition:width 0.5s;" id="vg-bar-pend"></div>
+        <div style="background:var(--green);height:100%;transition:width 0.5s;" id="vg-bar-aprov"></div>
+        <div style="background:var(--red);height:100%;transition:width 0.5s;" id="vg-bar-rej"></div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;">
+        <span style="font-size:11px;color:var(--blue-text);">■ Enviados</span>
+        <span style="font-size:11px;color:var(--amber-text);">■ Aguardando</span>
+        <span style="font-size:11px;color:var(--green);">■ Aprovados</span>
+        <span style="font-size:11px;color:var(--red);">■ Recusados</span>
       </div>
     </div>
 
@@ -1738,12 +1786,31 @@ window.imprimirVisao = function imprimirVisao() {
   const mesNome = getMesNome(mesNum);
   const fatMes = window._fatMes || [];
   const fatVal = window._fatVal || 0;
-  const orcPend = orcamentos.filter(o=>o.status!=='approved'&&o.status!=='rejected'&&(o.data&&o.data.substring(3)===mesNum||!o.data));
-  const orcVal = orcPend.reduce((s,o)=>s+(o.valor||0),0);
+
+  // Orçamentos por status
+  const orcDoMes = orcamentos.filter(o => o.data && o.data.substring(3) === mesNum || (!o.data));
+  const orcSent    = orcDoMes.filter(o => o.status === 'sent');
+  const orcAguard  = orcDoMes.filter(o => !o.status || o.status === 'pending');
+  const orcAprov   = orcDoMes.filter(o => o.status === 'approved');
+  const orcRej     = orcDoMes.filter(o => o.status === 'rejected');
+  const valSent   = orcSent.reduce((s,o)=>s+(o.valor||0),0);
+  const valAguard = orcAguard.reduce((s,o)=>s+(o.valor||0),0);
+  const valAprov  = orcAprov.reduce((s,o)=>s+(o.valor||0),0);
+  const valRej    = orcRej.reduce((s,o)=>s+(o.valor||0),0);
+  const totalOrc  = orcDoMes.length;
+  const pct = n => totalOrc > 0 ? Math.round((n/totalOrc)*100) : 0;
+  const taxaConv = pct(orcAprov.length);
+
+  const orcAtivos = orcDoMes.filter(o=>o.status!=='approved'&&o.status!=='rejected');
+  const orcVal = orcAtivos.reduce((s,o)=>s+(o.valor||0),0);
   const emAnd = pedidos.filter(p=>Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
   const metaVal = document.getElementById('meta-input')?.value || '0';
   const meta = parseFloat(metaVal.replace(/\./g,'').replace(',','.')) || 0;
-  const pct = meta > 0 ? Math.min(Math.round((fatVal/meta)*100),100) : 0;
+  const pctMeta = meta > 0 ? Math.min(Math.round((fatVal/meta)*100),100) : 0;
+
+  // Monta linhas das tabelas de orçamento
+  const orcTableRows = (arr) => arr.length ? arr.map(o=>`<tr><td>${o.nome||'—'}</td><td style="font-family:monospace;font-size:11px;">${o.num||'—'}</td><td>${o.desc||'—'}</td><td style="text-align:right;font-weight:600;">${fmtMoney(o.valor||0)}</td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:#999;">Nenhum</td></tr>';
+  const orcTableFoot = (arr, cor) => { const tot=arr.reduce((s,o)=>s+(o.valor||0),0); return arr.length?`<tfoot><tr><td colspan="3" style="font-weight:700;">Total</td><td style="text-align:right;font-weight:700;color:${cor};">${fmtMoney(tot)}</td></tr></tfoot>`:''; };
 
   const win = window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
@@ -1751,48 +1818,81 @@ window.imprimirVisao = function imprimirVisao() {
   <style>
     body{font-family:'DM Sans',sans-serif;padding:32px;color:#1a1a1a;background:#fff;}
     h1{font-size:20px;color:#1C2340;margin-bottom:4px;}
+    h2{font-size:15px;color:#1C2340;margin:22px 0 10px;border-bottom:2px solid #eee;padding-bottom:6px;}
     .sub{font-size:13px;color:#6b6b6b;margin-bottom:24px;}
     .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
     .card{border:1px solid #ddd;border-radius:10px;padding:16px 20px;}
     .card-label{font-size:11px;color:#6b6b6b;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;}
     .card-val{font-size:26px;font-weight:600;color:#1a1a1a;}
+    .card-val2{font-size:16px;font-weight:600;}
     .card-sub{font-size:12px;color:#6b6b6b;margin-top:4px;}
-    .orange{color:#E05C1A;} .green{color:#0F6E56;} .blue{color:#185FA5;}
+    .card-pct{font-size:11px;color:#999;margin-top:3px;}
+    .orange{color:#E05C1A;} .green{color:#0F6E56;} .blue{color:#185FA5;} .red{color:#A32D2D;} .amber{color:#633806;}
+    .bl{border-left:4px solid #185FA5;} .ba{border-left:4px solid #633806;} .bg{border-left:4px solid #0F6E56;} .br{border-left:4px solid #A32D2D;}
     .meta-box{border:1px solid #ddd;border-radius:10px;padding:18px 22px;margin-bottom:20px;}
     .bar-bg{height:10px;background:#f0ede8;border-radius:5px;overflow:hidden;margin:10px 0;}
-    .bar-fill{height:100%;border-radius:5px;background:#E05C1A;}
-    table{width:100%;border-collapse:collapse;font-size:13px;}
-    th{background:#1C2340;color:#fff;padding:9px 14px;text-align:left;}
-    td{padding:9px 14px;border-bottom:1px solid #eee;}
+    .bar-fill{height:100%;border-radius:5px;}
+    .conv-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:10px 0;}
+    table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px;}
+    th{background:#1C2340;color:#fff;padding:8px 12px;text-align:left;font-size:11px;}
+    td{padding:8px 12px;border-bottom:1px solid #eee;}
     tr:nth-child(even) td{background:#f9f9f9;}
-    tfoot td{font-weight:700;font-size:15px;border-top:2px solid #ddd;}
-    .footer{margin-top:30px;font-size:11px;color:#aaa;display:flex;justify-content:space-between;}
+    tfoot td{font-weight:700;font-size:13px;border-top:2px solid #ddd;}
+    .footer{margin-top:30px;font-size:11px;color:#aaa;display:flex;justify-content:space-between;border-top:1px solid #eee;padding-top:12px;}
     @media print{body{padding:16px;}}
   </style></head><body>
   <h1>CMT Projetos e Fachadas — Visão Geral</h1>
   <div class="sub">${mesNome} · Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+
   <div class="grid">
-    <div class="card"><div class="card-label">Orçamentos pendentes</div><div class="card-val blue">${orcPend.length}</div><div class="card-sub">${fmtMoney(orcVal)} em negociação</div></div>
     <div class="card"><div class="card-label">Em andamento</div><div class="card-val orange">${emAnd.length}</div><div class="card-sub">pedidos rodando</div></div>
-    <div class="card"><div class="card-label">Faturados no mês</div><div class="card-val green">${fmtMoney(fatVal)}</div><div class="card-sub">${fatMes.length} entregues</div></div>
+    <div class="card"><div class="card-label">Faturados no mês</div><div class="card-val green">${fmtMoney(fatVal)}</div><div class="card-sub">${fatMes.length} pedido(s)</div></div>
+    <div class="card"><div class="card-label">Orçamentos ativos</div><div class="card-val orange">${orcAtivos.length}</div><div class="card-sub">${fmtMoney(orcVal)} em negociação</div></div>
   </div>
+
+  <h2>📊 Status dos orçamentos</h2>
+  <div class="grid4">
+    <div class="card bl"><div class="card-label">📤 Enviados</div><div class="card-val2 blue">${orcSent.length} orç. · ${fmtMoney(valSent)}</div><div class="card-pct">${pct(orcSent.length)}% do total</div></div>
+    <div class="card ba"><div class="card-label">⏳ Aguardando</div><div class="card-val2 amber">${orcAguard.length} orç. · ${fmtMoney(valAguard)}</div><div class="card-pct">${pct(orcAguard.length)}% do total</div></div>
+    <div class="card bg"><div class="card-label">✅ Aprovados</div><div class="card-val2 green">${orcAprov.length} orç. · ${fmtMoney(valAprov)}</div><div class="card-pct">${pct(orcAprov.length)}% do total</div></div>
+    <div class="card br"><div class="card-label">❌ Recusados</div><div class="card-val2 red">${orcRej.length} orç. · ${fmtMoney(valRej)}</div><div class="card-pct">${pct(orcRej.length)}% do total</div></div>
+  </div>
+  <div style="border:1px solid #ddd;border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span><strong>Taxa de conversão (aprovados)</strong></span><span style="color:#0F6E56;font-weight:700;">${taxaConv}% · ${orcAprov.length} de ${totalOrc} orçamento(s)</span></div>
+    <div class="conv-bar">
+      <div style="background:#185FA5;width:${pct(orcSent.length)}%;"></div>
+      <div style="background:#633806;width:${pct(orcAguard.length)}%;margin-left:2px;"></div>
+      <div style="background:#0F6E56;width:${pct(orcAprov.length)}%;margin-left:2px;"></div>
+      <div style="background:#A32D2D;width:${pct(orcRej.length)}%;margin-left:2px;"></div>
+    </div>
+    <div style="font-size:11px;color:#999;display:flex;gap:16px;"><span style="color:#185FA5;">■ Enviados</span><span style="color:#633806;">■ Aguardando</span><span style="color:#0F6E56;">■ Aprovados</span><span style="color:#A32D2D;">■ Recusados</span></div>
+  </div>
+
+  ${orcSent.length ? `<h2>📤 Orçamentos enviados</h2><table><thead><tr><th>Cliente</th><th>Nº</th><th>Descrição</th><th style="text-align:right;">Valor</th></tr></thead><tbody>${orcTableRows(orcSent)}</tbody>${orcTableFoot(orcSent,'#185FA5')}</table>` : ''}
+  ${orcAguard.length ? `<h2>⏳ Orçamentos aguardando retorno</h2><table><thead><tr><th>Cliente</th><th>Nº</th><th>Descrição</th><th style="text-align:right;">Valor</th></tr></thead><tbody>${orcTableRows(orcAguard)}</tbody>${orcTableFoot(orcAguard,'#633806')}</table>` : ''}
+  ${orcAprov.length ? `<h2>✅ Orçamentos aprovados</h2><table><thead><tr><th>Cliente</th><th>Nº</th><th>Descrição</th><th style="text-align:right;">Valor</th></tr></thead><tbody>${orcTableRows(orcAprov)}</tbody>${orcTableFoot(orcAprov,'#0F6E56')}</table>` : ''}
+  ${orcRej.length ? `<h2>❌ Orçamentos recusados</h2><table><thead><tr><th>Cliente</th><th>Nº</th><th>Descrição</th><th style="text-align:right;">Valor</th></tr></thead><tbody>${orcTableRows(orcRej)}</tbody>${orcTableFoot(orcRej,'#A32D2D')}</table>` : ''}
+
   <div class="meta-box">
     <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
       <strong>Meta mensal: ${fmtMoney(meta)}</strong>
-      <strong style="color:#E05C1A;">${pct}% atingido</strong>
+      <strong style="color:#E05C1A;">${pctMeta}% atingido</strong>
     </div>
-    <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${pct>=100?'#0F6E56':'#E05C1A'};"></div></div>
-    <div style="font-size:12px;color:#6b6b6b;">${pct>=100?'🎉 Meta atingida!':'Faltam '+fmtMoney(Math.max(meta-fatVal,0))+' para atingir a meta'}</div>
+    <div class="bar-bg"><div class="bar-fill" style="width:${pctMeta}%;background:${pctMeta>=100?'#0F6E56':'#E05C1A'};"></div></div>
+    <div style="font-size:12px;color:#6b6b6b;">${pctMeta>=100?'🎉 Meta atingida!':'Faltam '+fmtMoney(Math.max(meta-fatVal,0))+' para atingir a meta'}</div>
   </div>
-  ${fatMes.length?`<h2 style="font-size:15px;margin-bottom:12px;">Pedidos faturados</h2>
+
+  ${fatMes.length?`<h2>💰 Pedidos faturados no mês</h2>
   <table>
     <thead><tr><th>Cliente</th><th>Pedido</th><th>Descrição</th><th>Status</th><th style="text-align:right;">Valor</th></tr></thead>
     <tbody>${(window._fatMes||[]).map((p,i)=>{
       const fin=p.finalizado===true||Number(p.etapa||0)>=ETAPAS.length-1;
-      return`<tr style="background:${i%2===0?'#fff':'#f9f9f9'}"><td>${p.nome}</td><td style="font-family:monospace;font-size:12px;">${p.codigo}</td><td>${p.desc||'—'}</td><td style="text-align:center;font-size:11px;">${fin?'✅ Finalizado':'⚙️ Em andamento'}</td><td style="text-align:right;font-weight:600;color:#0F6E56;">${fmtMoney(p.valor||0)}</td></tr>`;
+      return`<tr style="background:${i%2===0?'#fff':'#f9f9f9'}"><td>${p.nome}</td><td style="font-family:monospace;font-size:11px;">${p.codigo}</td><td>${p.desc||'—'}</td><td style="text-align:center;font-size:11px;">${fin?'✅ Finalizado':'⚙️ Em andamento'}</td><td style="text-align:right;font-weight:600;color:#0F6E56;">${fmtMoney(p.valor||0)}</td></tr>`;
     }).join('')}</tbody>
-    <tfoot><tr><td colspan="3">Total faturado</td><td style="text-align:right;color:#0F6E56;">${fmtMoney(fatVal)}</td></tr></tfoot>
+    <tfoot><tr><td colspan="4">Total faturado</td><td style="text-align:right;color:#0F6E56;">${fmtMoney(fatVal)}</td></tr></tfoot>
   </table>`:'<p style="color:#6b6b6b;font-size:13px;">Nenhum pedido faturado neste mês.</p>'}
+
   <div class="footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>CNPJ: 53.466.209/0001-01</span></div>
   </body></html>`);
   win.document.close();
@@ -1804,37 +1904,74 @@ function renderVisaoGeral() {
   const sel = document.getElementById('visao-mes-sel');
   const mesNum = sel ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
 
-  // Orçamentos pendentes (filtrado pelo mês selecionado)
-  const orcPend = orcamentos.filter(o=>o.status!=='approved'&&o.status!=='rejected'&&(o.data&&o.data.substring(3)===mesNum||!o.data));
-  const orcVal = orcPend.reduce((s,o)=>s+(o.valor||0),0);
+  // ---- STATUS DE ORÇAMENTOS (todos do mês selecionado) ----
+  const orcDoMes = orcamentos.filter(o => o.data && o.data.substring(3) === mesNum || (!o.data));
+  const orcSent    = orcDoMes.filter(o => o.status === 'sent');
+  const orcAguard  = orcDoMes.filter(o => !o.status || o.status === 'pending');
+  const orcAprov   = orcDoMes.filter(o => o.status === 'approved');
+  const orcRej     = orcDoMes.filter(o => o.status === 'rejected');
+
+  const valSent   = orcSent.reduce((s,o)=>s+(o.valor||0),0);
+  const valAguard = orcAguard.reduce((s,o)=>s+(o.valor||0),0);
+  const valAprov  = orcAprov.reduce((s,o)=>s+(o.valor||0),0);
+  const valRej    = orcRej.reduce((s,o)=>s+(o.valor||0),0);
+  const totalOrc  = orcDoMes.length;
+
+  const pct = n => totalOrc > 0 ? Math.round((n/totalOrc)*100) : 0;
+
+  // Orçamentos ativos (não aprovados nem recusados) = card principal
+  const orcAtivos = orcDoMes.filter(o=>o.status!=='approved'&&o.status!=='rejected');
+  const orcVal = orcAtivos.reduce((s,o)=>s+(o.valor||0),0);
   const elOrcQtd = document.getElementById('vg-orc-qtd');
   const elOrcVal = document.getElementById('vg-orc-val');
-  if(elOrcQtd) elOrcQtd.textContent = orcPend.length;
-  if(elOrcVal) elOrcVal.textContent = fmtMoney(orcVal);
+  if(elOrcQtd) elOrcQtd.textContent = orcAtivos.length;
+  if(elOrcVal) elOrcVal.textContent = fmtMoney(orcVal)+' em negociação';
 
-  // Em andamento
+  // Cards de status
+  const set = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
+  set('vg-orc-sent-qtd',  orcSent.length);
+  set('vg-orc-sent-val',  fmtMoney(valSent));
+  set('vg-orc-sent-pct',  pct(orcSent.length)+'% do total');
+  set('vg-orc-pend-qtd',  orcAguard.length);
+  set('vg-orc-pend-val',  fmtMoney(valAguard));
+  set('vg-orc-pend-pct',  pct(orcAguard.length)+'% do total');
+  set('vg-orc-aprov-qtd', orcAprov.length);
+  set('vg-orc-aprov-val', fmtMoney(valAprov));
+  set('vg-orc-aprov-pct', pct(orcAprov.length)+'% do total');
+  set('vg-orc-rej-qtd',   orcRej.length);
+  set('vg-orc-rej-val',   fmtMoney(valRej));
+  set('vg-orc-rej-pct',   pct(orcRej.length)+'% do total');
+
+  // Barra de conversão
+  const taxaConv = totalOrc > 0 ? pct(orcAprov.length) : 0;
+  set('vg-conv-label', totalOrc > 0 ? `${totalOrc} orçamento(s) · Taxa de aprovação: ${taxaConv}%` : 'Nenhum orçamento neste mês');
+  const barSet = (id, pctVal) => { const el=document.getElementById(id); if(el) el.style.width=(totalOrc>0?pctVal:0)+'%'; };
+  barSet('vg-bar-sent',  pct(orcSent.length));
+  barSet('vg-bar-pend',  pct(orcAguard.length));
+  barSet('vg-bar-aprov', pct(orcAprov.length));
+  barSet('vg-bar-rej',   pct(orcRej.length));
+
+  // Guarda para o relatório
+  window._orcStats = { orcSent, orcAguard, orcAprov, orcRej, valSent, valAguard, valAprov, valRej, totalOrc, taxaConv };
+
+  // ---- EM ANDAMENTO ----
   const emAnd = pedidos.filter(p=>Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
   const elAndQtd = document.getElementById('vg-and-qtd');
   if(elAndQtd) elAndQtd.textContent = emAnd.length;
 
-  // Faturados no mês
-  // Pedidos do mês = finalizados + em andamento criados no mês (venda ocorreu)
+  // ---- FATURADOS NO MÊS ----
   const pedidosMes = pedidos.filter(p=>p.mes===mesNum||(p.dataConversao&&p.dataConversao.substring(3)===mesNum));
-  const fatMes = pedidosMes.filter(p=>p.finalizado===true||Number(p.etapa||0)>=ETAPAS.length-1);
-  const andMes = pedidosMes.filter(p=>!p.finalizado&&Number(p.etapa||0)<ETAPAS.length-1);
   const fatVal = pedidosMes.reduce((s,p)=>s+(p.valor||0),0);
   const elFatVal = document.getElementById('vg-fat-val');
   const elFatQtd = document.getElementById('vg-fat-qtd');
   if(elFatVal) elFatVal.textContent = fmtMoney(fatVal);
   if(elFatQtd) elFatQtd.textContent = pedidosMes.length + ' pedido(s) no mês — ver relatório →';
-  // Guarda para o relatório
   window._fatMes = pedidosMes; window._fatVal = fatVal; window._mesNome = getMesNome(mesNum);
 
   // Meta
   atualizarMeta();
 
-  // Breakdown
-  // Em andamento = pedidos do mês ainda não finalizados
+  // Breakdown mini-cards
   const andMesPed = pedidosMes.filter(p=>!p.finalizado&&Number(p.etapa||0)<ETAPAS.length-1);
   const andVal = andMesPed.reduce((s,p)=>s+(p.valor||0),0);
   const negEl = document.getElementById('meta-neg');
@@ -1842,7 +1979,6 @@ function renderVisaoGeral() {
   const andEl = document.getElementById('meta-and');
   if(negEl) negEl.textContent = fmtMoney(orcVal);
   if(andEl) andEl.textContent = fmtMoney(andVal);
-  // Potencial = faturado(já inclui andamento) + negociação
   if(potEl) potEl.textContent = fmtMoney(fatVal + orcVal);
 }
 
