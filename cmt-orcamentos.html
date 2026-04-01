@@ -1875,8 +1875,146 @@ window.gerarPDFRelatorio = function() {
 
   const corConv = txConv>=50?'#0a8a4a':txConv>=30?'#e8520a':'#cc2222';
 
-  const w = window.open('','_blank');
-  w.document.write(html);
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head>
+  <meta charset="UTF-8">
+  <title>Relatório ${nomes[mes]} 2026 — CMT</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;color:#1a1a1a;background:#f0ede8;font-size:12px}
+    .page{background:#fff;max-width:960px;margin:0 auto;padding:28px 32px}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid #e8520a}
+    .logo{font-size:24px;font-weight:900;color:#1a2332}.logo span{color:#e8520a}
+    .kpis3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+    .kpi{background:#f8f7f4;border-radius:8px;padding:14px;border-left:4px solid #e8520a}
+    .kpi-l{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;font-weight:700}
+    .kpi-v{font-size:20px;font-weight:800}
+    .kpi-s{font-size:10px;color:#888;margin-top:3px}
+    .funil{display:flex;flex-direction:column;gap:4px;margin-bottom:16px}
+    .funil-row{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-radius:6px}
+    .bar-bg{height:5px;background:#e8e4de;border-radius:3px;margin-top:4px;overflow:hidden}
+    .bar-fill{height:100%;border-radius:3px}
+    h3{font-size:11px;font-weight:800;color:#fff;margin:16px 0 8px;padding:6px 12px;background:#1a2332;border-radius:4px;text-transform:uppercase;letter-spacing:0.06em}
+    table{width:100%;border-collapse:collapse;margin-bottom:4px}
+    th{text-align:left;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.05em;padding:6px 10px;background:#f8f7f4;border-bottom:2px solid #e0ddd6;font-weight:700}
+    td{padding:7px 10px;border-bottom:1px solid #f0ede8;font-size:11px;vertical-align:middle}
+    tr:nth-child(even) td{background:#fafaf8}
+    tr.tot td{background:#1a2332;color:#fff;font-weight:700;border:none}
+    .green{color:#0a8a4a}.amber{color:#e8520a}.red{color:#cc2222}.blue{color:#1a5fa8}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    .footer{margin-top:20px;padding-top:10px;border-top:1px solid #e0ddd6;font-size:10px;color:#aaa;display:flex;justify-content:space-between}
+    @media print{body{background:#fff}.page{padding:16px;max-width:100%}}
+  </style></head><body><div class="page">
+
+  <div class="header">
+    <div>
+      <div class="logo">CMT <span>Projetos e Fachadas</span></div>
+      <div style="font-size:14px;font-weight:700;color:#1a2332;margin-top:4px">Relatório de Resultados — ${nomes[mes]} 2026</div>
+      <div style="font-size:11px;color:#888;margin-top:2px">Gerado em ${new Date().toLocaleDateString('pt-BR')} · USO INTERNO</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:11px;color:#888">Faturamento do mês</div>
+      <div style="font-size:28px;font-weight:900;color:#e8520a">${fmt(fat)}</div>
+      <div style="font-size:11px;color:#888">${orcs.length} orçamentos aprovados</div>
+    </div>
+  </div>
+
+  <div class="kpis3">
+    <div class="kpi" style="border-left-color:#e8520a">
+      <div class="kpi-l">Faturamento</div>
+      <div class="kpi-v amber">${fmt(fat)}</div>
+      <div class="kpi-s">${orcs.length} aprovados</div>
+    </div>
+    <div class="kpi" style="border-left-color:#1a2332">
+      <div class="kpi-l">Custo total</div>
+      <div class="kpi-v">${fmt(custo)}</div>
+      <div class="kpi-s">Materiais + mão de obra</div>
+    </div>
+    <div class="kpi" style="border-left-color:#0a8a4a">
+      <div class="kpi-l">Lucro líquido</div>
+      <div class="kpi-v green">${fmt(lucro)}</div>
+      <div class="kpi-s">Margem ${margem.toFixed(1)}%</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div style="background:#f8f7f4;border-radius:8px;padding:16px">
+      <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">📊 Funil do mês</div>
+      <div class="funil">
+        <div class="funil-row" style="background:rgba(26,95,168,0.08)"><span style="font-size:12px;font-weight:600;color:#1a5fa8">Total gerado</span><div style="text-align:right"><strong style="color:#1a5fa8">${todos.length}</strong> <span style="color:#888;font-size:10px">${fmt(totalGerado)}</span></div></div>
+        <div class="funil-row" style="background:rgba(232,82,10,0.08)"><span style="font-size:12px;font-weight:600;color:#e8520a">Negociando</span><div style="text-align:right"><strong style="color:#e8520a">${aguard.length}</strong> <span style="color:#888;font-size:10px">${fmt(fatAguard)}</span></div></div>
+        <div class="funil-row" style="background:rgba(10,138,74,0.08)"><span style="font-size:12px;font-weight:600;color:#0a8a4a">Fechados ✓</span><div style="text-align:right"><strong style="color:#0a8a4a">${orcs.length}</strong> <span style="color:#888;font-size:10px">${fmt(fat)}</span></div></div>
+        <div class="funil-row" style="background:rgba(204,34,34,0.08)"><span style="font-size:12px;font-weight:600;color:#cc2222">Perdidos</span><div style="text-align:right"><strong style="color:#cc2222">${recus.length}</strong> <span style="color:#888;font-size:10px">${fmt(fatRecus)}</span></div></div>
+      </div>
+    </div>
+    <div style="background:#f8f7f4;border-radius:8px;padding:16px">
+      <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">🎯 Análise de conversão</div>
+      <div style="text-align:center;padding:8px 0 12px">
+        <div style="font-size:48px;font-weight:900;color:${corConv};line-height:1">${txConv}%</div>
+        <div style="font-size:11px;color:#888;margin-top:4px">${orcs.length} de ${todos.length} orçamentos fechados</div>
+        <div style="height:8px;background:#e8e4de;border-radius:4px;margin:8px 0;overflow:hidden"><div style="height:100%;border-radius:4px;background:${corConv};width:${txConv}%"></div></div>
+      </div>
+      <div style="border-top:1px solid #e0ddd6;padding-top:10px;display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#888">Taxa de perda</span><strong class="red">${txPerda}%</strong></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#888">Receita perdida</span><strong class="red">${fmt(fatRecus)}</strong></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#888">Em negociação</span><strong class="amber">${fmt(fatAguard)}</strong></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#888">Ticket médio</span><strong>${ticketMed>0?fmt(ticketMed):'—'}</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <h3>🏆 Lucro por cliente</h3>
+  <table>
+    <thead><tr><th>#</th><th>Cliente</th><th>Orç.</th><th>Faturado</th><th>Custo</th><th>Lucro</th><th>Margem</th></tr></thead>
+    <tbody>
+      ${ranking.map(([nome,d],i)=>{
+        const mg=d.venda>0?(d.lucro/d.venda*100):0;
+        return `<tr><td style="color:#888;font-weight:700">${i+1}</td>
+          <td><strong>${nome}</strong><div class="bar-bg"><div class="bar-fill" style="width:${Math.max(4,d.lucro/maxLucro*100)}%;background:#0a8a4a"></div></div></td>
+          <td>${d.n}</td><td class="amber" style="font-weight:700">${fmt(d.venda)}</td>
+          <td>${fmt(d.custo)}</td><td class="${d.lucro>=0?'green':'red'}" style="font-weight:700">${fmt(d.lucro)}</td>
+          <td>${mg.toFixed(1)}%</td></tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+
+  <h3>✅ Orçamentos aprovados</h3>
+  <table>
+    <thead><tr><th>Nº</th><th>Cliente</th><th>Serviço</th><th>Custo</th><th>Venda</th><th>Lucro</th><th>Margem</th></tr></thead>
+    <tbody>
+      ${[...orcs].reverse().map(o=>{
+        const mg=o.venda>0?(o.lucro/o.venda*100):0;
+        return `<tr><td style="color:#888">${o.numero||o.num||'-'}</td><td><strong>${o.cliente}</strong></td>
+          <td style="color:#666">${(o.desc||'-').substring(0,35)}</td>
+          <td>${fmt(o.custoTotal)}</td><td class="amber" style="font-weight:700">${fmt(o.venda)}</td>
+          <td class="${o.lucro>=0?'green':'red'}" style="font-weight:700">${fmt(o.lucro)}</td>
+          <td>${mg.toFixed(1)}%</td></tr>`;
+      }).join('')}
+      <tr class="tot"><td colspan="3" style="text-align:right">TOTAL</td>
+        <td>${fmt(custo)}</td><td style="color:#e8520a">${fmt(fat)}</td>
+        <td style="color:#3ecf8e">${fmt(lucro)}</td><td>${margem.toFixed(1)}%</td></tr>
+    </tbody>
+  </table>
+
+  ${aguard.length?`<h3>⏳ Em negociação (${aguard.length})</h3>
+  <table><thead><tr><th>Nº</th><th>Cliente</th><th>Serviço</th><th>Venda estimada</th><th>Lucro estimado</th></tr></thead>
+  <tbody>${aguard.map(o=>`<tr><td style="color:#888">${o.numero||'-'}</td><td><strong>${o.cliente}</strong></td>
+    <td style="color:#666">${(o.desc||'-').substring(0,35)}</td>
+    <td class="amber" style="font-weight:700">${fmt(o.venda)}</td>
+    <td class="green" style="font-weight:700">${fmt(o.lucro)}</td></tr>`).join('')}
+  </tbody></table>`:''}
+
+  ${recus.length?`<h3>❌ Não fechados — receita perdida: ${fmt(fatRecus)}</h3>
+  <table><thead><tr><th>Nº</th><th>Cliente</th><th>Serviço</th><th>Venda perdida</th></tr></thead>
+  <tbody>${recus.map(o=>`<tr><td style="color:#888">${o.numero||'-'}</td><td><strong>${o.cliente}</strong></td>
+    <td style="color:#666">${(o.desc||'-').substring(0,40)}</td>
+    <td class="red" style="font-weight:700">${fmt(o.venda)}</td></tr>`).join('')}
+  </tbody></table>`:''}
+
+  <div class="footer">
+    <span>CMT Projetos e Fachadas — Relatório interno — ${nomes[mes]} 2026</span>
+    <span>Gerado em ${new Date().toLocaleDateString('pt-BR')}</span>
+  </div>
+  </div><script>window.onload=()=>window.print()<\/script></body></html>`;
   w.document.close();
   setTimeout(()=>w.print(), 600);
 };
