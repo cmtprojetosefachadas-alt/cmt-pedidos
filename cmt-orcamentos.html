@@ -1398,6 +1398,215 @@ function renderListaOrcamentos() {
 }
 window.renderListaOrcamentos = renderListaOrcamentos;
 
+// ── CATÁLOGO ──
+function renderCatalogo() {
+  const el = document.getElementById('catalogo-lista');
+  if(!el) return;
+  const cats = [...new Set([...getCategorias(), ...(window._materiais||[]).map(m=>m.cat||'Outros')])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const filtro = window._catFiltro||'';
+  const mats = filtro ? (window._materiais||[]).filter(m=>m.cat===filtro) : (window._materiais||[]);
+  const porCat = {};
+  mats.forEach(m=>{ if(!porCat[m.cat]) porCat[m.cat]=[]; porCat[m.cat].push(m); });
+  el.innerHTML = Object.entries(porCat).map(([cat,items])=>`
+    <div class="mat-section">
+      <div class="mat-category">${cat}</div>
+      ${items.map(m=>`
+        <div class="mat-item ${window._itensSelecionados[m.id]?'added':''}" id="mi-${m.id}" onclick="window.toggleMaterial('${m.id}')">
+          <div class="mat-check">${window._itensSelecionados[m.id]?'✓':''}</div>
+          <div class="mat-info">
+            <div class="mat-nome">${m.nome}</div>
+            <div class="mat-unit">${m.unit}</div>
+          </div>
+          <div class="mat-custo">R$ ${(m.custo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+window.renderCatalogo = renderCatalogo;
+
+window.toggleMaterial = function(id) {
+  const m = (window._materiais||[]).find(x=>x.id===id);
+  if(!m) return;
+  if(window._itensSelecionados[id]) {
+    delete window._itensSelecionados[id];
+  } else {
+    window._itensSelecionados[id] = {...m, qty:1};
+  }
+  renderCatalogo();
+  renderItens();
+};
+
+// ── ITENS ──
+function renderItens() {
+  const lista = document.getElementById('itens-lista');
+  if(!lista) return;
+  const items = Object.values(window._itensSelecionados||{});
+  if(!items.length) {
+    lista.innerHTML = '<p style="font-size:13px;color:var(--muted);padding:8px 0">Selecione materiais ao lado →</p>';
+    const tb = document.getElementById('total-block');
+    if(tb) tb.style.display='none';
+    return;
+  }
+  lista.innerHTML = items.map(it=>`
+    <div class="item-linha">
+      <div class="item-linha-top">
+        <div class="item-nome">${it.nome}</div>
+        <span class="item-del" onclick="window.removerItem('${it.id}')">×</span>
+      </div>
+      <div class="item-linha-bot">
+        <span class="item-unit">${it.unit}</span>
+        <input class="item-qty" type="number" min="0.01" step="0.01" value="${it.qty}"
+          onchange="window.updateQty('${it.id}',this.value)">
+        ${it.editavel
+          ? `<input class="item-qty" type="number" min="0" step="0.01" value="${it.custo||0}"
+               placeholder="R$ valor" style="width:90px;color:var(--accent);font-weight:700"
+               onchange="window.updateCusto('${it.id}',this.value)">`
+          : `<div class="item-custo-unit">R$${(it.custo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}/${it.unit}</div>`
+        }
+        <div class="item-total">R$ ${((it.custo||0)*it.qty).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+      </div>
+      ${it.editavel?`<div style="font-size:10px;color:var(--muted);margin-top:4px;padding:0 2px">✏️ Digite o valor do pró-labore acima</div>`:''}
+    </div>
+  `).join('');
+  recalcular();
+}
+window.renderItens = renderItens;
+
+window.updateQty = function(id,val) {
+  if(window._itensSelecionados[id]) {
+    window._itensSelecionados[id].qty = Math.max(0.01,parseFloat(val)||0.01);
+    renderItens();
+  }
+};
+
+window.updateCusto = function(id,val) {
+  if(window._itensSelecionados[id]) {
+    window._itensSelecionados[id].custo = Math.max(0,parseFloat(val)||0);
+    recalcular();
+    const totalEl = document.querySelector(`[onchange="window.updateCusto('${id}',this.value)"]`)?.closest('.item-linha')?.querySelector('.item-total');
+    if(totalEl) { const it=window._itensSelecionados[id]; totalEl.textContent='R$ '+(it.custo*it.qty).toLocaleString('pt-BR',{minimumFractionDigits:2}); }
+  }
+};
+
+window.removerItem = function(id) {
+  delete window._itensSelecionados[id];
+  renderCatalogo();
+  renderItens();
+};
+
+// ── CÁLCULO ──
+window.recalcular = function() {
+  const items = Object.values(window._itensSelecionados||{});
+  const tb = document.getElementById('total-block');
+  if(!items.length) { if(tb) tb.style.display='none'; return; }
+  const margem = parseInt(document.getElementById('margem-slider')?.value||30);
+  const moPct  = parseFloat(document.getElementById('mo-pct')?.value||25);
+  const subMat = items.reduce((a,i)=>a+(i.custo||0)*i.qty, 0);
+  const divisor = 1 - margem/100 - moPct/100;
+  const venda   = divisor>0 ? subMat/divisor : subMat*(1+margem/100);
+  const moVal   = venda*moPct/100;
+  const custoTotal = subMat+moVal;
+  const lucro   = venda-custoTotal;
+  const lucroP  = venda>0?(lucro/venda*100):0;
+
+  if(tb) tb.style.display='block';
+  const set = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('sub-mat', fmt(subMat));
+  set('sub-mo',  fmt(moVal));
+  set('sub-margem', fmt(lucro));
+  set('total-venda', fmt(venda));
+  set('custo-total-display', fmt(custoTotal));
+  set('lucro-display', fmt(lucro));
+  set('mo-val-display', fmt(moVal));
+  set('margem-pct-label', margem);
+  set('lucro-pct-label', lucroP.toFixed(1)+'%');
+  const bar = document.getElementById('lucro-bar-fill');
+  if(bar) { bar.style.width=Math.min(100,lucroP)+'%'; bar.style.background=lucroP>20?'var(--green)':lucroP>10?'var(--accent)':'var(--red)'; }
+};
+
+window.updateMargem = function(v) {
+  const el = document.getElementById('margem-display');
+  if(el) el.textContent = v+'%';
+  window.recalcular();
+};
+
+// ── SALVAR ──
+window.salvarOrcamento = async function() {
+  const items = Object.values(window._itensSelecionados||{});
+  if(!items.length) { showToast('Adicione pelo menos um material!'); return; }
+
+  const tipo = window.getTipoCliente ? window.getTipoCliente() : 'sistema';
+  let cliente = '';
+  let dadosExtra = {};
+
+  if(tipo==='avulso') {
+    const nome = document.getElementById('av-nome')?.value.trim()||document.getElementById('orc-cliente-av')?.value.trim()||'';
+    if(!nome) { showToast('Preencha o nome do cliente!'); return; }
+    cliente = nome;
+    dadosExtra = window.getDadosClienteAvulso ? window.getDadosClienteAvulso() : {};
+  } else {
+    const sel = document.getElementById('sel-cliente');
+    if(!sel) { showToast('Campo de cliente não encontrado!'); return; }
+    cliente = sel.tagName==='SELECT' ? (sel.options[sel.selectedIndex]?.text||'') : sel.value.trim();
+    if(!cliente || cliente==='Selecione o cliente...') { showToast('Selecione o cliente!'); return; }
+  }
+
+  const desc    = document.getElementById('orc-desc')?.value||'Sem descrição';
+  const margem  = parseInt(document.getElementById('margem-slider')?.value||30);
+  const moPct   = parseFloat(document.getElementById('mo-pct')?.value||25);
+  const pagamento = document.getElementById('orc-pagamento')?.value||document.getElementById('pagamento')?.value||'dinheiro';
+  const taxaCartao= parseFloat(document.getElementById('orc-taxa-cartao')?.value||0);
+  const responsavel = document.getElementById('mo-responsavel')?.value||'';
+
+  const subMat  = items.reduce((a,i)=>a+(i.custo||0)*i.qty, 0);
+  const divisor = 1-margem/100-moPct/100;
+  const venda   = divisor>0?subMat/divisor:subMat*(1+margem/100);
+  const moVal   = venda*moPct/100;
+  const custoTotal = subMat+moVal;
+  const lucro   = venda-custoTotal;
+  const numero  = (document.getElementById('orc-num')||document.getElementById('orc-num-av'))?.value||'#001';
+
+  const data = {
+    numero, cliente, desc, itens:items,
+    subMat:Math.round(subMat*100)/100,
+    moVal:Math.round(moVal*100)/100,
+    moPct, margemPct:margem,
+    custoTotal:Math.round(custoTotal*100)/100,
+    venda:Math.round(venda*100)/100,
+    lucro:Math.round(lucro*100)/100,
+    pagamento, taxaCartao, responsavel,
+    status:'Aguardando',
+    criadoEm: new Date().toISOString(),
+    mes: new Date().getMonth()+1,
+    tipo,
+    ...dadosExtra
+  };
+
+  try {
+    await addDoc(collection(db,'cmt_orcamentos'), data);
+  } catch(e){ showToast('Erro ao salvar: '+e.message); return; }
+  window._orcamentos.push({id:'tmp_'+Date.now(),...data});
+  showToast('Orçamento salvo! ✓');
+  window.limparOrcamento();
+  renderListaOrcamentos();
+  renderRelatorio();
+  atualizarNumeroOrcamento();
+};
+
+window.limparOrcamento = function() {
+  window._itensSelecionados = {};
+  renderCatalogo();
+  renderItens();
+  const clear = (id,v='') => { const el=document.getElementById(id); if(el) el.value=v; };
+  clear('orc-desc'); clear('av-nome'); clear('orc-cliente-av');
+  clear('orc-telefone'); clear('orc-email'); clear('orc-endereco');
+  const sl = document.getElementById('margem-slider'); if(sl) sl.value=30;
+  const md = document.getElementById('margem-display'); if(md) md.textContent='30%';
+  const mo = document.getElementById('mo-pct'); if(mo) mo.value=25;
+  const tb = document.getElementById('total-block'); if(tb) tb.style.display='none';
+};
+
 window.getOrcamentosFiltrados = function() {
   const q      = (document.getElementById('search-input')?.value||'').toLowerCase();
   const status = document.getElementById('filtro-status')?.value||'';
@@ -1533,37 +1742,6 @@ async function carregarMateriais() {
   }
 }
 
-function renderCatalogo() {
-  const cats = [...new Set(window._materiais.map(m=>m.cat))];
-  const el = document.getElementById('catalogo-lista');
-  el.innerHTML = cats.map(cat=>`
-    <div class="mat-section">
-      <div class="mat-category">${cat}</div>
-      ${window._materiais.filter(m=>m.cat===cat).map(m=>`
-        <div class="mat-item ${window._itensSelecionados[m.id]?'added':''}" id="mi-${m.id}" onclick="toggleMaterial('${m.id}')">
-          <div class="mat-check">${window._itensSelecionados[m.id]?'✓':''}</div>
-          <div class="mat-info">
-            <div class="mat-nome">${m.nome}</div>
-            <div class="mat-unit">${m.unit}</div>
-          </div>
-          <div class="mat-custo">R$ ${m.custo.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
-        </div>
-      `).join('')}
-    </div>
-  `).join('');
-}
-
-window.toggleMaterial = function(id) {
-  const m = window._materiais.find(x=>x.id===id);
-  if(!m) return;
-  if(window._itensSelecionados[id]) {
-    delete window._itensSelecionados[id];
-  } else {
-    window._itensSelecionados[id] = {...m, qty:1};
-  }
-  renderCatalogo();
-  renderItens();
-};
 
 window.toggleNovoMat = function() {
   document.getElementById('novo-mat-form').classList.toggle('open');
