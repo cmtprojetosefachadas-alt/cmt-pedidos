@@ -569,6 +569,20 @@ body {
     <h2>Orçamentos</h2>
     <div id="badges-status" style="display:flex;gap:8px"></div>
     <input class="search-field" placeholder="Buscar cliente ou serviço..." id="search-input" oninput="filtrarOrcamentos()">
+    <!-- Filtro status -->
+    <select id="filtro-status" class="field" style="width:140px;padding:7px 12px;font-size:13px" onchange="renderListaOrcamentos()">
+      <option value="">Todos status</option>
+      <option value="Aprovado">Aprovado</option>
+      <option value="Aguardando">Aguardando</option>
+      <option value="Recusado">Recusado</option>
+    </select>
+    <!-- Filtro data -->
+    <div style="display:flex;gap:4px;align-items:center">
+      <input type="date" id="filtro-data-ini" class="field" style="width:140px;padding:7px 10px;font-size:12px" onchange="renderListaOrcamentos()" title="Data inicial">
+      <span style="font-size:12px;color:var(--muted)">até</span>
+      <input type="date" id="filtro-data-fim" class="field" style="width:140px;padding:7px 10px;font-size:12px" onchange="renderListaOrcamentos()" title="Data final">
+    </div>
+    <button class="btn-ghost" style="font-size:12px;padding:6px 14px;white-space:nowrap" onclick="window.gerarPDFOrcamentos()">📄 PDF</button>
   </div>
 
   <!-- DASHBOARD -->
@@ -2174,8 +2188,8 @@ function renderDashboard() {
 function renderListaOrcamentos() {
   renderDashboard();
   const tb = document.getElementById('lista-tbody');
-  const orcs = [...window._orcamentos].reverse();
-  if(!orcs.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:30px">Nenhum orçamento ainda.</td></tr>';return;}
+  const orcs = window.getOrcamentosFiltrados ? window.getOrcamentosFiltrados() : [...window._orcamentos].reverse();
+  if(!orcs.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:30px">Nenhum orçamento encontrado.</td></tr>';return;}
   tb.innerHTML = orcs.map(o=>`
     <tr onclick="abrirModal('${o.id}')">
       <td><span class="td-num">${o.numero||'-'}</span></td>
@@ -2190,16 +2204,151 @@ function renderListaOrcamentos() {
     </tr>
   `).join('');
   // badges resumo
+  const todos = window._orcamentos||[];
   const doc2 = document.getElementById('badges-status');
-  const apr = orcs.filter(o=>o.status==='Aprovado').length;
-  const agu = orcs.filter(o=>o.status==='Aguardando').length;
+  const apr = todos.filter(o=>o.status==='Aprovado').length;
+  const agu = todos.filter(o=>o.status==='Aguardando').length;
   doc2.innerHTML = `<span class="badge badge-green">${apr} aprovados</span><span class="badge badge-amber">${agu} aguardando</span>`;
 }
 
 window.filtrarOrcamentos = function() {
-  const q = document.getElementById('search-input').value.toLowerCase();
-  const rows = document.querySelectorAll('#lista-tbody tr');
-  rows.forEach(r=>{ r.style.display=r.textContent.toLowerCase().includes(q)?'':'none'; });
+  renderListaOrcamentos();
+};
+
+window.getOrcamentosFiltrados = function() {
+  const q       = (document.getElementById('search-input')?.value||'').toLowerCase();
+  const status  = document.getElementById('filtro-status')?.value||'';
+  const dataIni = document.getElementById('filtro-data-ini')?.value||'';
+  const dataFim = document.getElementById('filtro-data-fim')?.value||'';
+  return (window._orcamentos||[]).filter(o=>{
+    if(q && !o.cliente.toLowerCase().includes(q) && !(o.desc||'').toLowerCase().includes(q)) return false;
+    if(status && o.status !== status) return false;
+    if(dataIni && o.criadoEm < dataIni) return false;
+    if(dataFim && o.criadoEm.substring(0,10) > dataFim) return false;
+    return true;
+  });
+};
+
+window.gerarPDFOrcamentos = function() {
+  const lista = window.getOrcamentosFiltrados();
+  const hoje  = new Date().toLocaleDateString('pt-BR');
+  const status = document.getElementById('filtro-status')?.value||'Todos';
+  const dataIni = document.getElementById('filtro-data-ini')?.value||'';
+  const dataFim = document.getElementById('filtro-data-fim')?.value||'';
+  const periodo = dataIni||dataFim ? `${dataIni?fmtData(dataIni+' '):''} até ${dataFim?fmtData(dataFim):''}`:'Todos os períodos';
+
+  const totalVenda  = lista.reduce((a,o)=>a+(o.venda||0),0);
+  const totalCusto  = lista.reduce((a,o)=>a+(o.custoTotal||0),0);
+  const totalLucro  = lista.reduce((a,o)=>a+(o.lucro||0),0);
+  const aprovados   = lista.filter(o=>o.status==='Aprovado');
+  const aguardando  = lista.filter(o=>o.status==='Aguardando');
+  const recusados   = lista.filter(o=>o.status==='Recusado');
+
+  const statusCor = {Aprovado:'#0a8a4a', Aguardando:'#e8520a', Recusado:'#cc2222'};
+  const statusBg  = {Aprovado:'#e6f7ef', Aguardando:'#fff3e0', Recusado:'#fdecea'};
+
+  const rows = lista.map(o=>`
+    <tr>
+      <td style="font-weight:700">${o.numero||'#?'}</td>
+      <td style="font-weight:600">${o.cliente}</td>
+      <td style="color:#666;font-size:11px">${(o.desc||'').substring(0,40)}${(o.desc||'').length>40?'...':''}</td>
+      <td style="font-weight:700;color:#e8520a">${fmt(o.venda||0)}</td>
+      <td>${fmt(o.custoTotal||0)}</td>
+      <td style="font-weight:700;color:#0a8a4a">${fmt(o.lucro||0)}</td>
+      <td>${o.margemPct||0}%</td>
+      <td style="color:#888">${fmtData(o.criadoEm)}</td>
+      <td><span style="background:${statusBg[o.status]||'#eee'};color:${statusCor[o.status]||'#888'};padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700">${o.status}</span></td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>Relatório de Orçamentos — CMT</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:Arial,sans-serif;font-size:12px;color:#222;background:#f0ede8}
+    .page{background:#fff;max-width:960px;margin:0 auto;padding:28px 32px}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid #e8520a}
+    .logo{font-size:24px;font-weight:900;color:#1a2332}.logo span{color:#e8520a}
+    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+    .kpi{background:#f8f7f4;border-left:4px solid #e8520a;padding:12px 14px;border-radius:6px}
+    .kpi-l{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;font-weight:700}
+    .kpi-v{font-size:20px;font-weight:800}
+    .kpi-s{font-size:10px;color:#888;margin-top:3px}
+    h3{font-size:12px;font-weight:800;color:#fff;margin:16px 0 8px;padding:6px 12px;background:#1a2332;border-radius:4px}
+    table{width:100%;border-collapse:collapse}
+    th{text-align:left;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.05em;padding:7px 10px;background:#f8f7f4;border-bottom:2px solid #e0ddd6;font-weight:700}
+    td{padding:8px 10px;border-bottom:1px solid #f0ede8;font-size:11px;vertical-align:middle}
+    tr:nth-child(even) td{background:#fafaf8}
+    tr.total-row td{background:#1a2332;color:#fff;font-weight:700}
+    tr.total-row td.accent{color:#e8520a}
+    tr.total-row td.green{color:#3ecf8e}
+    .footer{margin-top:20px;padding-top:10px;border-top:1px solid #e0ddd6;font-size:10px;color:#aaa;display:flex;justify-content:space-between}
+    @media print{body{background:#fff}.page{padding:16px}}
+  </style></head><body><div class="page">
+  <div class="header">
+    <div>
+      <div class="logo">CMT <span>Projetos e Fachadas</span></div>
+      <div style="font-size:15px;font-weight:700;color:#1a2332;margin-top:4px">Relatório de Orçamentos</div>
+      <div style="font-size:11px;color:#888;margin-top:2px">Gerado em ${hoje} · Status: ${status||'Todos'} · ${periodo}</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:11px;color:#888">Total faturado</div>
+      <div style="font-size:26px;font-weight:900;color:#e8520a">${fmt(totalVenda)}</div>
+      <div style="font-size:11px;color:#888">${lista.length} orçamentos</div>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi" style="border-left-color:#e8520a">
+      <div class="kpi-l">Faturamento</div>
+      <div class="kpi-v" style="color:#e8520a">${fmt(totalVenda)}</div>
+      <div class="kpi-s">${lista.length} orçamentos</div>
+    </div>
+    <div class="kpi" style="border-left-color:#0a8a4a">
+      <div class="kpi-l">Lucro total</div>
+      <div class="kpi-v" style="color:#0a8a4a">${fmt(totalLucro)}</div>
+      <div class="kpi-s">${aprovados.length} aprovados</div>
+    </div>
+    <div class="kpi" style="border-left-color:#1a5fa8">
+      <div class="kpi-l">Em negociação</div>
+      <div class="kpi-v" style="color:#1a5fa8">${aguardando.length}</div>
+      <div class="kpi-s">${fmt(aguardando.reduce((a,o)=>a+(o.venda||0),0))}</div>
+    </div>
+    <div class="kpi" style="border-left-color:#cc2222">
+      <div class="kpi-l">Não fechados</div>
+      <div class="kpi-v" style="color:#cc2222">${recusados.length}</div>
+      <div class="kpi-s">Taxa ${lista.length>0?Math.round(recusados.length/lista.length*100):0}% perda</div>
+    </div>
+  </div>
+
+  <h3>📋 Lista de orçamentos</h3>
+  <table>
+    <thead><tr>
+      <th>Nº</th><th>Cliente</th><th>Serviço</th>
+      <th>Venda</th><th>Custo</th><th>Lucro</th><th>Margem</th><th>Data</th><th>Status</th>
+    </tr></thead>
+    <tbody>
+      ${rows}
+      <tr class="total-row">
+        <td colspan="3" style="text-align:right;letter-spacing:0.05em">TOTAL</td>
+        <td class="accent">${fmt(totalVenda)}</td>
+        <td>${fmt(totalCusto)}</td>
+        <td class="green">${fmt(totalLucro)}</td>
+        <td>${lista.length>0?Math.round(totalLucro/totalVenda*100):0}%</td>
+        <td colspan="2"></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <span>CMT Projetos e Fachadas — Relatório de Orçamentos</span>
+    <span>Gerado em ${hoje} · ${lista.length} registros</span>
+  </div>
+  </div></body></html>`;
+
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(), 600);
 };
 
 // ── MODAL ──
