@@ -1262,12 +1262,141 @@ async function carregarCategorias() {
     const snap = await getDocs(collection(db,'cmt_categorias'));
     snap.docs.forEach(d=>{
       const nome = d.data().nome;
-      if(nome && !window._categoriasExtras.includes(nome)) {
-        window._categoriasExtras.push(nome);
-      }
+      if(nome && !window._categoriasExtras.includes(nome)) window._categoriasExtras.push(nome);
     });
   } catch(e){}
 }
+
+async function carregarClientes() {
+  const colecoes = ['clientes','pedidos','customers'];
+  for(const col of colecoes) {
+    try {
+      const snap = await getDocs(collection(db,col));
+      if(!snap.empty) { window._clientes = snap.docs.map(d=>({id:d.id,...d.data()})); break; }
+    } catch(e){}
+  }
+  const sel = document.getElementById('sel-cliente');
+  if(!sel) return;
+  if(window._clientes.length>0) {
+    window._clientes.forEach(c=>{
+      const nome = c.nome||c.clienteNome||c.name||c.empresa||'Cliente';
+      const opt = document.createElement('option');
+      opt.value=c.id; opt.textContent=nome; sel.appendChild(opt);
+    });
+  }
+}
+
+async function carregarOrcamentos() {
+  try {
+    const snap = await getDocs(collection(db,'cmt_orcamentos'));
+    window._orcamentos = snap.docs.map(d=>({id:d.id,...d.data()}));
+    window._orcamentos.sort((a,b)=>new Date(a.criadoEm)-new Date(b.criadoEm));
+  } catch(e){ window._orcamentos=[]; }
+}
+
+function atualizarNumeroOrcamento() {
+  const num = (window._orcamentos||[]).length + 1;
+  const el = document.getElementById('orc-num');
+  const elAv = document.getElementById('orc-num-av');
+  const val = '#'+String(num).padStart(3,'0');
+  if(el) el.value = val;
+  if(elAv) elAv.value = val;
+}
+
+function renderDashboard() {
+  const el = document.getElementById('dashboard-orc');
+  if(!el) return;
+  const orcs = window._orcamentos||[];
+  if(!orcs.length) { el.innerHTML=''; return; }
+  const total=orcs.length;
+  const aprovados=orcs.filter(o=>o.status==='Aprovado');
+  const aguardando=orcs.filter(o=>o.status==='Aguardando');
+  const recusados=orcs.filter(o=>o.status==='Recusado');
+  const fatAprov=aprovados.reduce((a,o)=>a+(o.venda||0),0);
+  const fatTotal=orcs.reduce((a,o)=>a+(o.venda||0),0);
+  const fatAguard=aguardando.reduce((a,o)=>a+(o.venda||0),0);
+  const fatRecus=recusados.reduce((a,o)=>a+(o.venda||0),0);
+  const lucroAprov=aprovados.reduce((a,o)=>a+(o.lucro||0),0);
+  const txConv=total>0?Math.round(aprovados.length/total*100):0;
+  const txPerda=total>0?Math.round(recusados.length/total*100):0;
+  const margMedia=aprovados.length>0?Math.round(aprovados.reduce((a,o)=>a+(o.margemPct||0),0)/aprovados.length):0;
+  const porCliente={};
+  aprovados.forEach(o=>{porCliente[o.cliente]=(porCliente[o.cliente]||0)+(o.venda||0);});
+  const top3=Object.entries(porCliente).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px">
+      <div class="card" style="padding:16px;border-left:4px solid var(--accent)">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Total orçamentos</div>
+        <div style="font-family:Inter,sans-serif;font-size:28px;font-weight:800;color:var(--text)">${total}</div>
+      </div>
+      <div class="card" style="padding:16px;border-left:4px solid var(--green)">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Fechados</div>
+        <div style="font-family:Inter,sans-serif;font-size:28px;font-weight:800;color:var(--green)">${aprovados.length}</div>
+        <div style="font-size:12px;color:var(--green);font-weight:600">Taxa ${txConv}%</div>
+      </div>
+      <div class="card" style="padding:16px;border-left:4px solid var(--accent)">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Em negociação</div>
+        <div style="font-family:Inter,sans-serif;font-size:28px;font-weight:800;color:var(--accent)">${aguardando.length}</div>
+        <div style="font-size:12px;color:var(--accent);font-weight:600">${fmt(fatAguard)}</div>
+      </div>
+      <div class="card" style="padding:16px;border-left:4px solid var(--red)">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Não fechados</div>
+        <div style="font-family:Inter,sans-serif;font-size:28px;font-weight:800;color:var(--red)">${recusados.length}</div>
+        <div style="font-size:12px;color:var(--red);font-weight:600">Taxa ${txPerda}%</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">Financeiro geral</div>
+        <div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:3px"><span>Faturamento aprovado</span><span style="font-weight:700;color:var(--green)">${fmt(fatAprov)}</span></div><div style="height:3px;background:var(--bg4);border-radius:2px"><div style="height:100%;border-radius:2px;background:var(--green);width:${fatTotal>0?Math.round(fatAprov/fatTotal*100):0}%"></div></div></div>
+        <div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:3px"><span>Perdido</span><span style="font-weight:700;color:var(--red)">${fmt(fatRecus)}</span></div><div style="height:3px;background:var(--bg4);border-radius:2px"><div style="height:100%;border-radius:2px;background:var(--red);width:${fatTotal>0?Math.round(fatRecus/fatTotal*100):0}%"></div></div></div>
+        <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px"><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--muted)">Lucro aprovado</span><span style="font-weight:800;color:var(--green)">${fmt(lucroAprov)}</span></div><div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px"><span style="color:var(--muted)">Margem média</span><span style="font-weight:700;color:var(--accent)">${margMedia}%</span></div></div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">Funil de vendas</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="background:rgba(26,95,168,0.12);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:600;color:var(--blue)">Total gerado</span><span style="font-weight:800;color:var(--blue)">${total}</span></div>
+          <div style="background:rgba(232,82,10,0.1);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;margin:0 8px"><span style="font-size:13px;font-weight:600;color:var(--accent)">Negociando</span><span style="font-weight:800;color:var(--accent)">${aguardando.length}</span></div>
+          <div style="background:rgba(62,207,142,0.12);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;margin:0 16px"><span style="font-size:13px;font-weight:600;color:var(--green)">Fechados ✓</span><span style="font-weight:800;color:var(--green)">${aprovados.length}</span></div>
+          <div style="background:rgba(224,85,85,0.1);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;margin:0 24px"><span style="font-size:13px;font-weight:600;color:var(--red)">Perdidos</span><span style="font-weight:800;color:var(--red)">${recusados.length}</span></div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">Top clientes fechados</div>
+        ${top3.length?top3.map(([nome,val],i)=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff">${i+1}</div><div style="flex:1;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nome}</div><div style="font-weight:700;color:var(--green)">${fmt(val)}</div></div>`).join(''):'<div style="font-size:13px;color:var(--muted);padding:12px 0">Nenhum aprovado ainda.</div>'}
+        ${aprovados.length?`<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">Ticket médio</span><span style="font-weight:700">${fmt(fatAprov/aprovados.length)}</span></div>`:''}
+      </div>
+    </div>`;
+}
+
+function renderListaOrcamentos() {
+  renderDashboard();
+  const tb = document.getElementById('lista-tbody');
+  if(!tb) return;
+  const orcs = window.getOrcamentosFiltrados ? window.getOrcamentosFiltrados() : [...(window._orcamentos||[])].reverse();
+  if(!orcs.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:30px">Nenhum orçamento encontrado.</td></tr>';return;}
+  tb.innerHTML = orcs.map(o=>`
+    <tr onclick="abrirModal('${o.id}')">
+      <td><span class="td-num">${o.numero||o.num||'-'}</span></td>
+      <td>${o.cliente}</td>
+      <td style="color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.desc||''}</td>
+      <td class="td-val">${fmt(o.custoTotal||0)}</td>
+      <td class="td-val td-amber">${fmt(o.venda||0)}</td>
+      <td class="td-val ${(o.lucro||0)>=0?'td-green':'td-red'}">${fmt(o.lucro||0)}</td>
+      <td class="td-val">${o.margemPct||0}%</td>
+      <td style="color:var(--muted)">${fmtData(o.criadoEm)}</td>
+      <td><span class="badge ${badgeClass(o.status)}">${o.status}</span></td>
+    </tr>
+  `).join('');
+  const todos = window._orcamentos||[];
+  const doc2 = document.getElementById('badges-status');
+  if(doc2) {
+    const apr=todos.filter(o=>o.status==='Aprovado').length;
+    const agu=todos.filter(o=>o.status==='Aguardando').length;
+    doc2.innerHTML=`<span class="badge badge-green">${apr} aprovados</span><span class="badge badge-amber">${agu} aguardando</span>`;
+  }
+}
+window.renderListaOrcamentos = renderListaOrcamentos;
 
 async function init() {
   await carregarCategorias();
