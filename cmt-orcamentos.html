@@ -570,7 +570,7 @@ body {
     <div id="badges-status" style="display:flex;gap:8px"></div>
     <input class="search-field" placeholder="Buscar cliente ou serviço..." id="search-input" oninput="filtrarOrcamentos()">
     <!-- Filtro status -->
-    <select id="filtro-status" class="field" style="width:140px;padding:7px 12px;font-size:13px" onchange="renderListaOrcamentos()">
+    <select id="filtro-status" class="field" style="width:140px;padding:7px 12px;font-size:13px" onchange="window.renderListaOrcamentos()">
       <option value="">Todos status</option>
       <option value="Aprovado">Aprovado</option>
       <option value="Aguardando">Aguardando</option>
@@ -578,10 +578,10 @@ body {
     </select>
     <!-- Filtro data -->
     <div style="display:flex;gap:4px;align-items:center">
-      <input type="date" id="filtro-data-ini" class="field" style="width:140px;padding:7px 10px;font-size:12px" onchange="renderListaOrcamentos()" title="Data inicial">
+      <input type="date" id="filtro-data-ini" class="field" style="width:140px;padding:7px 10px;font-size:12px" onchange="window.renderListaOrcamentos()" title="Data inicial">
       <span style="font-size:12px;color:var(--muted)">até</span>
-      <input type="date" id="filtro-data-fim" class="field" style="width:140px;padding:7px 10px;font-size:12px" onchange="renderListaOrcamentos()" title="Data final">
-      <button onclick="document.getElementById('filtro-data-ini').value='';document.getElementById('filtro-data-fim').value='';renderListaOrcamentos()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px" title="Limpar datas">×</button>
+      <input type="date" id="filtro-data-fim" class="field" style="width:140px;padding:7px 10px;font-size:12px" onchange="window.renderListaOrcamentos()" title="Data final">
+      <button onclick="document.getElementById('filtro-data-ini').value='';document.getElementById('filtro-data-fim').value='';window.renderListaOrcamentos()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px" title="Limpar datas">×</button>
     </div>
     <button class="btn-ghost" style="font-size:12px;padding:6px 14px;white-space:nowrap" onclick="window.gerarPDFOrcamentos()">📄 PDF</button>
   </div>
@@ -2216,6 +2216,7 @@ window.filtrarOrcamentos = function() {
   renderListaOrcamentos();
 };
 
+window.renderListaOrcamentos = renderListaOrcamentos;
 window.getOrcamentosFiltrados = function() {
   const q       = (document.getElementById('search-input')?.value||'').toLowerCase();
   const status  = document.getElementById('filtro-status')?.value||'';
