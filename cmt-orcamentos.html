@@ -581,6 +581,7 @@ body {
       <input type="date" id="filtro-data-ini" class="field" style="width:140px;padding:7px 10px;font-size:12px" onchange="renderListaOrcamentos()" title="Data inicial">
       <span style="font-size:12px;color:var(--muted)">até</span>
       <input type="date" id="filtro-data-fim" class="field" style="width:140px;padding:7px 10px;font-size:12px" onchange="renderListaOrcamentos()" title="Data final">
+      <button onclick="document.getElementById('filtro-data-ini').value='';document.getElementById('filtro-data-fim').value='';renderListaOrcamentos()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px" title="Limpar datas">×</button>
     </div>
     <button class="btn-ghost" style="font-size:12px;padding:6px 14px;white-space:nowrap" onclick="window.gerarPDFOrcamentos()">📄 PDF</button>
   </div>
@@ -2223,8 +2224,10 @@ window.getOrcamentosFiltrados = function() {
   return (window._orcamentos||[]).filter(o=>{
     if(q && !o.cliente.toLowerCase().includes(q) && !(o.desc||'').toLowerCase().includes(q)) return false;
     if(status && o.status !== status) return false;
-    if(dataIni && o.criadoEm < dataIni) return false;
-    if(dataFim && o.criadoEm.substring(0,10) > dataFim) return false;
+    // Pega só os primeiros 10 chars da data (YYYY-MM-DD)
+    const dataOrc = (o.criadoEm||'').substring(0,10);
+    if(dataIni && dataOrc < dataIni) return false;
+    if(dataFim && dataOrc > dataFim) return false;
     return true;
   });
 };
