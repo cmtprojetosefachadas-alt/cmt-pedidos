@@ -1388,7 +1388,7 @@ function renderListaOrcamentos() {
   const orcs = window.getOrcamentosFiltrados ? window.getOrcamentosFiltrados() : [...(window._orcamentos||[])].reverse();
   if(!orcs.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:30px">Nenhum orçamento encontrado.</td></tr>';return;}
   tb.innerHTML = orcs.map(o=>{
-    const podeRemover = window._currentUser?.perms?.remover_orc || window._currentUser?.perms?.gerenciar_users;
+    const podeRemover = _usuarioLogado?.perfil==='admin' || _usuarioLogado?.permissoes?.remover_orc;
     return `
     <tr onclick="abrirModal('${o.id}')">
       <td><span class="td-num">${o.numero||o.num||'-'}</span></td>
