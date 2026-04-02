@@ -1387,7 +1387,9 @@ function renderListaOrcamentos() {
   if(!tb) return;
   const orcs = window.getOrcamentosFiltrados ? window.getOrcamentosFiltrados() : [...(window._orcamentos||[])].reverse();
   if(!orcs.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:30px">Nenhum orçamento encontrado.</td></tr>';return;}
-  tb.innerHTML = orcs.map(o=>`
+  tb.innerHTML = orcs.map(o=>{
+    const podeRemover = window._currentUser?.perms?.remover_orc || window._currentUser?.perms?.gerenciar_users;
+    return `
     <tr onclick="abrirModal('${o.id}')">
       <td><span class="td-num">${o.numero||o.num||'-'}</span></td>
       <td>${o.cliente}</td>
@@ -1398,8 +1400,11 @@ function renderListaOrcamentos() {
       <td class="td-val">${o.margemPct||0}%</td>
       <td style="color:var(--muted)">${fmtData(o.criadoEm)}</td>
       <td><span class="badge ${badgeClass(o.status)}">${o.status}</span></td>
-    </tr>
-  `).join('');
+      <td onclick="event.stopPropagation()">
+        ${podeRemover?`<button onclick="excluirOrcamento('${o.id}')" style="padding:4px 10px;border-radius:6px;border:1px solid #fca5a5;background:#fff5f5;color:#dc2626;font-size:11px;font-weight:700;cursor:pointer;">🗑️</button>`:''}
+      </td>
+    </tr>`;
+  }).join('');
   const todos = window._orcamentos||[];
   const doc2 = document.getElementById('badges-status');
   if(doc2) {
@@ -2317,6 +2322,19 @@ window.gerarPDFRelatorio = function() {
 };
 
 // ── MODAL ──
+window.excluirOrcamento = async function(id) {
+  const o = window._orcamentos.find(x=>x.id===id);
+  if(!o) return;
+  if(!confirm(`Excluir o orçamento de "${o.cliente}"?\n\nEsta ação não pode ser desfeita.`)) return;
+  try {
+    await deleteDoc(doc(db,'cmt_orcamentos',id));
+    window._orcamentos = window._orcamentos.filter(x=>x.id!==id);
+    renderListaOrcamentos();
+    renderDashboard();
+    renderRelatorio();
+  } catch(e){ alert('Erro ao excluir: '+e.message); }
+};
+
 window.abrirModal = function(id) {
   const o = window._orcamentos.find(x=>x.id===id);
   if(!o) return;
