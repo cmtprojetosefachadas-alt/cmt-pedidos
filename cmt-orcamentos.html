@@ -913,6 +913,7 @@ body {
     </select>
     <button onclick="window.limparFiltrosDespesas()" style="background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;font-size:12px;padding:7px 12px">✕ Limpar</button>
     <span id="desp-total-label" style="margin-left:auto;font-size:13px;font-weight:700;color:var(--text)"></span>
+    <button class="btn-ghost" style="font-size:12px;padding:6px 14px;white-space:nowrap" onclick="window.gerarPDFDespesas()">📄 Relatório PDF</button>
   </div>
 
   <!-- Tabela -->
@@ -3492,19 +3493,25 @@ window.lancarDespesaManual = async function() {
 
   try { await addDoc(collection(db,'cmt_despesas'), desp); } catch(e){ console.error(e); }
 
-  // Limpa
-  document.getElementById('desp-m-cliente').value='';
+  // Mantém o nome do cliente — só limpa os campos do lançamento
   document.getElementById('desp-m-desc').value='';
   document.getElementById('desp-m-valor').value='';
   document.getElementById('desp-m-venda').value='';
   document.getElementById('desp-m-obs').value='';
 
-  showToast('Lançamento manual salvo! ✅');
+  showToast('Lançamento salvo! ✅');
   await carregarDespesas();
   await carregarSaldos();
+
+  // Atualiza tudo — barra de saldo, filtros, tabela, comparativo
+  window.atualizarSaldoClienteBox();
   renderDespesasKPIs();
   renderDespesas();
   renderComparativo();
+
+  // Mantém o filtro no cliente atual
+  const selCli = document.getElementById('desp-filtro-cliente');
+  if(selCli && cliente) { selCli.value = cliente; }
 };
 
 window.lancarDespesa = lancarDespesa;
@@ -3518,11 +3525,26 @@ window.gerarPDFDespesas = function() {
   const total  = lista.reduce((a,d)=>a+d.valor,0);
   const hoje   = new Date().toLocaleDateString('pt-BR');
 
-  const filtroMesEl = document.getElementById('desp-filtro-mes');
-  const filtroOrcEl = document.getElementById('desp-filtro-orc');
+  const filtroMesEl  = document.getElementById('desp-filtro-mes');
+  const filtroOrcEl  = document.getElementById('desp-filtro-orc');
+  const filtroCliEl  = document.getElementById('desp-filtro-cliente');
   const filtroMesTxt = filtroMesEl?.options[filtroMesEl.selectedIndex]?.text||'';
   const filtroOrcTxt = filtroOrcEl?.options[filtroOrcEl.selectedIndex]?.text||'';
-  const filtroDesc = [filtroMesTxt!=='Todos os meses'?filtroMesTxt:'', filtroOrcTxt!=='Todos os orçamentos'?filtroOrcTxt:''].filter(Boolean).join(' · ') || 'Todos os períodos';
+  const filtroCliente= filtroCliEl?.value||'';
+  const filtroDesc   = [
+    filtroCliente?`Cliente: ${filtroCliente}`:'',
+    filtroMesTxt!=='Todos os meses'?filtroMesTxt:'',
+    filtroOrcTxt!=='Todos os orçamentos'?filtroOrcTxt:''
+  ].filter(Boolean).join(' · ') || 'Todos os períodos';
+
+  // Saldo do cliente filtrado (se houver)
+  const orcadoManual = filtroCliente ? (_saldosClientes[filtroCliente]?.valor||0) : 0;
+  const orcsCliente  = filtroCliente ? (window._orcamentos||[]).filter(o=>o.cliente===filtroCliente&&o.status==='Aprovado') : [];
+  const orcadoOrc    = orcsCliente.reduce((a,o)=>a+(o.custoTotal||0),0);
+  const orcado       = orcadoOrc > 0 ? orcadoOrc : orcadoManual;
+  const saldo        = orcado - total;
+  const pctUsado     = orcado>0?Math.min(Math.round(total/orcado*100),100):0;
+  const corSaldo     = total>orcado?'#cc2222':pctUsado>80?'#e8520a':'#0a8a4a';
 
   // KPI dados
   const porCliente = {};
@@ -3605,15 +3627,30 @@ window.gerarPDFDespesas = function() {
   <div class="header">
     <div>
       <div class="logo">CMT <span>Projetos e Fachadas</span></div>
-      <div class="title">Relatório de Despesas por Orçamento</div>
-      <div class="sub">Gerado em ${hoje} · Período: ${filtroDesc}</div>
+      <div class="title">${filtroCliente?`Despesas — ${filtroCliente}`:'Relatório de Despesas por Orçamento'}</div>
+      <div class="sub">Gerado em ${hoje} · ${filtroDesc}</div>
     </div>
     <div class="header-right">
-      <div class="lbl">Total lançado</div>
+      <div class="lbl">Total gasto</div>
       <div class="val">${fmt(total)}</div>
       <div class="lbl">${lista.length} lançamentos</div>
     </div>
   </div>
+
+  ${filtroCliente && orcado>0?`
+  <!-- Saldo do cliente -->
+  <div style="background:#f8f7f4;border-radius:8px;padding:14px 18px;margin-bottom:16px;border-left:4px solid ${corSaldo}">
+    <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;margin-bottom:8px">📊 Saldo de ${filtroCliente}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:8px">
+      <div><div style="font-size:10px;color:#888">Orçamento</div><div style="font-size:16px;font-weight:800;color:#0a8a4a">${fmt(orcado)}</div></div>
+      <div><div style="font-size:10px;color:#888">Gasto</div><div style="font-size:16px;font-weight:800;color:#e8520a">${fmt(total)}</div></div>
+      <div><div style="font-size:10px;color:#888">Saldo</div><div style="font-size:16px;font-weight:800;color:${corSaldo}">${saldo>=0?'+':''}${fmt(saldo)}</div></div>
+      <div><div style="font-size:10px;color:#888">Utilização</div><div style="font-size:16px;font-weight:800;color:${corSaldo}">${pctUsado}%</div></div>
+    </div>
+    <div style="height:8px;background:#e8e4de;border-radius:4px;overflow:hidden">
+      <div style="height:100%;border-radius:4px;background:${corSaldo};width:${pctUsado}%"></div>
+    </div>
+  </div>`:''}
 
   <!-- KPIs -->
   <div class="kpis">
