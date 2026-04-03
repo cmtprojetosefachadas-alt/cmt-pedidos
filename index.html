@@ -1103,7 +1103,7 @@ function renderOrcamentos(){
               <div class="orc-valor">${fmtMoney(o.valor||0)}</div>
               <span class="badge ${badgeClass(o.status)}">${badgeLabel(o.status)}</span>
             </div>
-            <button data-type="del-orc" data-id="${o.id}" data-num="${o.num||'—'}" data-nome="${o.nome||''}" title="Excluir orçamento" onclick="event.stopPropagation();" style="margin-left:10px;flex-shrink:0;background:none;border:1px solid var(--border2);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:14px;transition:all 0.15s;" onmouseover="this.style.background='var(--red-bg)';this.style.color='var(--red)';this.style.borderColor='var(--red)';" onmouseout="this.style.background='none';this.style.color='var(--muted)';this.style.borderColor='var(--border2)';">✕</button>
+            <button onclick="event.stopPropagation();window.excluirOrc('${o.id}','${(o.num||'—').replace(/'/g,"\\'")}','${(o.nome||'').replace(/'/g,"\\'")}');" title="Excluir orçamento" style="margin-left:10px;flex-shrink:0;background:none;border:1px solid var(--border2);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:14px;transition:all 0.15s;" onmouseover="this.style.background='var(--red-bg)';this.style.color='var(--red)';this.style.borderColor='var(--red)';" onmouseout="this.style.background='none';this.style.color='var(--muted)';this.style.borderColor='var(--border2)';">✕</button>
           </div>`;
         }).join('')}
         <div style="padding:10px 20px;background:var(--surface2);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
@@ -1210,7 +1210,7 @@ function filtrarOrcamentos(){
               <div class="orc-valor">${fmtMoney(o.valor||0)}</div>
               <span class="badge ${badgeClass(o.status)}">${badgeLabel(o.status)}</span>
             </div>
-            <button data-type="del-orc" data-id="${o.id}" data-num="${o.num||'—'}" data-nome="${o.nome||''}" title="Excluir orçamento" onclick="event.stopPropagation();" style="margin-left:10px;flex-shrink:0;background:none;border:1px solid var(--border2);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:14px;transition:all 0.15s;" onmouseover="this.style.background='var(--red-bg)';this.style.color='var(--red)';this.style.borderColor='var(--red)';" onmouseout="this.style.background='none';this.style.color='var(--muted)';this.style.borderColor='var(--border2)';">✕</button>
+            <button onclick="event.stopPropagation();window.excluirOrc('${o.id}','${(o.num||'—').replace(/'/g,"\\'")}','${(o.nome||'').replace(/'/g,"\\'")}');" title="Excluir orçamento" style="margin-left:10px;flex-shrink:0;background:none;border:1px solid var(--border2);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:14px;transition:all 0.15s;" onmouseover="this.style.background='var(--red-bg)';this.style.color='var(--red)';this.style.borderColor='var(--red)';" onmouseout="this.style.background='none';this.style.color='var(--muted)';this.style.borderColor='var(--border2)';">✕</button>
           </div>`;
         }).join('')}
         <div style="padding:10px 20px;background:var(--surface2);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
@@ -1225,6 +1225,20 @@ function filtrarOrcamentos(){
   }).join('');
 }
 window.filtrarOrcamentos=filtrarOrcamentos;
+
+window.excluirOrc=async function(id,num,nome){
+  if(!confirm(`⚠️ Excluir o orçamento ${num} de "${nome}"?\n\nEsta ação não pode ser desfeita.`))return;
+  try{
+    await deleteDoc(doc(db,'orcamentos',id));
+    orcamentos=orcamentos.filter(o=>o.id!==id);
+    renderOrcamentos();
+    const filtroAtivo=(document.getElementById('orc-filtro')?.value||'').trim()||(document.getElementById('orc-filtro-status')?.value||'');
+    if(filtroAtivo) filtrarOrcamentos();
+    showToast('🗑️ Orçamento excluído com sucesso.');
+  }catch(err){
+    alert('Erro ao excluir: '+err.message);
+  }
+};
 
 function gerarRelatorioOrcamentos(){
   const fmtM=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
