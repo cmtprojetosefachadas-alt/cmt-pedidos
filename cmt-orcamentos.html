@@ -835,10 +835,35 @@ body {
       <div style="background:rgba(232,82,10,0.06);border:1px solid rgba(232,82,10,0.15);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--accent);font-weight:500">
         ✏️ Use para clientes e obras anteriores ao sistema — os dados ficam salvos nos relatórios.
       </div>
+      <!-- Saldo do cliente manual -->
+      <div id="desp-saldo-cliente-box" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;font-weight:700">Saldo do cliente: <span id="desp-saldo-nome" style="color:var(--text)"></span></div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <div><span style="font-size:11px;color:var(--muted)">Orçado:</span> <span id="desp-saldo-orcado" style="font-weight:700;color:var(--green)">R$ 0,00</span></div>
+              <div><span style="font-size:11px;color:var(--muted)">Gasto:</span> <span id="desp-saldo-gasto" style="font-weight:700;color:var(--accent)">R$ 0,00</span></div>
+              <div><span style="font-size:11px;color:var(--muted)">Saldo:</span> <span id="desp-saldo-restante" style="font-weight:800">R$ 0,00</span></div>
+            </div>
+            <div style="height:5px;background:var(--bg4);border-radius:3px;margin-top:8px;width:280px;overflow:hidden">
+              <div id="desp-saldo-barra" style="height:100%;border-radius:3px;background:var(--green);width:0%;transition:width .4s"></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:12px;color:var(--muted);font-weight:600">Definir orçamento:</label>
+            <input id="desp-saldo-input" type="number" min="0" step="0.01" placeholder="R$ 0,00"
+              class="field" style="width:130px;padding:7px 10px;font-size:13px"
+              onchange="window.salvarSaldoCliente(this.value)">
+            <button onclick="window.salvarSaldoCliente(document.getElementById('desp-saldo-input').value)"
+              style="padding:7px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">Salvar</button>
+          </div>
+        </div>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px">
         <div>
           <label class="field-label">Cliente / Obra</label>
-          <input class="field" id="desp-m-cliente" placeholder="Ex: Allp FIT">
+          <input class="field" id="desp-m-cliente" placeholder="Ex: Allp FIT"
+            oninput="window.atualizarSaldoClienteBox()">
         </div>
         <div>
           <label class="field-label">Descrição do gasto</label>
@@ -870,6 +895,8 @@ body {
       </div>
     </div>
   </div>
+
+  <div id="desp-form-anchor"></div>
 
   <!-- Filtros -->
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
@@ -1718,6 +1745,7 @@ async function init() {
   await carregarClientes();
   await carregarOrcamentos();
   await carregarDespesas();
+  await carregarSaldos();
   renderCatalogo();
   renderListaOrcamentos();
   renderRelatorio();
@@ -3043,6 +3071,7 @@ async function lancarDespesa() {
 
   showToast('Despesa lançada! ✅');
   await carregarDespesas();
+  await carregarSaldos();
   renderDespesasKPIs();
   renderDespesas();
   renderComparativo();
@@ -3068,6 +3097,75 @@ window.filtrarPorCliente = function(cliente) {
   window.renderDespesas();
   window.renderDespesasKPIs();
   window.renderComparativo();
+  if(cliente) {
+    const temOrc = (window._orcamentos||[]).some(o=>o.cliente===cliente && o.status==='Aprovado');
+    if(!temOrc) {
+      window.toggleTipoDesp('manual');
+      const inp = document.getElementById('desp-m-cliente');
+      if(inp) { inp.value = cliente; window.atualizarSaldoClienteBox(); }
+    } else {
+      window.toggleTipoDesp('sistema');
+    }
+    setTimeout(()=>{
+      const anchor = document.getElementById('desp-form-anchor');
+      if(anchor) anchor.scrollIntoView({behavior:'smooth', block:'end'});
+    }, 150);
+  }
+};
+
+// ── SALDO CLIENTES MANUAIS ──
+let _saldosClientes = {};
+
+async function carregarSaldos() {
+  try {
+    const snap = await getDocs(collection(db,'cmt_saldos'));
+    _saldosClientes = {};
+    snap.docs.forEach(d=>{ _saldosClientes[d.data().cliente] = {id:d.id, valor:d.data().valor||0}; });
+  } catch(e){ _saldosClientes = {}; }
+}
+
+window.salvarSaldoCliente = async function(val) {
+  const cliente = document.getElementById('desp-m-cliente')?.value.trim();
+  if(!cliente) { showToast('Digite o nome do cliente primeiro!'); return; }
+  const valor = parseFloat(val)||0;
+  try {
+    const existing = _saldosClientes[cliente];
+    if(existing?.id) {
+      await updateDoc(doc(db,'cmt_saldos',existing.id),{cliente,valor});
+      _saldosClientes[cliente].valor = valor;
+    } else {
+      const ref = await addDoc(collection(db,'cmt_saldos'),{cliente,valor});
+      _saldosClientes[cliente] = {id:ref.id, valor};
+    }
+    showToast(`Orçamento de ${fmt(valor)} salvo para ${cliente}! ✅`);
+    window.atualizarSaldoClienteBox();
+    renderComparativo();
+  } catch(e){ showToast('Erro ao salvar: '+e.message); }
+};
+
+window.atualizarSaldoClienteBox = function() {
+  const cliente = document.getElementById('desp-m-cliente')?.value.trim();
+  const box = document.getElementById('desp-saldo-cliente-box');
+  if(!box) return;
+  if(!cliente) { box.style.display='none'; return; }
+  box.style.display = 'block';
+  const saldoObj = _saldosClientes[cliente];
+  const orcado   = saldoObj?.valor || 0;
+  const gasto    = (_despesas||[]).filter(d=>(d.orcCliente||'Manual')===cliente).reduce((a,d)=>a+d.valor,0);
+  const restante = orcado - gasto;
+  const pct = orcado>0?Math.min(Math.round(gasto/orcado*100),100):0;
+  const cor = gasto>orcado?'var(--red)':pct>80?'var(--accent)':'var(--green)';
+  const set = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('desp-saldo-nome', cliente);
+  set('desp-saldo-orcado', fmt(orcado));
+  set('desp-saldo-gasto', fmt(gasto));
+  set('desp-saldo-restante', (restante>=0?'+':'')+fmt(restante));
+  const restEl = document.getElementById('desp-saldo-restante');
+  if(restEl) restEl.style.color = restante>=0?'var(--green)':'var(--red)';
+  const barra = document.getElementById('desp-saldo-barra');
+  if(barra){ barra.style.width=pct+'%'; barra.style.background=cor; }
+  const inp = document.getElementById('desp-saldo-input');
+  if(inp && orcado>0 && !inp.value) inp.value = orcado.toFixed(2);
 };
 
 window.limparFiltrosDespesas = function() {
@@ -3257,25 +3355,82 @@ function renderComparativo() {
   let rows = '';
   clientes.forEach(cliente=>{
     if(filtroCliente && cliente!==filtroCliente) return;
-    const gastoTotal = gastosPorCliente[cliente]?.total||0;
-    const n = gastosPorCliente[cliente]?.n||0;
+    const gastoTotal  = gastosPorCliente[cliente]?.total||0;
+    const n           = gastosPorCliente[cliente]?.n||0;
     const orcsCliente = orcsAprov.filter(o=>o.cliente===cliente);
-    const orcado = orcsCliente.reduce((a,o)=>a+(o.custoTotal||0),0);
-    const diff = orcado - gastoTotal;
-    const pct = orcado>0?Math.min(Math.round(gastoTotal/orcado*100),999):0;
-    const cor = gastoTotal>orcado?'var(--red)':pct>80?'var(--accent)':'var(--green)';
-    rows += `<tr style="cursor:pointer" onclick="window.filtrarPorCliente('${cliente.replace(/'/g,"\'")}')">
-      <td><div style="font-weight:600">${cliente}</div><div style="font-size:11px;color:var(--muted)">${orcsCliente.length} orç. aprovado${orcsCliente.length!==1?'s':''} · ${n} lançamentos</div></td>
-      <td style="font-weight:700">${orcado>0?fmt(orcado):'—'}</td>
+    const orcadoOrc   = orcsCliente.reduce((a,o)=>a+(o.custoTotal||0),0);
+    const saldoManual = _saldosClientes[cliente]?.valor||0;
+    const orcado      = orcadoOrc > 0 ? orcadoOrc : saldoManual;
+    const isManual    = orcsCliente.length === 0;
+    const diff        = orcado - gastoTotal;
+    const pct         = orcado>0?Math.min(Math.round(gastoTotal/orcado*100),999):0;
+    const cor         = gastoTotal>orcado?'var(--red)':pct>80?'var(--accent)':'var(--green)';
+    const cliId       = 'se_'+cliente.replace(/[^a-zA-Z0-9]/g,'_');
+    const nomeEsc     = cliente.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    rows += `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-weight:600;color:var(--accent);cursor:pointer" data-cli="${nomeEsc}" onclick="window.abrirClienteDespesa(this.dataset.cli)">${cliente} →</span>
+          <span style="font-size:11px;color:var(--muted)">${orcsCliente.length} orç. · ${n} lançamentos</span>
+          ${isManual?`<button data-id="${cliId}" onclick="window.toggleSaldoEdit(this.dataset.id)" style="font-size:11px;padding:3px 8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);cursor:pointer">✏️ ${orcado>0?'Editar':'Definir orçamento'}</button>`:''}
+        </div>
+        ${isManual?`<div id="${cliId}" style="display:none;margin-top:8px">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
+            <span style="font-size:12px;color:var(--muted);white-space:nowrap">Orçamento total:</span>
+            <input type="number" min="0" step="0.01" placeholder="0,00" value="${orcado>0?orcado.toFixed(2):''}"
+              id="inp_${cliId}" style="width:120px;background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:13px;color:var(--text);outline:none"
+              onkeydown="if(event.key==='Enter'){window.salvarSaldoInline(this.dataset.cli,this.dataset.id)}" data-cli="${nomeEsc}" data-id="${cliId}">
+            <button data-cli="${nomeEsc}" data-id="${cliId}" onclick="window.salvarSaldoInline(this.dataset.cli,this.dataset.id)"
+              style="padding:5px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">Salvar</button>
+            <button data-id="${cliId}" onclick="window.toggleSaldoEdit(this.dataset.id)"
+              style="padding:5px 8px;background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;color:var(--muted)">✕</button>
+          </div>
+        </div>`:''}
+      </td>
+      <td style="font-weight:700">${orcado>0?fmt(orcado):`<span style="color:var(--muted);font-size:12px">${isManual?'Clique ✏️':'—'}</span>`}</td>
       <td style="font-weight:700;color:var(--accent)">${fmt(gastoTotal)}</td>
       <td style="font-weight:700;color:${diff>=0?'var(--green)':'var(--red)'}">${orcado>0?(diff>=0?'+':'')+fmt(diff):'—'}</td>
       <td style="min-width:160px">${orcado>0
-        ?'<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden"><div style="height:100%;border-radius:4px;background:'+cor+';width:'+Math.min(pct,100)+'%"></div></div><span style="font-size:12px;font-weight:700;color:'+cor+';width:42px">'+pct+'%</span></div>'
-        :'<span style="font-size:12px;color:var(--muted)">Sem orç. aprovado</span>'}</td>
+        ?`<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden"><div style="height:100%;border-radius:4px;background:${cor};width:${Math.min(pct,100)}%"></div></div><span style="font-size:12px;font-weight:700;color:${cor};width:42px">${pct}%</span></div>`
+        :`<span style="font-size:12px;color:var(--muted)">Sem orçamento</span>`}
+      </td>
     </tr>`;
   });
-  el.innerHTML = rows ? `<div class="card"><div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700">Comparativo por cliente — Orçado vs Gasto real</span>${filtroCliente?'<span style="font-size:12px;color:var(--accent);font-weight:600">📌 '+filtroCliente+'</span>':''}</div><div class="orc-table-wrap"><table><thead><tr><th>Cliente</th><th>Custo orçado</th><th>Gasto real</th><th>Saldo</th><th>Utilização</th></tr></thead><tbody>${rows}</tbody></table></div></div>` : '';
+  el.innerHTML = rows ? `<div class="card"><div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700">Comparativo por cliente — Orçado vs Gasto real</span>${filtroCliente?`<button onclick="window.filtrarPorCliente('')" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600">✕ ${filtroCliente}</button>`:''}</div><div class="orc-table-wrap"><table><thead><tr><th>Cliente</th><th>Orçamento</th><th>Gasto real</th><th>Saldo</th><th>Utilização</th></tr></thead><tbody>${rows}</tbody></table></div></div>` : '';
 }
+
+window.toggleSaldoEdit = function(id) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  const vis = el.style.display==='none'||el.style.display==='';
+  el.style.display = vis?'block':'none';
+  if(vis) setTimeout(()=>document.getElementById('inp_'+id)?.focus(),50);
+};
+
+window.salvarSaldoInline = async function(cliente, cliId) {
+  const inp = document.getElementById('inp_'+cliId);
+  if(!inp) return;
+  const valor = parseFloat(inp.value)||0;
+  try {
+    const existing = _saldosClientes[cliente];
+    if(existing?.id) {
+      await updateDoc(doc(db,'cmt_saldos',existing.id),{cliente,valor});
+      _saldosClientes[cliente].valor = valor;
+    } else {
+      const ref = await addDoc(collection(db,'cmt_saldos'),{cliente,valor});
+      _saldosClientes[cliente] = {id:ref.id, valor};
+    }
+    showToast(`Orçamento de ${fmt(valor)} salvo para ${cliente}! ✅`);
+    renderComparativo();
+    renderDespesasKPIs();
+    const cliInput = document.getElementById('desp-m-cliente');
+    if(cliInput?.value.trim()===cliente) window.atualizarSaldoClienteBox();
+  } catch(e){ showToast('Erro: '+e.message); }
+};
+
+window.abrirClienteDespesa = function(cliente) {
+  window.filtrarPorCliente(cliente);
+};
 
 
 window.excluirDespesa = async function(id) {
@@ -3346,6 +3501,7 @@ window.lancarDespesaManual = async function() {
 
   showToast('Lançamento manual salvo! ✅');
   await carregarDespesas();
+  await carregarSaldos();
   renderDespesasKPIs();
   renderDespesas();
   renderComparativo();
