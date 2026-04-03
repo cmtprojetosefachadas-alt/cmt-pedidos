@@ -1655,15 +1655,18 @@ document.addEventListener('click',async e=>{
   }
 
   // Excluir orçamento duplicado
-  if(e.target.dataset.type==='del-orc'){
-    const num=e.target.dataset.num||'—';
-    const nome=e.target.dataset.nome||'—';
-    const id=e.target.dataset.id;
+  const delOrcBtn=e.target.closest('[data-type="del-orc"]');
+  if(delOrcBtn){
+    e.stopPropagation();
+    const num=delOrcBtn.dataset.num||'—';
+    const nome=delOrcBtn.dataset.nome||'—';
+    const id=delOrcBtn.dataset.id;
     if(!confirm(`⚠️ Excluir o orçamento ${num} de "${nome}"?\n\nEsta ação não pode ser desfeita.`))return;
     await deleteDoc(doc(db,'orcamentos',id));
     orcamentos=orcamentos.filter(o=>o.id!==id);
     renderOrcamentos();
-    filtrarOrcamentos();
+    const filtroAtivo=(document.getElementById('orc-filtro')?.value||'').trim()||(document.getElementById('orc-filtro-status')?.value||'');
+    if(filtroAtivo) filtrarOrcamentos();
     showToast('🗑️ Orçamento excluído.');
     return;
   }
