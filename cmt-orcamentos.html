@@ -3103,14 +3103,26 @@ window.filtrarPorCliente = function(cliente) {
     if(!temOrc) {
       window.toggleTipoDesp('manual');
       const inp = document.getElementById('desp-m-cliente');
-      if(inp) { inp.value = cliente; window.atualizarSaldoClienteBox(); }
+      if(inp) inp.value = cliente;
     } else {
       window.toggleTipoDesp('sistema');
+      // Seleciona orçamento do cliente no select
+      const selOrc = document.getElementById('desp-orc');
+      if(selOrc) {
+        const orcsCliente = (window._orcamentos||[]).filter(o=>o.cliente===cliente&&o.status==='Aprovado');
+        if(orcsCliente.length===1) selOrc.value = orcsCliente[0].id;
+      }
     }
+    // Sempre mostra card de saldo
+    window.atualizarSaldoClienteBox();
     setTimeout(()=>{
       const anchor = document.getElementById('desp-form-anchor');
       if(anchor) anchor.scrollIntoView({behavior:'smooth', block:'end'});
     }, 150);
+  } else {
+    // Sem filtro — esconde card de saldo
+    const box = document.getElementById('desp-saldo-cliente-box');
+    if(box) box.style.display='none';
   }
 };
 
@@ -3145,17 +3157,28 @@ window.salvarSaldoCliente = async function(val) {
 };
 
 window.atualizarSaldoClienteBox = function() {
-  const cliente = document.getElementById('desp-m-cliente')?.value.trim();
+  // Pega cliente — do input manual OU do filtro ativo
+  const inputCli  = document.getElementById('desp-m-cliente')?.value.trim();
+  const filtroCli = document.getElementById('desp-filtro-cliente')?.value||'';
+  const cliente   = inputCli || filtroCli;
   const box = document.getElementById('desp-saldo-cliente-box');
   if(!box) return;
   if(!cliente) { box.style.display='none'; return; }
-  box.style.display = 'block';
-  const saldoObj = _saldosClientes[cliente];
-  const orcado   = saldoObj?.valor || 0;
+
+  // Calcula orcado — prioriza orçamento do sistema, depois saldo manual
+  const orcsAprov   = (window._orcamentos||[]).filter(o=>o.status==='Aprovado');
+  const orcsCliente = orcsAprov.filter(o=>o.cliente===cliente);
+  const orcadoOrc   = orcsCliente.reduce((a,o)=>a+(o.custoTotal||0),0);
+  const saldoObj    = _saldosClientes[cliente];
+  const orcadoMan   = saldoObj?.valor||0;
+  const orcado      = orcadoOrc>0 ? orcadoOrc : orcadoMan;
+
   const gasto    = (_despesas||[]).filter(d=>(d.orcCliente||'Manual')===cliente).reduce((a,d)=>a+d.valor,0);
   const restante = orcado - gasto;
-  const pct = orcado>0?Math.min(Math.round(gasto/orcado*100),100):0;
-  const cor = gasto>orcado?'var(--red)':pct>80?'var(--accent)':'var(--green)';
+  const pct      = orcado>0?Math.min(Math.round(gasto/orcado*100),100):0;
+  const cor      = gasto>orcado?'var(--red)':pct>80?'var(--accent)':'var(--green)';
+
+  box.style.display = 'block';
   const set = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
   set('desp-saldo-nome', cliente);
   set('desp-saldo-orcado', fmt(orcado));
@@ -3166,7 +3189,16 @@ window.atualizarSaldoClienteBox = function() {
   const barra = document.getElementById('desp-saldo-barra');
   if(barra){ barra.style.width=pct+'%'; barra.style.background=cor; }
   const inp = document.getElementById('desp-saldo-input');
-  if(inp && orcado>0 && !inp.value) inp.value = orcado.toFixed(2);
+  // Só preenche o input se for cliente manual (sem orçamento do sistema)
+  if(inp) {
+    inp.style.display = orcsCliente.length>0 ? 'none' : '';
+    const salvarBtn = inp.nextElementSibling;
+    if(salvarBtn) salvarBtn.style.display = orcsCliente.length>0 ? 'none' : '';
+    if(orcadoMan>0 && !inp.value) inp.value = orcadoMan.toFixed(2);
+  }
+  // Esconde label "Definir orçamento" para clientes do sistema
+  const labelOrc = document.querySelector('label[for="desp-saldo-input"]');
+  if(labelOrc) labelOrc.style.display = orcsCliente.length>0?'none':'';
 };
 
 window.limparFiltrosDespesas = function() {
@@ -3294,10 +3326,10 @@ function renderDespesasKPIs() {
 }
 
 function renderDespesas() {
-  const _filtroCat = document.getElementById('desp-filtro-cat')?.value||'';
-  const _filtroMes = document.getElementById('desp-filtro-mes')?.value||'';
-  const _filtroCliente = document.getElementById('desp-filtro-cliente')?.value||'';
-  const _filtroOrc = document.getElementById('desp-filtro-orc')?.value||'';
+  const _filtroCat    = document.getElementById('desp-filtro-cat')?.value||'';
+  const _filtroMes    = document.getElementById('desp-filtro-mes')?.value||'';
+  const _filtroCliente= document.getElementById('desp-filtro-cliente')?.value||'';
+  const _filtroOrc    = document.getElementById('desp-filtro-orc')?.value||'';
   popularFiltroMes();
   popularFiltroClientes();
   if(_filtroCat){const s=document.getElementById('desp-filtro-cat');if(s)s.value=_filtroCat;}
@@ -3306,22 +3338,55 @@ function renderDespesas() {
   const lista = getDespesasFiltradas();
   const totalFiltrado = lista.reduce((a,d)=>a+d.valor,0);
   const label = document.getElementById('desp-total-label');
-  if(label) label.textContent = lista.length ? `Total: ${fmt(totalFiltrado)} (${lista.length} lançamentos)` : '';
+  if(label) label.textContent = lista.length?`Total: ${fmt(totalFiltrado)} (${lista.length} lançamentos)`:'';
   const catColors = {'Material':'var(--accent)','Mão de obra':'var(--green)','Frete':'var(--blue)','Alimentação':'#e67e22','Pró-labore':'#c0392b','Fixação':'#7b5fc9','Impressão':'#2980b9','Logística':'#16a085','Serviço':'#8e44ad','Outros':'var(--muted)'};
   const tbody = document.getElementById('desp-tbody');
   if(!tbody) return;
   if(!lista.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px">Nenhuma despesa encontrada.</td></tr>';return;}
+
   if(!_filtroCliente && !_filtroOrc) {
+    // Vista agrupada por cliente com seta recolhível
     const porCli = {};
     lista.forEach(d=>{ const k=d.orcCliente||'Manual'; if(!porCli[k])porCli[k]={items:[],total:0}; porCli[k].items.push(d); porCli[k].total+=d.valor; });
-    tbody.innerHTML = Object.entries(porCli).sort((a,b)=>b[1].total-a[1].total).map(([cli,{items,total}])=>
-      `<tr style="background:var(--bg3);cursor:pointer" onclick="window.filtrarPorCliente('${cli.replace(/'/g,"\'")}')">
-        <td colspan="4" style="padding:10px 14px;font-weight:700;font-size:13px">👤 ${cli} <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:8px">${items.length} lançamentos</span></td>
+    const orcsAprov = (window._orcamentos||[]).filter(o=>o.status==='Aprovado');
+    // Estado de expansão — persiste enquanto não recarregar
+    if(!window._cliExpandido) window._cliExpandido = {};
+
+    tbody.innerHTML = Object.entries(porCli).sort((a,b)=>b[1].total-a[1].total).map(([cli,{items,total}])=>{
+      const cliKey = 'cli_'+cli.replace(/[^a-zA-Z0-9]/g,'_');
+      const expanded = window._cliExpandido[cliKey] !== false; // aberto por padrão
+      const orcsCliente = orcsAprov.filter(o=>o.cliente===cli);
+      const orcadoOrc   = orcsCliente.reduce((a,o)=>a+(o.custoTotal||0),0);
+      const saldoMan    = _saldosClientes[cli]?.valor||0;
+      const orcado      = orcadoOrc>0?orcadoOrc:saldoMan;
+      const pct         = orcado>0?Math.min(Math.round(total/orcado*100),100):0;
+      const cor         = total>orcado?'var(--red)':pct>80?'var(--accent)':'var(--green)';
+      const nomeEsc     = cli.replace(/"/g,'&quot;');
+
+      const headerRow = `<tr style="background:var(--bg3)">
+        <td colspan="4" style="padding:10px 14px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <button data-key="${cliKey}" onclick="window.toggleCliExpandido(this.dataset.key)"
+              style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);padding:0;line-height:1;transition:transform .2s;transform:${expanded?'rotate(90deg)':'rotate(0deg)'}"
+              id="arrow_${cliKey}">▶</button>
+            <span style="font-weight:700;font-size:13px;color:var(--accent);cursor:pointer" data-cli="${nomeEsc}" onclick="window.filtrarPorCliente(this.dataset.cli)">${cli}</span>
+            <span style="font-size:11px;color:var(--muted);font-weight:400">${items.length} lançamento${items.length!==1?'s':''}</span>
+            ${orcado>0?`<span style="display:flex;align-items:center;gap:6px;margin-left:auto">
+              <div style="width:80px;height:5px;background:var(--bg4);border-radius:3px;overflow:hidden">
+                <div style="height:100%;background:${cor};border-radius:3px;width:${pct}%"></div>
+              </div>
+              <span style="font-size:11px;font-weight:700;color:${cor}">${pct}%</span>
+            </span>`:''}
+          </div>
+        </td>
         <td style="font-weight:800;color:var(--accent);padding:10px 14px">${fmt(total)}</td>
-        <td colspan="3" style="padding:10px 14px;font-size:11px;color:var(--accent);font-weight:600">Ver detalhes →</td>
-      </tr>`
-      + items.map(d=>`<tr style="opacity:0.85">
-        <td style="padding-left:28px;font-size:12px;color:var(--muted)">${fmtData(d.data||d.criadoEm)}</td>
+        <td colspan="3" style="padding:10px 14px">
+          ${orcado>0?`<span style="font-size:11px;color:${cor};font-weight:700">Saldo: ${total>orcado?'':'+'}${fmt(orcado-total)}</span>`:'<span style="font-size:11px;color:var(--accent);cursor:pointer" data-cli="'+nomeEsc+'" onclick="window.filtrarPorCliente(this.dataset.cli)">Ver detalhes →</span>'}
+        </td>
+      </tr>`;
+
+      const detalheRows = expanded ? items.map(d=>`<tr id="row_${cliKey}" style="opacity:0.88">
+        <td style="padding-left:32px;font-size:12px;color:var(--muted)">${fmtData(d.data||d.criadoEm)}</td>
         <td style="font-size:12px;color:var(--muted)">#${d.orcNum}</td>
         <td style="font-weight:500">${d.desc}</td>
         <td><span style="background:${catColors[d.cat]||'#888'};color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px">${d.cat}</span></td>
@@ -3329,9 +3394,25 @@ function renderDespesas() {
         <td style="font-size:12px;color:var(--muted)">${d.obs||'—'}</td>
         <td style="font-size:12px;color:var(--muted)">${d.lancadoPor||'—'}</td>
         <td><button onclick="window.excluirDespesa('${d.id}')" style="background:none;border:none;color:var(--muted2);cursor:pointer;font-size:16px;padding:2px 6px">🗑</button></td>
-      </tr>`).join('')
-    ).join('');
+      </tr>`).join('') : '';
+
+      return headerRow + detalheRows;
+    }).join('');
   } else {
+    // Vista detalhada — com card de saldo no topo
+    const cli = _filtroCliente;
+    if(cli) {
+      const orcsAprov   = (window._orcamentos||[]).filter(o=>o.status==='Aprovado');
+      const orcsCliente = orcsAprov.filter(o=>o.cliente===cli);
+      const orcadoOrc   = orcsCliente.reduce((a,o)=>a+(o.custoTotal||0),0);
+      const saldoMan    = _saldosClientes[cli]?.valor||0;
+      const orcado      = orcadoOrc>0?orcadoOrc:saldoMan;
+      const pct         = orcado>0?Math.min(Math.round(totalFiltrado/orcado*100),100):0;
+      const cor         = totalFiltrado>orcado?'#cc2222':pct>80?'#e8520a':'#0a8a4a';
+      const saldo       = orcado - totalFiltrado;
+      // Atualiza card de saldo no topo do formulário
+      window.atualizarSaldoClienteBox();
+    }
     tbody.innerHTML = lista.map(d=>`<tr>
       <td style="white-space:nowrap;font-size:12px">${fmtData(d.data||d.criadoEm)}</td>
       <td><span style="font-weight:600">#${d.orcNum}</span> <span style="font-size:12px;color:var(--muted)">${d.orcCliente}</span></td>
@@ -3344,6 +3425,13 @@ function renderDespesas() {
     </tr>`).join('');
   }
 }
+
+window.toggleCliExpandido = function(key) {
+  if(!window._cliExpandido) window._cliExpandido = {};
+  window._cliExpandido[key] = !( window._cliExpandido[key] !== false );
+  renderDespesas();
+};
+
 
 function renderComparativo() {
   const el = document.getElementById('desp-comparativo');
