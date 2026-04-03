@@ -1117,7 +1117,10 @@ function renderOrcamentos(){
     </div>`;
   }).join('');
 
-  // Stats
+  atualizarStatsOrc();
+}
+
+function atualizarStatsOrc(){
   const ab=orcamentos.filter(o=>o.status!=='approved'&&o.status!=='rejected');
   document.getElementById('orc-count').textContent=orcamentos.length;
   document.getElementById('orc-pendentes').textContent=orcamentos.filter(o=>!o.status||o.status==='pending').length;
@@ -1234,6 +1237,7 @@ window.excluirOrc=async function(id,num,nome){
     renderOrcamentos();
     const filtroAtivo=(document.getElementById('orc-filtro')?.value||'').trim()||(document.getElementById('orc-filtro-status')?.value||'');
     if(filtroAtivo) filtrarOrcamentos();
+    atualizarStatsOrc();
     showToast('🗑️ Orçamento excluído com sucesso.');
   }catch(err){
     alert('Erro ao excluir: '+err.message);
