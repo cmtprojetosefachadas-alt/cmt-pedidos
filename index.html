@@ -298,6 +298,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 
   <div id="panel-orcamentos" class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <span style="font-size:18px;font-weight:600;">Orçamentos</span>
+      <button class="btn btn-primary" onclick="gerarRelatorioOrcamentos()" style="padding:8px 16px;font-size:13px;">🖨️ Relatório PDF</button>
+    </div>
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;">
       <div class="stat" style="cursor:default;">
         <div style="font-size:13px;margin-bottom:4px;">📋 Total</div>
@@ -319,6 +323,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div style="font-size:13px;margin-bottom:4px;">💰 Em aberto</div>
         <div class="stat-val dark" id="orc-valor" style="font-size:18px;">R$ 0</div>
       </div>
+    </div>
+    <!-- FILTRO DE ORÇAMENTOS -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);">
+      <span style="font-size:16px;">🔍</span>
+      <input type="text" id="orc-filtro" placeholder="Buscar por cliente, CPF/CNPJ ou nº do orçamento..." oninput="filtrarOrcamentos()" style="flex:1;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:9px 14px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.15s;" onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'"/>
+      <select id="orc-filtro-status" onchange="filtrarOrcamentos()" style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:9px 12px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;cursor:pointer;">
+        <option value="">Todos os status</option>
+        <option value="pending">⏳ Aguardando</option>
+        <option value="sent">📤 Enviado</option>
+        <option value="approved">✅ Aprovado</option>
+        <option value="rejected">❌ Recusado</option>
+      </select>
+      <button onclick="document.getElementById('orc-filtro').value='';document.getElementById('orc-filtro-status').value='';filtrarOrcamentos();" style="background:none;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;" title="Limpar filtro">✕ Limpar</button>
+      <span id="orc-filtro-count" style="font-size:12px;color:var(--muted);white-space:nowrap;display:none;"></span>
     </div>
     <div id="orc-list"><div class="loading">Carregando...</div></div>
   </div>
@@ -1074,7 +1092,7 @@ function renderOrcamentos(){
       <div style="display:${aberto?'block':'none'};">
         ${g.orcs.map(o=>{
           const borderColor=o.status==='approved'?'#0F6E56':o.status==='rejected'?'#A32D2D':o.status==='sent'?'#0C447C':'#633806';
-          return`<div class="orc-card" style="border-radius:0;margin-bottom:0;border-top:none;border-left:3px solid ${borderColor};" data-id="${o.id}" data-type="orc">
+          return`<div class="orc-card" style="border-radius:0;margin-bottom:0;border-top:none;border-left:3px solid ${borderColor};position:relative;" data-id="${o.id}" data-type="orc">
             <div class="avatar" style="flex-shrink:0;">${ini(o.nome||'?')}</div>
             <div class="orc-info">
               <div class="orc-name">${o.nome}</div>
@@ -1085,6 +1103,7 @@ function renderOrcamentos(){
               <div class="orc-valor">${fmtMoney(o.valor||0)}</div>
               <span class="badge ${badgeClass(o.status)}">${badgeLabel(o.status)}</span>
             </div>
+            <button data-type="del-orc" data-id="${o.id}" data-num="${o.num||'—'}" data-nome="${o.nome||''}" title="Excluir orçamento" onclick="event.stopPropagation();" style="margin-left:10px;flex-shrink:0;background:none;border:1px solid var(--border2);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:14px;transition:all 0.15s;" onmouseover="this.style.background='var(--red-bg)';this.style.color='var(--red)';this.style.borderColor='var(--red)';" onmouseout="this.style.background='none';this.style.color='var(--muted)';this.style.borderColor='var(--border2)';">✕</button>
           </div>`;
         }).join('')}
         <div style="padding:10px 20px;background:var(--surface2);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
@@ -1108,6 +1127,217 @@ function renderOrcamentos(){
   if(aprovEl)aprovEl.textContent=orcamentos.filter(o=>o.status==='approved').length;
   document.getElementById('orc-valor').textContent=fmtMoney(ab.reduce((s,o)=>s+(o.valor||0),0));
 }
+
+function filtrarOrcamentos(){
+  const termo=(document.getElementById('orc-filtro')?.value||'').toLowerCase().trim();
+  const statusFiltro=document.getElementById('orc-filtro-status')?.value||'';
+  if(!termo && !statusFiltro){
+    renderOrcamentos();
+    const countEl=document.getElementById('orc-filtro-count');
+    if(countEl)countEl.style.display='none';
+    return;
+  }
+  let filtrados=orcamentos.filter(o=>{
+    const matchStatus=!statusFiltro||(statusFiltro==='pending'?((!o.status||o.status==='pending')):o.status===statusFiltro);
+    if(!matchStatus)return false;
+    if(!termo)return true;
+    const nome=(o.nome||'').toLowerCase();
+    const num=(o.num||'').toLowerCase();
+    const docCliente=(o.clienteDoc||o.doc||'').toLowerCase().replace(/[.\-\/]/g,'');
+    const termoLimpo=termo.replace(/[.\-\/]/g,'');
+    return nome.includes(termo)||num.includes(termo)||docCliente.includes(termoLimpo);
+  });
+  const countEl=document.getElementById('orc-filtro-count');
+  if(countEl){countEl.textContent=`${filtrados.length} resultado${filtrados.length!==1?'s':''}`;countEl.style.display='inline';}
+  const list=document.getElementById('orc-list');
+  if(!filtrados.length){
+    list.innerHTML=`<div style="text-align:center;color:var(--muted);padding:48px;font-size:14px;">🔍 Nenhum orçamento encontrado para "<strong>${termo||statusFiltro}</strong>".</div>`;
+    return;
+  }
+  const grupos={};
+  filtrados.forEach(o=>{
+    const mes=o.data?extraiMes(o.data):'Sem data';
+    if(!grupos[mes])grupos[mes]={orcs:[],total:0,aprov:0,rej:0,sent:0,pend:0,valAprov:0,valRej:0};
+    grupos[mes].orcs.push(o);
+    if(o.status==='approved'){grupos[mes].aprov++;grupos[mes].valAprov+=(o.valor||0);grupos[mes].total+=(o.valor||0);}
+    else if(o.status==='rejected'){grupos[mes].rej++;grupos[mes].valRej+=(o.valor||0);}
+    else if(o.status==='sent'){grupos[mes].sent++;grupos[mes].total+=(o.valor||0);}
+    else{grupos[mes].pend++;grupos[mes].total+=(o.valor||0);}
+  });
+  const mesesOrdenados=Object.keys(grupos).sort((a,b)=>{
+    if(a==='Sem data')return 1;if(b==='Sem data')return -1;
+    const[ma,ya]=a.split('/');const[mb,yb]=b.split('/');
+    return(yb+mb)-(ya+ma);
+  });
+  const MESES=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  list.innerHTML=mesesOrdenados.map(mes=>{
+    const g=grupos[mes];
+    const[mm,yy]=mes!=='Sem data'?mes.split('/'):['-','-'];
+    const nomeMes=MESES[parseInt(mm)]||mes;
+    const taxaConv=g.orcs.length>0?Math.round((g.aprov/g.orcs.length)*100):0;
+    const pills=[
+      g.pend>0?`<span style="background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">⏳${g.pend}</span>`:'',
+      g.sent>0?`<span style="background:#E6F1FB;color:#0C447C;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">📤${g.sent}</span>`:'',
+      g.aprov>0?`<span style="background:#E1F5EE;color:#085041;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">✅${g.aprov}</span>`:'',
+      g.rej>0?`<span style="background:#FCEBEB;color:#A32D2D;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">❌${g.rej}</span>`:'',
+    ].filter(Boolean).join('');
+    return`<div style="margin-bottom:12px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow);">
+      <div style="background:var(--navy);padding:14px 20px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:12px;" onclick="const b=this.nextElementSibling;const arr=this.querySelector('.orc-arr2');b.style.display=b.style.display==='none'?'block':'none';arr.textContent=b.style.display==='none'?'▶':'▼';">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span style="color:#fff;font-size:15px;font-weight:600;">📅 ${nomeMes} ${yy!=='-'?yy:''}</span>
+          <span style="color:rgba(255,255,255,0.7);font-size:12px;">${g.orcs.length} orçamento${g.orcs.length>1?'s':''}</span>
+          <span style="display:flex;gap:4px;flex-wrap:wrap;">${pills}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;flex-shrink:0;">
+          <div style="text-align:right;">
+            <div style="color:#fff;font-size:14px;font-weight:600;">${fmtMoney(g.total)}</div>
+            <div style="color:rgba(255,255,255,0.55);font-size:11px;">Conv. ${taxaConv}%</div>
+          </div>
+          <span class="orc-arr2" style="color:#fff;font-size:12px;">▼</span>
+        </div>
+      </div>
+      <div>
+        ${g.orcs.map(o=>{
+          const borderColor=o.status==='approved'?'#0F6E56':o.status==='rejected'?'#A32D2D':o.status==='sent'?'#0C447C':'#633806';
+          return`<div class="orc-card" style="border-radius:0;margin-bottom:0;border-top:none;border-left:3px solid ${borderColor};position:relative;" data-id="${o.id}" data-type="orc">
+            <div class="avatar" style="flex-shrink:0;">${ini(o.nome||'?')}</div>
+            <div class="orc-info">
+              <div class="orc-name">${o.nome}</div>
+              <div class="orc-sub" style="font-size:12px;">${o.num||'—'} · ${o.desc||''}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">📅 ${o.data||''} ${o.validade?'· válido até '+o.validade:''}</div>
+            </div>
+            <div class="orc-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+              <div class="orc-valor">${fmtMoney(o.valor||0)}</div>
+              <span class="badge ${badgeClass(o.status)}">${badgeLabel(o.status)}</span>
+            </div>
+            <button data-type="del-orc" data-id="${o.id}" data-num="${o.num||'—'}" data-nome="${o.nome||''}" title="Excluir orçamento" onclick="event.stopPropagation();" style="margin-left:10px;flex-shrink:0;background:none;border:1px solid var(--border2);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:14px;transition:all 0.15s;" onmouseover="this.style.background='var(--red-bg)';this.style.color='var(--red)';this.style.borderColor='var(--red)';" onmouseout="this.style.background='none';this.style.color='var(--muted)';this.style.borderColor='var(--border2)';">✕</button>
+          </div>`;
+        }).join('')}
+        <div style="padding:10px 20px;background:var(--surface2);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;gap:14px;font-size:12px;color:var(--muted);">
+            ${g.aprov>0?`<span style="color:var(--green);font-weight:600;">✅ Aprovados: ${fmtMoney(g.valAprov)}</span>`:''}
+            ${g.rej>0?`<span style="color:var(--red);">❌ Recusados: ${fmtMoney(g.valRej)}</span>`:''}
+          </div>
+          <span style="font-size:13px;font-weight:600;color:var(--text);">Total ativo: ${fmtMoney(g.total)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+window.filtrarOrcamentos=filtrarOrcamentos;
+
+function gerarRelatorioOrcamentos(){
+  const fmtM=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  const MESES=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  // Pega filtro ativo ou usa todos
+  const termo=(document.getElementById('orc-filtro')?.value||'').toLowerCase().trim();
+  const statusFiltro=document.getElementById('orc-filtro-status')?.value||'';
+  let lista=orcamentos;
+  if(termo||statusFiltro){
+    lista=orcamentos.filter(o=>{
+      const matchStatus=!statusFiltro||(statusFiltro==='pending'?((!o.status||o.status==='pending')):o.status===statusFiltro);
+      if(!matchStatus)return false;
+      if(!termo)return true;
+      const nome=(o.nome||'').toLowerCase();
+      const num=(o.num||'').toLowerCase();
+      const docCliente=(o.clienteDoc||o.doc||'').toLowerCase().replace(/[.\-\/]/g,'');
+      const termoLimpo=termo.replace(/[.\-\/]/g,'');
+      return nome.includes(termo)||num.includes(termo)||docCliente.includes(termoLimpo);
+    });
+  }
+
+  // Agrupa por mês
+  const grupos={};
+  lista.forEach(o=>{
+    const mes=o.data?extraiMes(o.data):'Sem data';
+    if(!grupos[mes])grupos[mes]={orcs:[],total:0,aprov:0,rej:0,pend:0,sent:0,valAprov:0,valRej:0};
+    grupos[mes].orcs.push(o);
+    if(o.status==='approved'){grupos[mes].aprov++;grupos[mes].valAprov+=(o.valor||0);grupos[mes].total+=(o.valor||0);}
+    else if(o.status==='rejected'){grupos[mes].rej++;grupos[mes].valRej+=(o.valor||0);}
+    else if(o.status==='sent'){grupos[mes].sent++;grupos[mes].total+=(o.valor||0);}
+    else{grupos[mes].pend++;grupos[mes].total+=(o.valor||0);}
+  });
+  const mesesOrdenados=Object.keys(grupos).sort((a,b)=>{
+    if(a==='Sem data')return 1;if(b==='Sem data')return -1;
+    const[ma,ya]=a.split('/');const[mb,yb]=b.split('/');
+    return(yb+mb)-(ya+ma);
+  });
+
+  const totalGeral=lista.reduce((s,o)=>s+(o.status!=='rejected'?(o.valor||0):0),0);
+  const totalAprov=lista.filter(o=>o.status==='approved').reduce((s,o)=>s+(o.valor||0),0);
+  const totalRej=lista.filter(o=>o.status==='rejected').reduce((s,o)=>s+(o.valor||0),0);
+  const taxaGeral=lista.length?Math.round((lista.filter(o=>o.status==='approved').length/lista.length)*100):0;
+
+  const statusLabel=s=>({approved:'✅ Aprovado',rejected:'❌ Recusado',sent:'📤 Enviado'}[s]||'⏳ Aguardando');
+  const statusColor=s=>({approved:'#0F6E56',rejected:'#A32D2D',sent:'#0C447C'}[s]||'#633806');
+
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
+  <title>Relatório de Orçamentos — CMT</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#222;padding:28px 32px;font-size:13px;}
+    h1{font-size:20px;color:#1C2340;margin-bottom:2px;}
+    .sub{font-size:12px;color:#888;margin-bottom:20px;}
+    .resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+    .card{border:1px solid #e0e0e0;border-radius:8px;padding:12px 14px;}
+    .card-label{font-size:11px;color:#777;text-transform:uppercase;margin-bottom:4px;}
+    .card-val{font-size:20px;font-weight:700;}
+    .mes-titulo{background:#1C2340;color:#fff;padding:10px 14px;border-radius:6px 6px 0 0;font-size:14px;font-weight:700;margin-top:20px;display:flex;justify-content:space-between;}
+    table{width:100%;border-collapse:collapse;font-size:12px;border:1px solid #e0e0e0;border-top:none;}
+    th{background:#f0ede8;color:#444;padding:7px 12px;text-align:left;font-size:11px;font-weight:700;border-bottom:1px solid #ddd;}
+    td{padding:7px 12px;border-bottom:1px solid #f0f0f0;}
+    tr:last-child td{border-bottom:none;}
+    .rodape-mes{background:#f7f5f2;padding:8px 14px;display:flex;justify-content:space-between;font-size:12px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px;}
+    .footer{margin-top:28px;border-top:1px solid #eee;padding-top:12px;font-size:11px;color:#aaa;display:flex;justify-content:space-between;}
+    @media print{body{padding:16px;}}
+  </style></head><body>
+  <h1>CMT Projetos e Fachadas — Relatório de Orçamentos</h1>
+  <div class="sub">Gerado em ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}${termo||statusFiltro?' · Filtro ativo: '+(termo||statusFiltro):''}</div>
+
+  <div class="resumo">
+    <div class="card"><div class="card-label">Total orçamentos</div><div class="card-val" style="color:#1C2340;">${lista.length}</div></div>
+    <div class="card"><div class="card-label">Aprovados</div><div class="card-val" style="color:#0F6E56;">${fmtM(totalAprov)}</div></div>
+    <div class="card"><div class="card-label">Recusados</div><div class="card-val" style="color:#A32D2D;">${fmtM(totalRej)}</div></div>
+    <div class="card"><div class="card-label">Taxa de conversão</div><div class="card-val" style="color:#E05C1A;">${taxaGeral}%</div></div>
+  </div>
+
+  ${mesesOrdenados.map(mes=>{
+    const g=grupos[mes];
+    const[mm,yy]=mes!=='Sem data'?mes.split('/'):['-','-'];
+    const nomeMes=(MESES[parseInt(mm)]||mes)+' '+(yy!=='-'?yy:'');
+    const conv=g.orcs.length?Math.round((g.aprov/g.orcs.length)*100):0;
+    return`<div class="mes-titulo"><span>📅 ${nomeMes} &nbsp;·&nbsp; ${g.orcs.length} orçamento${g.orcs.length>1?'s':''}</span><span>Conv. ${conv}% &nbsp;·&nbsp; Ativo: ${fmtM(g.total)}</span></div>
+    <table>
+      <thead><tr><th>Nº</th><th>Cliente</th><th>Descrição</th><th>Data</th><th>Validade</th><th style="text-align:right;">Valor</th><th>Status</th></tr></thead>
+      <tbody>
+        ${g.orcs.map(o=>`<tr>
+          <td style="font-family:monospace;white-space:nowrap;">${o.num||'—'}</td>
+          <td style="font-weight:600;">${o.nome||'—'}</td>
+          <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${o.desc||'—'}</td>
+          <td style="white-space:nowrap;">${o.data||'—'}</td>
+          <td style="white-space:nowrap;">${o.validade||'—'}</td>
+          <td style="text-align:right;font-weight:700;color:${statusColor(o.status)};">${fmtM(o.valor||0)}</td>
+          <td style="color:${statusColor(o.status)};font-weight:600;white-space:nowrap;">${statusLabel(o.status)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="rodape-mes">
+      <span>${g.aprov>0?'✅ Aprovados: '+fmtM(g.valAprov):''} ${g.rej>0?' &nbsp;·&nbsp; ❌ Recusados: '+fmtM(g.valRej):''}</span>
+      <strong>Total ativo: ${fmtM(g.total)}</strong>
+    </div>`;
+  }).join('')}
+
+  <div class="footer">
+    <span>CMT Projetos e Fachadas · CNPJ: 53.466.209/0001-01 · Comercial: (16) 99649-2182 · Franca, SP</span>
+    <span>Total geral ativo: ${fmtM(totalGeral)}</span>
+  </div>
+  </body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(),500);
+}
+window.gerarRelatorioOrcamentos=gerarRelatorioOrcamentos;
 
 function atualizarSelectClientes(){
   const sel=document.getElementById('f-cliente');
@@ -1422,6 +1652,20 @@ document.addEventListener('click',async e=>{
   // Del item orçamento
   if(e.target.dataset.type==='delitem'){
     editingItens.splice(parseInt(e.target.dataset.idx),1);renderItens();return;
+  }
+
+  // Excluir orçamento duplicado
+  if(e.target.dataset.type==='del-orc'){
+    const num=e.target.dataset.num||'—';
+    const nome=e.target.dataset.nome||'—';
+    const id=e.target.dataset.id;
+    if(!confirm(`⚠️ Excluir o orçamento ${num} de "${nome}"?\n\nEsta ação não pode ser desfeita.`))return;
+    await deleteDoc(doc(db,'orcamentos',id));
+    orcamentos=orcamentos.filter(o=>o.id!==id);
+    renderOrcamentos();
+    filtrarOrcamentos();
+    showToast('🗑️ Orçamento excluído.');
+    return;
   }
   // Toggle recebido
   if(e.target.dataset.type==='toggle-recebido'){
