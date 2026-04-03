@@ -3141,16 +3141,17 @@ window.salvarSaldoCliente = async function(val) {
   const cliente = document.getElementById('desp-m-cliente')?.value.trim();
   if(!cliente) { showToast('Digite o nome do cliente primeiro!'); return; }
   const valor = parseFloat(val)||0;
+  if(!valor) { showToast('Digite um valor válido!'); return; }
+  // BLOQUEIO: se já tem orçamento definido, não permite alterar
+  const existing = _saldosClientes[cliente];
+  if(existing?.id && existing.valor > 0) {
+    showToast('⚠️ Orçamento já definido — não é permitido alterar!');
+    return;
+  }
   try {
-    const existing = _saldosClientes[cliente];
-    if(existing?.id) {
-      await updateDoc(doc(db,'cmt_saldos',existing.id),{cliente,valor});
-      _saldosClientes[cliente].valor = valor;
-    } else {
-      const ref = await addDoc(collection(db,'cmt_saldos'),{cliente,valor});
-      _saldosClientes[cliente] = {id:ref.id, valor};
-    }
-    showToast(`Orçamento de ${fmt(valor)} salvo para ${cliente}! ✅`);
+    const ref = await addDoc(collection(db,'cmt_saldos'),{cliente,valor});
+    _saldosClientes[cliente] = {id:ref.id, valor};
+    showToast(`Orçamento de ${fmt(valor)} definido! ✅`);
     window.atualizarSaldoClienteBox();
     renderComparativo();
   } catch(e){ showToast('Erro ao salvar: '+e.message); }
@@ -3461,12 +3462,12 @@ function renderComparativo() {
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="font-weight:600;color:var(--accent);cursor:pointer" data-cli="${nomeEsc}" onclick="window.abrirClienteDespesa(this.dataset.cli)">${cliente} →</span>
           <span style="font-size:11px;color:var(--muted)">${orcsCliente.length} orç. · ${n} lançamentos</span>
-          ${isManual?`<button data-id="${cliId}" onclick="window.toggleSaldoEdit(this.dataset.id)" style="font-size:11px;padding:3px 8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);cursor:pointer">✏️ ${orcado>0?'Editar':'Definir orçamento'}</button>`:''}
+          ${isManual && orcado===0?`<button data-id="${cliId}" onclick="window.toggleSaldoEdit(this.dataset.id)" style="font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(232,82,10,0.1);border:1px solid var(--accent);color:var(--accent);cursor:pointer;font-weight:600">+ Definir orçamento</button>`:''}
         </div>
-        ${isManual?`<div id="${cliId}" style="display:none;margin-top:8px">
+        ${isManual && orcado===0?`<div id="${cliId}" style="display:none;margin-top:8px">
           <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
-            <span style="font-size:12px;color:var(--muted);white-space:nowrap">Orçamento total:</span>
-            <input type="number" min="0" step="0.01" placeholder="0,00" value="${orcado>0?orcado.toFixed(2):''}"
+            <span style="font-size:12px;color:var(--muted);white-space:nowrap">Orçamento:</span>
+            <input type="number" min="0" step="0.01" placeholder="0,00"
               id="inp_${cliId}" style="width:120px;background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:13px;color:var(--text);outline:none"
               onkeydown="if(event.key==='Enter'){window.salvarSaldoInline(this.dataset.cli,this.dataset.id)}" data-cli="${nomeEsc}" data-id="${cliId}">
             <button data-cli="${nomeEsc}" data-id="${cliId}" onclick="window.salvarSaldoInline(this.dataset.cli,this.dataset.id)"
@@ -3476,7 +3477,7 @@ function renderComparativo() {
           </div>
         </div>`:''}
       </td>
-      <td style="font-weight:700">${orcado>0?fmt(orcado):`<span style="color:var(--muted);font-size:12px">${isManual?'Clique ✏️':'—'}</span>`}</td>
+      <td style="font-weight:700">${orcado>0?fmt(orcado):`<span style="font-size:11px;color:var(--muted)">${isManual?'—':'—'}</span>`}</td>
       <td style="font-weight:700;color:var(--accent)">${fmt(gastoTotal)}</td>
       <td style="font-weight:700;color:${diff>=0?'var(--green)':'var(--red)'}">${orcado>0?(diff>=0?'+':'')+fmt(diff):'—'}</td>
       <td style="min-width:160px">${orcado>0
@@ -3500,16 +3501,19 @@ window.salvarSaldoInline = async function(cliente, cliId) {
   const inp = document.getElementById('inp_'+cliId);
   if(!inp) return;
   const valor = parseFloat(inp.value)||0;
+  if(!valor) { showToast('Digite um valor válido!'); return; }
+  // Decode HTML entities
+  const div = document.createElement('div'); div.innerHTML = cliente; cliente = div.textContent;
+  // BLOQUEIO: se já tem orçamento definido, não permite alterar
+  const existing = _saldosClientes[cliente];
+  if(existing?.id && existing.valor > 0) {
+    showToast('⚠️ Orçamento já definido — não é permitido alterar!');
+    return;
+  }
   try {
-    const existing = _saldosClientes[cliente];
-    if(existing?.id) {
-      await updateDoc(doc(db,'cmt_saldos',existing.id),{cliente,valor});
-      _saldosClientes[cliente].valor = valor;
-    } else {
-      const ref = await addDoc(collection(db,'cmt_saldos'),{cliente,valor});
-      _saldosClientes[cliente] = {id:ref.id, valor};
-    }
-    showToast(`Orçamento de ${fmt(valor)} salvo para ${cliente}! ✅`);
+    const ref = await addDoc(collection(db,'cmt_saldos'),{cliente,valor});
+    _saldosClientes[cliente] = {id:ref.id, valor};
+    showToast(`Orçamento de ${fmt(valor)} definido para ${cliente}! ✅`);
     renderComparativo();
     renderDespesasKPIs();
     const cliInput = document.getElementById('desp-m-cliente');
