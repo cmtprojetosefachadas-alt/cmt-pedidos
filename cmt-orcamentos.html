@@ -2646,6 +2646,7 @@ window.abrirEdicaoOrcamento = function(id) {
   };
   sel.dispatchEvent(new Event('change'));
   renderEditItens();
+  atualizarTotaisEdit();
   document.getElementById('modal-editar-orc').classList.add('open');
 };
 
