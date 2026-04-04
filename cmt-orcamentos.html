@@ -1048,16 +1048,18 @@ body {
       <div>
         <label class="field-label">Margem de venda (%)</label>
         <div style="display:flex;align-items:center;gap:6px">
-          <input class="field" id="edit-margem" type="number" min="1" max="89" value="30" oninput="validarCamposEdit();atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px">
+          <input class="field" id="edit-margem" type="number" min="1" max="89" value="30" oninput="syncSliderFromInput('edit-margem','edit-margem-slider');validarCamposEdit();atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px;width:70px">
           <span id="edit-margem-preview" style="font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap">30%</span>
         </div>
+        <input type="range" id="edit-margem-slider" min="1" max="89" value="30" style="width:100%;margin-top:6px;accent-color:var(--accent);cursor:pointer" oninput="syncInputFromSlider('edit-margem','edit-margem-slider');validarCamposEdit();atualizarTotaisEdit()">
       </div>
       <div>
         <label class="field-label">Mão de obra (%)</label>
         <div style="display:flex;align-items:center;gap:6px">
-          <input class="field" id="edit-mo-pct" type="number" min="0" max="89" value="25" oninput="validarCamposEdit();atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px">
+          <input class="field" id="edit-mo-pct" type="number" min="0" max="89" value="25" oninput="syncSliderFromInput('edit-mo-pct','edit-mo-slider');validarCamposEdit();atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px;width:70px">
           <span id="edit-mo-preview" style="font-size:13px;font-weight:700;color:var(--purple);white-space:nowrap">25%</span>
         </div>
+        <input type="range" id="edit-mo-slider" min="0" max="89" value="25" style="width:100%;margin-top:6px;accent-color:var(--purple);cursor:pointer" oninput="syncInputFromSlider('edit-mo-pct','edit-mo-slider');validarCamposEdit();atualizarTotaisEdit()">
       </div>
       <div>
         <label class="field-label">Forma de pagamento</label>
@@ -2628,8 +2630,10 @@ window.abrirEdicaoOrcamento = function(id) {
   // Carrega margem e pagamento existentes
   document.getElementById('edit-margem').value = o.margemPct||30;
   document.getElementById('edit-margem-preview').textContent = (o.margemPct||30)+'%';
+  document.getElementById('edit-margem-slider').value = o.margemPct||30;
   document.getElementById('edit-mo-pct').value = o.moPct||25;
   document.getElementById('edit-mo-preview').textContent = (o.moPct||25)+'%';
+  document.getElementById('edit-mo-slider').value = o.moPct||25;
   const pag = document.getElementById('edit-pagamento');
   pag.value = o.pagamento||'dinheiro';
   document.getElementById('edit-taxa-cartao').value = o.taxaCartao||2.5;
@@ -2744,6 +2748,16 @@ function renderEditItens() {
   atualizarTotaisEdit();
 }
 
+window.syncSliderFromInput = function(inputId, sliderId) {
+  const inp = document.getElementById(inputId);
+  const sl  = document.getElementById(sliderId);
+  if(inp && sl) sl.value = inp.value;
+};
+window.syncInputFromSlider = function(inputId, sliderId) {
+  const inp = document.getElementById(inputId);
+  const sl  = document.getElementById(sliderId);
+  if(inp && sl) inp.value = sl.value;
+};
 window.validarCamposEdit = function() {
   const margem = parseFloat(document.getElementById('edit-margem')?.value)||0;
   const moPct  = parseFloat(document.getElementById('edit-mo-pct')?.value)||0;
