@@ -2778,9 +2778,9 @@ window.validarCamposEdit = function() {
   }
 };
 
-function atualizarTotaisEdit() {
-  const o = window._orcamentos.find(x=>x.id===window._modalOrcId);
-  if(!o) return;
+window.atualizarTotaisEdit = function() {
+  const o = (window._orcamentos||[]).find(x=>x.id===window._modalOrcId);
+  // não bloqueia se o não encontrado — calcula do zero com _editItens
   const margem   = parseFloat(document.getElementById('edit-margem')?.value)||30;
   const moPct    = parseFloat(document.getElementById('edit-mo-pct')?.value)||25;
   const pag      = document.getElementById('edit-pagamento')?.value||'dinheiro';
