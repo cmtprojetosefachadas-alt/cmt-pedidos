@@ -2818,6 +2818,27 @@ function atualizarTotaisEdit() {
     ${isCard?`<div class="mbar"><div class="mbar-label">Taxa ${pagLabel} (${taxaCard}%)</div><div class="mbar-val" style="color:var(--red)">${fmt(taxaVal)}</div></div>`:''}
     <div class="mbar" style="grid-column:span ${isCard?1:2}"><div class="mbar-label">Pagamento</div><div class="mbar-val" style="color:var(--blue)">${pagLabel}</div></div>
   `;
+
+  // Atualiza objeto em memória e linha da tabela em tempo real (sem salvar no Firestore)
+  o.venda      = venda;
+  o.lucro      = lucro;
+  o.custoTotal = custoT;
+  o.margemPct  = margem;
+  o.moPct      = moPct;
+  const rows = document.querySelectorAll('#lista-tbody tr');
+  rows.forEach(row => {
+    const oc = row.getAttribute('onclick')||'';
+    if(oc.includes(o.id)) {
+      const cells = row.querySelectorAll('td');
+      if(cells.length >= 7) {
+        cells[3].textContent = fmt(custoT);
+        cells[4].textContent = fmt(venda);
+        cells[5].textContent = fmt(lucro);
+        cells[5].className   = 'td-val ' + (lucro >= 0 ? 'td-green' : 'td-red');
+        cells[6].textContent = margem + '%';
+      }
+    }
+  });
 }
 
 window.editOrcAddItem = function() {
