@@ -1421,7 +1421,7 @@ function renderListaOrcamentos() {
       <td class="td-val td-amber">${fmt(o.venda||0)}</td>
       <td class="td-val ${(o.lucro||0)>=0?'td-green':'td-red'}">${fmt(o.lucro||0)}</td>
       <td class="td-val">${o.margemPct||0}%</td>
-      <td style="color:var(--muted)">${fmtData(o.criadoEm)}</td>
+      <td style="color:var(--muted)">${fmtData(o.dataAprovacao||o.criadoEm)}</td>
       <td><span class="badge ${badgeClass(o.status)}">${o.status}</span></td>
     </tr>
   `).join('');
@@ -2472,8 +2472,11 @@ window.atualizarStatus = async function(status) {
   const o = window._orcamentos.find(x=>x.id===id);
   if(!o) return;
   try {
-    await updateDoc(doc(db,'cmt_orcamentos',id),{status});
+    const updateData = {status};
+    if(status === 'Aprovado') updateData.dataAprovacao = new Date().toISOString();
+    await updateDoc(doc(db,'cmt_orcamentos',id), updateData);
     o.status = status;
+    if(status === 'Aprovado') o.dataAprovacao = updateData.dataAprovacao;
   } catch(e){}
   renderListaOrcamentos();
   renderRelatorio();
