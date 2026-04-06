@@ -610,6 +610,7 @@ body {
   <div class="orc-header">
     <h2>Relatório mensal</h2>
     <select class="search-field" id="sel-mes" onchange="window.renderRelatorio()" style="width:180px">
+      <option value="4">Abril 2026</option>
       <option value="3">Março 2026</option>
       <option value="2">Fevereiro 2026</option>
       <option value="1">Janeiro 2026</option>
@@ -1328,6 +1329,26 @@ async function carregarOrcamentos() {
     const snap = await getDocs(collection(db,'cmt_orcamentos'));
     window._orcamentos = snap.docs.map(d=>({id:d.id,...d.data()}));
     window._orcamentos.sort((a,b)=>new Date(b.criadoEm)-new Date(a.criadoEm));
+    // Popular select de meses dinamicamente baseado nos orçamentos existentes
+    (function() {
+      const nomes = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+      const mesesSet = new Set();
+      // Adiciona mês atual sempre
+      mesesSet.add(new Date().getMonth() + 1);
+      (window._orcamentos||[]).forEach(o => {
+        // Usa dataAprovacao se Aprovado, senão criadoEm
+        const dataRef = (o.status === 'Aprovado' && o.dataAprovacao) ? o.dataAprovacao : o.criadoEm;
+        if(dataRef) mesesSet.add(new Date(dataRef).getMonth() + 1);
+        if(o.mes) mesesSet.add(o.mes);
+      });
+      const sel = document.getElementById('sel-mes');
+      if(sel) {
+        const cur = parseInt(sel.value) || (new Date().getMonth() + 1);
+        const meses = [...mesesSet].sort((a,b) => b - a);
+        sel.innerHTML = meses.map(m => `<option value="${m}" ${m===cur?'selected':''}>${nomes[m]} 2026</option>`).join('');
+        if(!mesesSet.has(cur)) sel.value = meses[0];
+      }
+    })();
     // Corrige dataAprovacao para hora local correta (UTC-3 Brasília)
     // Se dataAprovacao existe mas cai em dia errado por causa do fuso, ajusta
     window._orcamentos.forEach(o => {
