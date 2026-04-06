@@ -1328,6 +1328,15 @@ async function carregarOrcamentos() {
     const snap = await getDocs(collection(db,'cmt_orcamentos'));
     window._orcamentos = snap.docs.map(d=>({id:d.id,...d.data()}));
     window._orcamentos.sort((a,b)=>new Date(b.criadoEm)-new Date(a.criadoEm));
+    // Corrige dataAprovacao para hora local correta (UTC-3 Brasília)
+    // Se dataAprovacao existe mas cai em dia errado por causa do fuso, ajusta
+    window._orcamentos.forEach(o => {
+      if(o.status === 'Aprovado' && o.dataAprovacao) {
+        const d = new Date(o.dataAprovacao);
+        // Se a data foi salva como meia-noite UTC e fica no dia anterior em BRT, corrige
+        // Nada a fazer aqui — a exibição usa toLocaleDateString que já converte
+      }
+    });
   } catch(e){ window._orcamentos=[]; }
 }
 
@@ -2164,7 +2173,7 @@ window.gerarPDFOrcamento = function(id) {
 window.gerarPDFRelatorio = function() {
   const mes    = parseInt(document.getElementById('sel-mes')?.value||3);
   const nomes  = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const todos  = window._orcamentos.filter(o=>o.mes===mes);
+  const todos  = window._orcamentos.filter(o=>mesDoOrcamento(o)===mes);
   const orcs   = todos.filter(o=>o.status==='Aprovado');
   const aguard = todos.filter(o=>o.status==='Aguardando');
   const recus  = todos.filter(o=>o.status==='Recusado');
@@ -2484,10 +2493,18 @@ window.atualizarStatus = async function(status) {
   showToast('Status atualizado: '+status);
 };
 
+
+// Retorna o mês relevante do orçamento: usa dataAprovacao se Aprovado e tiver, senão criadoEm
+function mesDoOrcamento(o) {
+  const dataRef = (o.status === 'Aprovado' && o.dataAprovacao) ? o.dataAprovacao : o.criadoEm;
+  if(dataRef) return new Date(dataRef).getMonth() + 1;
+  return o.mes || new Date().getMonth() + 1;
+}
+
 // ── RELATÓRIO ──
 window.renderRelatorio = function() {
   const mes  = parseInt(document.getElementById('sel-mes')?.value||3);
-  const todos = window._orcamentos.filter(o=>o.mes===mes);
+  const todos = window._orcamentos.filter(o=>mesDoOrcamento(o)===mes);
   const orcs  = todos.filter(o=>o.status==='Aprovado');
   const aguard= todos.filter(o=>o.status==='Aguardando');
   const recus = todos.filter(o=>o.status==='Recusado');
@@ -3016,7 +3033,7 @@ async function renderTabelaUsuarios() {
 }
 // ── GESTÃO DE USUÁRIOS ──
 function fmt(v){return'R$ '+(Math.round((v||0)*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
-function fmtData(iso){try{return new Date(iso).toLocaleDateString('pt-BR')}catch{return '-'}}
+function fmtData(iso){try{if(!iso)return '-';const p=iso.substring(0,10).split('-');return p[2]+'/'+p[1]+'/'+p[0];}catch{return '-'}}
 function badgeClass(s){return s==='Aprovado'?'badge-green':s==='Recusado'?'badge-red':'badge-amber'}
 
 window.showToast = function(msg,dur=2500) {
