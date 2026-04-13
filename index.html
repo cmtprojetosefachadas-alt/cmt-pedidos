@@ -324,9 +324,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="stat-val dark" id="orc-valor" style="font-size:18px;">R$ 0</div>
       </div>
     </div>
-    <!-- GRÁFICO COMPOSIÇÃO ORÇAMENTOS -->
     <div id="orc-chart-box" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:16px;box-shadow:var(--shadow);display:none;">
-      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;">📊 Composição dos Orçamentos — top serviços</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;">📊 Composição — top serviços</div>
       <div id="orc-chart-inner"></div>
     </div>
     <!-- FILTRO DE ORÇAMENTOS -->
@@ -1133,43 +1132,27 @@ function atualizarStatsOrc(){
   if(envEl)envEl.textContent=orcamentos.filter(o=>o.status==='sent').length;
   const aprovEl=document.getElementById('orc-aprovados');
   if(aprovEl)aprovEl.textContent=orcamentos.filter(o=>o.status==='approved').length;
-  document.getElementById('orc-valor').textContent=fmtMoney(ab.reduce((s,o)=>s+(o.valor||0),0));
+  document.getElementById('orc-valor').textContent=fmtMoney(ab.reduce(function(s,o){return s+(o.valor||0);},0));
   renderOrcChart();
 }
 
 function renderOrcChart(){
-  const box=document.getElementById('orc-chart-box');
-  const inner=document.getElementById('orc-chart-inner');
+  var box=document.getElementById('orc-chart-box'),inner=document.getElementById('orc-chart-inner');
   if(!box||!inner)return;
-  const contagem={};
-  orcamentos.filter(o=>o.status!=='rejected').forEach(o=>{
-    if(o.itens&&o.itens.length){
-      o.itens.forEach(it=>{
-        const k=(it.desc||'Sem descrição').trim().substring(0,55);
-        contagem[k]=(contagem[k]||0)+(parseFloat(it.valor)||0);
-      });
-    } else if(o.desc&&o.valor){
-      const k=(o.desc||'').trim().substring(0,55);
-      contagem[k]=(contagem[k]||0)+(parseFloat(o.valor)||0);
-    }
+  var cnt={};
+  orcamentos.filter(function(o){return o.status!=='rejected';}).forEach(function(o){
+    if(o.itens&&o.itens.length){o.itens.forEach(function(it){var k=(it.desc||'x').trim().substring(0,55);cnt[k]=(cnt[k]||0)+(parseFloat(it.valor)||0);});}
+    else if(o.desc&&o.valor){var k2=(o.desc||'').trim().substring(0,55);cnt[k2]=(cnt[k2]||0)+(parseFloat(o.valor)||0);}
   });
-  const entries=Object.entries(contagem).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  if(!entries.length){box.style.display='none';return;}
+  var ent=Object.entries(cnt).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  if(!ent.length){box.style.display='none';return;}
   box.style.display='block';
-  const total=entries.reduce((s,e)=>s+e[1],0);
-  const CORES=['#0F6E56','#E07B2A','#2563EB','#7C3AED','#DC2626','#0891B2','#65A30D','#D97706'];
-  inner.innerHTML=entries.map(([desc,val],i)=>{
-    const pct=total>0?Math.round((val/total)*100):0;
-    return`<div style="margin-bottom:10px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-        <span style="font-size:12px;color:var(--text);max-width:68%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${desc}">${desc}</span>
-        <span style="font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;">${fmtMoney(val)} · ${pct}%</span>
-      </div>
-      <div style="background:var(--surface2);border-radius:20px;height:9px;overflow:hidden;">
-        <div style="height:100%;width:${pct}%;background:${CORES[i%CORES.length]};border-radius:20px;"></div>
-      </div>
-    </div>`;
-  }).join('')+`<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;font-size:12px;color:var(--muted);">Total representado: <strong style="margin-left:6px;color:var(--text);">${fmtMoney(total)}</strong></div>`;
+  var tot=ent.reduce(function(s,e){return s+e[1];},0);
+  var CRS=['#0F6E56','#E07B2A','#2563EB','#7C3AED','#DC2626','#0891B2','#65A30D','#D97706'];
+  inner.innerHTML=ent.map(function(e,i){
+    var d=e[0],v=e[1],p=tot>0?Math.round((v/tot)*100):0;
+    return '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:12px;color:var(--text);max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+d+'</span><span style="font-size:12px;font-weight:600;color:var(--muted);">'+fmtMoney(v)+' · '+p+'%</span></div><div style="background:var(--surface2);border-radius:20px;height:9px;overflow:hidden;"><div style="height:100%;width:'+p+'%;background:'+CRS[i%CRS.length]+';border-radius:20px;"></div></div></div>';
+  }).join('')+'<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);text-align:right;font-size:12px;color:var(--muted);">Total: <strong style="color:var(--text);">'+fmtMoney(tot)+'</strong></div>';
 }
 
 function filtrarOrcamentos(){
@@ -1513,20 +1496,19 @@ async function renderPosvenda(pedidoId){
 
 // ITENS
 function renderItens(){
-  document.getElementById('itens-lista').innerHTML=editingItens.map((it,i)=>`
-    <div class="item-row">
-      <input type="text" value="${(it.desc||'').replace(/"/g,'&quot;')}"
-        oninput="editingItens[${i}].desc=this.value;"
-        style="flex:1;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;min-width:0;"/>
-      <input type="number" value="${it.valor}" min="0" step="0.01"
-        oninput="editingItens[${i}].valor=parseFloat(this.value)||0;calcTotal();"
-        style="width:120px;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;text-align:right;"/>
-      <button class="del-btn" data-idx="${i}" data-type="delitem">×</button>
-    </div>`).join('');
+  document.getElementById('itens-lista').innerHTML=editingItens.map(function(it,i){
+    var dsc=(it.desc||''). replace(/"/g,'&quot;');
+    var vl=parseFloat(it.valor)||0;
+    return '<div class="item-row">'
+      +'<input type="text" value="'+dsc+'" oninput="editingItens['+i+'].desc=this.value;" style="flex:1;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);min-width:0;"/>'
+      +'<input type="number" value="'+vl+'" min="0" step="0.01" oninput="editingItens['+i+'].valor=parseFloat(this.value)||0;calcTotal();" style="width:120px;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);text-align:right;"/>'
+      +'<button class="del-btn" data-idx="'+i+'" data-type="delitem">×</button>'
+      +'</div>';
+  }).join('');
   calcTotal();
 }
 function calcTotal(){
-  const sub=editingItens.reduce((s,it)=>s+(parseFloat(it.valor)||0),0);
+  const sub=editingItens.reduce(function(s,it){return s+(parseFloat(it.valor)||0);},0);
   const desc=parseFloat(document.getElementById('desconto').value)||0;
   const total=sub*(1-desc/100);
   document.getElementById('subtotal').textContent=fmtMoney(sub);
@@ -1555,7 +1537,7 @@ function gerarPDFHTML(){
   const dtv=document.getElementById('f-validade').value;
   const obs=document.getElementById('f-obs').value||'Sem observações.';
   const garantias=document.getElementById('f-garantias').value||'';
-  const sub=editingItens.reduce((s,it)=>s+it.valor,0);
+  const sub=editingItens.reduce(function(s,it){return s+(parseFloat(it.valor)||0);},0);
   const desc=parseFloat(document.getElementById('desconto').value)||0;
   const total=sub*(1-desc/100);
   const rows=editingItens.length?editingItens.map(it=>`<tr><td>${it.desc}</td><td>${fmtMoney(it.valor)}</td></tr>`).join(''):'<tr><td colspan="2" style="text-align:center;color:#999;">Nenhum serviço</td></tr>';
@@ -1593,7 +1575,7 @@ function gerarPDFHTML(){
 function getWppMsg(){
   const cliente=document.getElementById('f-cliente').value;
   const num=document.getElementById('f-num').value;
-  const sub=editingItens.reduce((s,it)=>s+it.valor,0);
+  const sub=editingItens.reduce(function(s,it){return s+(parseFloat(it.valor)||0);},0);
   const desc=parseFloat(document.getElementById('desconto').value)||0;
   const total=sub*(1-desc/100);
   return encodeURIComponent(`Olá ${cliente}! 🏗️\n\nSegue o orçamento *${num}* da CMT Projetos e Fachadas.\n\nValor total: *${fmtMoney(total)}*\n\nQualquer dúvida estamos à disposição!`);
@@ -1643,7 +1625,7 @@ document.getElementById('btn-salvar-orc').addEventListener('click',async()=>{
   const clienteNome=document.getElementById('f-cliente').value;
   const c=clientes.find(x=>x.nome===clienteNome);
   const tel=c?c.tel:'';
-  const sub=editingItens.reduce((s,it)=>s+it.valor,0);
+  const sub=editingItens.reduce(function(s,it){return s+(parseFloat(it.valor)||0);},0);
   const desc=parseFloat(document.getElementById('desconto').value)||0;
   const total=sub*(1-desc/100);
   const dataVal=document.getElementById('f-data').value;
@@ -1918,29 +1900,26 @@ document.addEventListener('click',async e=>{
       document.getElementById('orc-modal-title').textContent=`${o.num} — ${o.nome}`;
       document.getElementById('orc-modal-status').value=o.status||'pending';
       document.getElementById('btn-converter').style.display=o.status==='approved'?'inline-flex':'none';
-      const itensHtml=(o.itens&&o.itens.length)
-        ?o.itens.map(it=>{
-          const pct=o.valor>0?Math.round(((it.valor||0)/o.valor)*100):0;
-          return`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);gap:10px;">
-            <span style="font-size:12px;color:var(--text);flex:1;">${it.desc||''}</span>
-            <span style="font-size:12px;font-weight:600;color:var(--brand);white-space:nowrap;">${fmtMoney(it.valor||0)}</span>
-            <span style="font-size:11px;color:var(--muted);white-space:nowrap;width:36px;text-align:right;">${pct}%</span>
-          </div>`;
-        }).join('')
-        :`<div style="font-size:12px;color:var(--muted);padding:8px 0;">${o.desc||'Sem detalhamento de itens'}</div>`;
-      document.getElementById('orc-modal-body').innerHTML=`
-        <div style="background:var(--surface2);border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:10px;">
-          <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;">👤 ${o.nome}</div>
-          <div style="font-size:11px;color:var(--muted);">📅 ${o.data||''} &nbsp;|&nbsp; Válido até: ${o.validade||''}</div>
-        </div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:10px;">
-          <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Serviços</div>
-          ${itensHtml}
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:4px;">
-            <span style="font-size:13px;font-weight:700;">Total</span>
-            <span style="font-size:18px;font-weight:700;color:var(--brand);">${fmtMoney(o.valor||0)}</span>
-          </div>
-        </div>`;
+      var iH=(o.itens&&o.itens.length)
+        ? o.itens.map(function(it){var p2=o.valor>0?Math.round(((it.valor||0)/o.valor)*100):0;
+          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);gap:10px;">'
+            +'<span style="font-size:12px;color:var(--text);flex:1;">'+(it.desc||'')+'</span>'
+            +'<span style="font-size:12px;font-weight:600;color:var(--brand);white-space:nowrap;">'+fmtMoney(it.valor||0)+'</span>'
+            +'<span style="font-size:11px;color:var(--muted);white-space:nowrap;width:36px;text-align:right;">'+p2+'%</span>'
+            +'</div>';}).join('')
+        : '<div style="font-size:12px;color:var(--muted);padding:8px 0;">'+(o.desc||'Sem detalhamento')+'</div>';
+      document.getElementById('orc-modal-body').innerHTML=''
+        +'<div style="background:var(--surface2);border-radius:8px;padding:12px 16px;margin-bottom:10px;">'
+        +'<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;">👤 '+o.nome+'</div>'
+        +'<div style="font-size:11px;color:var(--muted);">&#128197; '+(o.data||'')+' &nbsp;|&nbsp; Válido até: '+(o.validade||'')+'</div>'
+        +'</div>'
+        +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:10px;">'
+        +'<div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Serviços</div>'
+        +iH
+        +'<div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:4px;">'
+        +'<span style="font-size:13px;font-weight:700;">Total</span>'
+        +'<span style="font-size:18px;font-weight:700;color:var(--brand);">'+fmtMoney(o.valor||0)+'</span>'
+        +'</div></div>';
       document.getElementById('orc-modal-bg').classList.add('open');
     }
     return;
