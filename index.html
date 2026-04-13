@@ -324,6 +324,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="stat-val dark" id="orc-valor" style="font-size:18px;">R$ 0</div>
       </div>
     </div>
+    <!-- GRÁFICO COMPOSIÇÃO ORÇAMENTOS -->
+    <div id="orc-chart-box" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:16px;box-shadow:var(--shadow);display:none;">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;">📊 Composição dos Orçamentos — top serviços</div>
+      <div id="orc-chart-inner"></div>
+    </div>
     <!-- FILTRO DE ORÇAMENTOS -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);">
       <span style="font-size:16px;">🔍</span>
@@ -1129,6 +1134,45 @@ function atualizarStatsOrc(){
   const aprovEl=document.getElementById('orc-aprovados');
   if(aprovEl)aprovEl.textContent=orcamentos.filter(o=>o.status==='approved').length;
   document.getElementById('orc-valor').textContent=fmtMoney(ab.reduce((s,o)=>s+(o.valor||0),0));
+  renderOrcChart();
+}
+
+function renderOrcChart(){
+  const box=document.getElementById('orc-chart-box');
+  const inner=document.getElementById('orc-chart-inner');
+  if(!box||!inner)return;
+  // Agrupa todos os itens de todos os orçamentos ativos (não rejeitados)
+  const contagem={};
+  orcamentos.filter(o=>o.status!=='rejected').forEach(o=>{
+    (o.itens||[]).forEach(it=>{
+      const k=(it.desc||'Sem descrição').trim().substring(0,50);
+      if(!contagem[k])contagem[k]=0;
+      contagem[k]+=(it.valor||0);
+    });
+    // fallback p/ orçamentos sem itens detalhados
+    if(!(o.itens&&o.itens.length)&&o.desc&&o.valor){
+      const k=(o.desc||'').trim().substring(0,50);
+      if(!contagem[k])contagem[k]=0;
+      contagem[k]+=(o.valor||0);
+    }
+  });
+  const entries=Object.entries(contagem).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  if(!entries.length){box.style.display='none';return;}
+  box.style.display='block';
+  const total=entries.reduce((s,e)=>s+e[1],0);
+  const CORES=['#0F6E56','#1A9B7A','#E07B2A','#2563EB','#7C3AED','#DC2626','#0891B2','#65A30D'];
+  inner.innerHTML=entries.map(([desc,val],i)=>{
+    const pct=total>0?Math.round((val/total)*100):0;
+    return`<div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+        <span style="font-size:12px;color:var(--text);max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${desc}">${desc}</span>
+        <span style="font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;">${fmtMoney(val)} · ${pct}%</span>
+      </div>
+      <div style="background:var(--surface2);border-radius:20px;height:10px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${CORES[i%CORES.length]};border-radius:20px;transition:width 0.4s;"></div>
+      </div>
+    </div>`;
+  }).join('')+`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;font-size:12px;color:var(--muted);">Total representado: <strong style="margin-left:6px;color:var(--text);">${fmtMoney(total)}</strong></div>`;
 }
 
 function filtrarOrcamentos(){
@@ -1473,8 +1517,11 @@ async function renderPosvenda(pedidoId){
 // ITENS
 function renderItens(){
   document.getElementById('itens-lista').innerHTML=editingItens.map((it,i)=>`
-    <div class="item-row"><span>${it.desc}</span><span>${fmtMoney(it.valor)}</span>
-    <button class="del-btn" data-idx="${i}" data-type="delitem">×</button></div>`).join('');
+    <div class="item-row">
+      <input type="text" value="${(it.desc||'').replace(/"/g,'&quot;')}" onchange="editingItens[${i}].desc=this.value;" style="flex:1;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;min-width:0;"/>
+      <input type="number" value="${it.valor}" min="0" step="0.01" onchange="editingItens[${i}].valor=parseFloat(this.value)||0;calcTotal();" style="width:110px;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;text-align:right;"/>
+      <button class="del-btn" data-idx="${i}" data-type="delitem">×</button>
+    </div>`).join('');
   calcTotal();
 }
 function calcTotal(){
