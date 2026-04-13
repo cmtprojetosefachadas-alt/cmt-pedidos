@@ -795,6 +795,9 @@ const db = getFirestore(app);
 const ETAPAS = ['Liberado para expedição','Em montagem','Preparando para finalizar montagem','Montagem finalizada','Preparando para instalação','Em instalação','Finalizado'];
 
 let pedidos=[], orcamentos=[], clientes=[], currentPedidoId=null, currentOrcId=null, editingItens=[];
+window._setDesc=function(i,v){editingItens[i].desc=v;};
+window._setValor=function(i,v){editingItens[i].valor=parseFloat(v)||0;calcTotal();};
+
 
 // HELPERS
 const fmtMoney = v => 'R$ '+Number(v).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
@@ -1151,7 +1154,14 @@ function renderOrcChart(){
   var CRS=['#0F6E56','#E07B2A','#2563EB','#7C3AED','#DC2626','#0891B2','#65A30D','#D97706'];
   inner.innerHTML=ent.map(function(e,i){
     var d=e[0],v=e[1],p=tot>0?Math.round((v/tot)*100):0;
-    return '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:12px;color:var(--text);max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+d+'</span><span style="font-size:12px;font-weight:600;color:var(--muted);">'+fmtMoney(v)+' · '+p+'%</span></div><div style="background:var(--surface2);border-radius:20px;height:9px;overflow:hidden;"><div style="height:100%;width:'+p+'%;background:'+CRS[i%CRS.length]+';border-radius:20px;"></div></div></div>';
+    return '<div style="margin-bottom:10px;">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
+      +'<span style="font-size:12px;color:var(--text);max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+d+'</span>'
+      +'<span style="font-size:12px;font-weight:600;color:var(--muted);">'+fmtMoney(v)+' · '+p+'%</span>'
+      +'</div>'
+      +'<div style="background:var(--surface2);border-radius:20px;height:9px;overflow:hidden;">'
+      +'<div style="height:100%;width:'+p+'%;background:'+CRS[i%CRS.length]+';border-radius:20px;"></div>'
+      +'</div></div>';
   }).join('')+'<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);text-align:right;font-size:12px;color:var(--muted);">Total: <strong style="color:var(--text);">'+fmtMoney(tot)+'</strong></div>';
 }
 
@@ -1497,11 +1507,10 @@ async function renderPosvenda(pedidoId){
 // ITENS
 function renderItens(){
   document.getElementById('itens-lista').innerHTML=editingItens.map(function(it,i){
-    var dsc=(it.desc||''). replace(/"/g,'&quot;');
-    var vl=parseFloat(it.valor)||0;
+    var d=(it.desc||'').replace(/"/g,'&quot;'), v=parseFloat(it.valor)||0;
     return '<div class="item-row">'
-      +'<input type="text" value="'+dsc+'" oninput="editingItens['+i+'].desc=this.value;" style="flex:1;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);min-width:0;"/>'
-      +'<input type="number" value="'+vl+'" min="0" step="0.01" oninput="editingItens['+i+'].valor=parseFloat(this.value)||0;calcTotal();" style="width:120px;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);text-align:right;"/>'
+      +'<input type="text" value="'+d+'" oninput="window._setDesc('+i+',this.value)" style="flex:1;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);min-width:0;"/>'
+      +'<input type="number" value="'+v+'" min="0" step="0.01" oninput="window._setValor('+i+',this.value)" style="width:120px;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);text-align:right;"/>'
       +'<button class="del-btn" data-idx="'+i+'" data-type="delitem">×</button>'
       +'</div>';
   }).join('');
