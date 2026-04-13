@@ -1141,38 +1141,35 @@ function renderOrcChart(){
   const box=document.getElementById('orc-chart-box');
   const inner=document.getElementById('orc-chart-inner');
   if(!box||!inner)return;
-  // Agrupa todos os itens de todos os orçamentos ativos (não rejeitados)
   const contagem={};
   orcamentos.filter(o=>o.status!=='rejected').forEach(o=>{
-    (o.itens||[]).forEach(it=>{
-      const k=(it.desc||'Sem descrição').trim().substring(0,50);
-      if(!contagem[k])contagem[k]=0;
-      contagem[k]+=(it.valor||0);
-    });
-    // fallback p/ orçamentos sem itens detalhados
-    if(!(o.itens&&o.itens.length)&&o.desc&&o.valor){
-      const k=(o.desc||'').trim().substring(0,50);
-      if(!contagem[k])contagem[k]=0;
-      contagem[k]+=(o.valor||0);
+    if(o.itens&&o.itens.length){
+      o.itens.forEach(it=>{
+        const k=(it.desc||'Sem descrição').trim().substring(0,55);
+        contagem[k]=(contagem[k]||0)+(parseFloat(it.valor)||0);
+      });
+    } else if(o.desc&&o.valor){
+      const k=(o.desc||'').trim().substring(0,55);
+      contagem[k]=(contagem[k]||0)+(parseFloat(o.valor)||0);
     }
   });
   const entries=Object.entries(contagem).sort((a,b)=>b[1]-a[1]).slice(0,8);
   if(!entries.length){box.style.display='none';return;}
   box.style.display='block';
   const total=entries.reduce((s,e)=>s+e[1],0);
-  const CORES=['#0F6E56','#1A9B7A','#E07B2A','#2563EB','#7C3AED','#DC2626','#0891B2','#65A30D'];
+  const CORES=['#0F6E56','#E07B2A','#2563EB','#7C3AED','#DC2626','#0891B2','#65A30D','#D97706'];
   inner.innerHTML=entries.map(([desc,val],i)=>{
     const pct=total>0?Math.round((val/total)*100):0;
     return`<div style="margin-bottom:10px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
-        <span style="font-size:12px;color:var(--text);max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${desc}">${desc}</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="font-size:12px;color:var(--text);max-width:68%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${desc}">${desc}</span>
         <span style="font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;">${fmtMoney(val)} · ${pct}%</span>
       </div>
-      <div style="background:var(--surface2);border-radius:20px;height:10px;overflow:hidden;">
-        <div style="height:100%;width:${pct}%;background:${CORES[i%CORES.length]};border-radius:20px;transition:width 0.4s;"></div>
+      <div style="background:var(--surface2);border-radius:20px;height:9px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${CORES[i%CORES.length]};border-radius:20px;"></div>
       </div>
     </div>`;
-  }).join('')+`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;font-size:12px;color:var(--muted);">Total representado: <strong style="margin-left:6px;color:var(--text);">${fmtMoney(total)}</strong></div>`;
+  }).join('')+`<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;font-size:12px;color:var(--muted);">Total representado: <strong style="margin-left:6px;color:var(--text);">${fmtMoney(total)}</strong></div>`;
 }
 
 function filtrarOrcamentos(){
@@ -1518,14 +1515,18 @@ async function renderPosvenda(pedidoId){
 function renderItens(){
   document.getElementById('itens-lista').innerHTML=editingItens.map((it,i)=>`
     <div class="item-row">
-      <input type="text" value="${(it.desc||'').replace(/"/g,'&quot;')}" onchange="editingItens[${i}].desc=this.value;" style="flex:1;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;min-width:0;"/>
-      <input type="number" value="${it.valor}" min="0" step="0.01" onchange="editingItens[${i}].valor=parseFloat(this.value)||0;calcTotal();" style="width:110px;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;text-align:right;"/>
+      <input type="text" value="${(it.desc||'').replace(/"/g,'&quot;')}"
+        oninput="editingItens[${i}].desc=this.value;"
+        style="flex:1;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;min-width:0;"/>
+      <input type="number" value="${it.valor}" min="0" step="0.01"
+        oninput="editingItens[${i}].valor=parseFloat(this.value)||0;calcTotal();"
+        style="width:120px;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;text-align:right;"/>
       <button class="del-btn" data-idx="${i}" data-type="delitem">×</button>
     </div>`).join('');
   calcTotal();
 }
 function calcTotal(){
-  const sub=editingItens.reduce((s,it)=>s+it.valor,0);
+  const sub=editingItens.reduce((s,it)=>s+(parseFloat(it.valor)||0),0);
   const desc=parseFloat(document.getElementById('desconto').value)||0;
   const total=sub*(1-desc/100);
   document.getElementById('subtotal').textContent=fmtMoney(sub);
@@ -1917,11 +1918,28 @@ document.addEventListener('click',async e=>{
       document.getElementById('orc-modal-title').textContent=`${o.num} — ${o.nome}`;
       document.getElementById('orc-modal-status').value=o.status||'pending';
       document.getElementById('btn-converter').style.display=o.status==='approved'?'inline-flex':'none';
+      const itensHtml=(o.itens&&o.itens.length)
+        ?o.itens.map(it=>{
+          const pct=o.valor>0?Math.round(((it.valor||0)/o.valor)*100):0;
+          return`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);gap:10px;">
+            <span style="font-size:12px;color:var(--text);flex:1;">${it.desc||''}</span>
+            <span style="font-size:12px;font-weight:600;color:var(--brand);white-space:nowrap;">${fmtMoney(it.valor||0)}</span>
+            <span style="font-size:11px;color:var(--muted);white-space:nowrap;width:36px;text-align:right;">${pct}%</span>
+          </div>`;
+        }).join('')
+        :`<div style="font-size:12px;color:var(--muted);padding:8px 0;">${o.desc||'Sem detalhamento de itens'}</div>`;
       document.getElementById('orc-modal-body').innerHTML=`
         <div style="background:var(--surface2);border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:10px;">
-          <div><strong>Descrição:</strong> ${o.desc||''}</div>
-          <div style="margin-top:4px;"><strong>Data:</strong> ${o.data||''} &nbsp;|&nbsp; <strong>Válido até:</strong> ${o.validade||''}</div>
-          <div style="font-size:18px;font-weight:700;color:var(--brand);margin-top:8px;">${fmtMoney(o.valor||0)}</div>
+          <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;">👤 ${o.nome}</div>
+          <div style="font-size:11px;color:var(--muted);">📅 ${o.data||''} &nbsp;|&nbsp; Válido até: ${o.validade||''}</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Serviços</div>
+          ${itensHtml}
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:4px;">
+            <span style="font-size:13px;font-weight:700;">Total</span>
+            <span style="font-size:18px;font-weight:700;color:var(--brand);">${fmtMoney(o.valor||0)}</span>
+          </div>
         </div>`;
       document.getElementById('orc-modal-bg').classList.add('open');
     }
