@@ -161,6 +161,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <button class="tab" id="tab-cadastro">+ Cadastrar Cliente</button>
   <button class="tab" id="tab-faturamento">💰 Faturamento</button>
   <button class="tab" id="tab-fluxo">💵 Fluxo de Caixa</button>
+  <button class="tab" id="tab-manutencoes">🔧 Manutenções</button>
+  <button class="tab" id="tab-cancelados" style="color:#991B1B;">🚫 Cancelados</button>
   <button class="tab" id="tab-novo-orc">+ Novo Orçamento</button>
 </div>
 
@@ -747,6 +749,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="btn" id="btn-fechar-modal">Fechar</button>
       <button class="btn" id="btn-ver-orc" style="display:none;">📄 Ver Orçamento</button>
       <button class="btn btn-wpp" id="btn-status-wpp">&#128172; Status via WhatsApp</button>
+      <button class="btn" id="btn-cancelar-pedido" style="background:#FEF2F2;color:#991B1B;border-color:#FECACA;font-weight:600;">🚫 Cancelar pedido</button>
       <button class="btn btn-red" id="btn-finalizar">&#10003; Finalizar pedido</button>
     </div>
   </div>
@@ -776,6 +779,107 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="btn btn-primary" id="btn-salvar-orc-status">Salvar</button>
     </div>
   </div>
+</div>
+
+<!-- MODAL CANCELAR PEDIDO -->
+<div class="modal-bg" id="cancelar-modal-bg">
+  <div class="modal" style="max-width:460px;">
+    <button class="modal-close" id="btn-close-cancelar">×</button>
+    <h2 style="color:#991B1B;">🚫 Cancelar Pedido</h2>
+    <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:12px 14px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:600;color:#991B1B;margin-bottom:4px;">⚠️ Atenção — esta ação é irreversível</div>
+      <div style="font-size:12px;color:#7F1D1D;">O pedido será movido para a aba <strong>Cancelados</strong>. O motivo e a data serão gravados permanentemente e não poderão ser alterados.</div>
+    </div>
+    <div id="cancelar-info-box" style="background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--text);"></div>
+    <div class="modal-field">
+      <label style="font-weight:700;color:#991B1B;">Motivo do cancelamento *</label>
+      <textarea id="cancelar-motivo-input" placeholder="Descreva o motivo do cancelamento..." style="min-height:80px;border-color:#FECACA;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-fechar-cancelar">Voltar</button>
+      <button class="btn btn-red" id="btn-confirmar-cancelar">🚫 Confirmar cancelamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAINEL MANUTENÇÕES -->
+<div id="panel-manutencoes" class="panel">
+  <div class="section-header">
+    <span class="section-title">🔧 Manutenções / Pós-Venda</span>
+    <button class="btn btn-primary" id="btn-nova-os" style="font-size:13px;padding:7px 16px;">+ Nova O.S.</button>
+  </div>
+  <div id="manut-lista"></div>
+</div>
+
+<!-- MODAL NOVA O.S. -->
+<div class="modal-bg" id="os-modal-bg">
+  <div class="modal" style="max-width:600px;">
+    <button class="modal-close" id="btn-close-os">×</button>
+    <h2 id="os-modal-title">🔧 Nova Ordem de Serviço</h2>
+    <input type="hidden" id="os-edit-id"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div class="modal-field" style="margin:0;grid-column:1/-1;">
+        <label>Descrição do serviço *</label>
+        <textarea id="os-desc" placeholder="Ex: Troca de lâmpada em letreiro, reposição de ACM..." style="min-height:60px;"></textarea>
+      </div>
+      <div class="modal-field" style="margin:0;grid-column:1/-1;">
+        <label>Cliente</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="os-cliente-select" style="flex:1;padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;">
+            <option value="">— Selecionar da lista —</option>
+          </select>
+          <span style="font-size:12px;color:var(--muted);white-space:nowrap;">ou digitar:</span>
+        </div>
+        <input type="text" id="os-cliente-manual" placeholder="Nome do cliente (se não estiver na lista)" style="margin-top:6px;width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;"/>
+      </div>
+      <div class="modal-field" style="margin:0;">
+        <label>Contato / Telefone</label>
+        <input type="text" id="os-contato" placeholder="16 9 9999-0000"/>
+      </div>
+      <div class="modal-field" style="margin:0;">
+        <label>Endereço</label>
+        <input type="text" id="os-endereco" placeholder="Rua, número, bairro"/>
+      </div>
+      <div class="modal-field" style="margin:0;">
+        <label>Data da O.S.</label>
+        <input type="date" id="os-data"/>
+      </div>
+      <div class="modal-field" style="margin:0;">
+        <label>Prazo de execução</label>
+        <input type="text" id="os-prazo" placeholder="Ex: Até 30/04/2026"/>
+      </div>
+      <div class="modal-field" style="margin:0;">
+        <label>Valor cobrado (R$) — interno</label>
+        <input type="number" id="os-valor" placeholder="0,00" step="0.01"/>
+      </div>
+      <div class="modal-field" style="margin:0;">
+        <label>Status</label>
+        <select id="os-status" style="padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;">
+          <option value="aberta">Aberta</option>
+          <option value="andamento">Em andamento</option>
+          <option value="concluida">Concluída</option>
+          <option value="cancelada">Cancelada</option>
+        </select>
+      </div>
+      <div class="modal-field" style="margin:0;grid-column:1/-1;">
+        <label>Observações / Materiais necessários</label>
+        <textarea id="os-obs" placeholder="Detalhes para o prestador..." style="min-height:60px;"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-fechar-os">Fechar</button>
+      <button class="btn" id="btn-pdf-os" style="background:#F0FDF4;color:#166534;border-color:#BBF7D0;font-weight:600;">🖨️ Imprimir O.S.</button>
+      <button class="btn btn-primary" id="btn-salvar-os">💾 Salvar O.S.</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAINEL CANCELADOS (aba oculta interna) -->
+<div id="panel-cancelados" class="panel">
+  <div class="section-header">
+    <span class="section-title">🚫 Pedidos Cancelados</span>
+  </div>
+  <div id="cancelados-grid"></div>
 </div>
 
 <script type="module">
@@ -819,6 +923,8 @@ async function showTab(tab){
   if(tabEl)tabEl.classList.add('active');
   if(panelEl)panelEl.classList.add('active');
   if(tab==='finalizados') await renderFinalizados();
+  if(tab==='manutencoes') await renderManutencoes();
+  if(tab==='cancelados') await renderCancelados();
   if(tab==='visao')renderVisaoGeral();
   if(tab==='fluxo'){popularFluxoMeses();renderFluxo();}
   if(tab==='novo-orc'){
@@ -854,14 +960,16 @@ onSnapshot(collection(db,'clientes'),snap=>{
 });
 
 function updateStats(){
-  const ativos=pedidos.filter(p=>Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
-  const fins=pedidos.filter(p=>Number(p.etapa||0)>=ETAPAS.length-1||p.finalizado===true);
+  const ativos=pedidos.filter(p=>!p.cancelado&&Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
+  const fins=pedidos.filter(p=>!p.cancelado&&(Number(p.etapa||0)>=ETAPAS.length-1||p.finalizado===true));
+  const canc=pedidos.filter(p=>p.cancelado===true);
   document.getElementById('stat-total').textContent=pedidos.length;
   document.getElementById('stat-andamento').textContent=ativos.length;
   document.getElementById('stat-fin').textContent=fins.length;
   document.getElementById('tab-clientes').textContent=`Clientes (${pedidos.length})`;
   document.getElementById('tab-finalizados').textContent=`Finalizados (${fins.length})`;
   document.getElementById('tab-orcamentos').textContent=`Orçamentos (${orcamentos.length})`;
+  if(canc.length) document.getElementById('tab-cancelados').textContent=`🚫 Cancelados (${canc.length})`;
 }
 
 function clienteCard(p){
@@ -888,11 +996,11 @@ function clienteCard(p){
 }
 
 function renderClientes(){
-  const ativos=pedidos.filter(p=>Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
+  const ativos=pedidos.filter(p=>!p.cancelado&&Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
   document.getElementById('clientes-grid').innerHTML=ativos.map(clienteCard).join('')||'<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum cliente ativo.</div>';
 }
 async function renderFinalizados(){
-  const fins=pedidos.filter(p=>Number(p.etapa||0)>=ETAPAS.length-1||p.finalizado===true);
+  const fins=pedidos.filter(p=>!p.cancelado&&(Number(p.etapa||0)>=ETAPAS.length-1||p.finalizado===true));
   const el=document.getElementById('finalizados-grid');
   if(!el)return;
 
@@ -1039,7 +1147,7 @@ function renderFaturamento(){
 }
 
 function renderPedidos(){
-  const ativos=pedidos.filter(p=>Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
+  const ativos=pedidos.filter(p=>!p.cancelado&&Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
   document.getElementById('pedidos-grid').innerHTML=ativos.map(clienteCard).join('')||'<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum pedido ativo.</div>';
 }
 
@@ -1605,7 +1713,7 @@ document.getElementById('login-senha').addEventListener('keydown',e=>{if(e.key==
 document.getElementById('btn-savelink').addEventListener('click',()=>showToast('Link salvo!'));
 
 // TABS
-['visao','clientes','pedidos','orcamentos','finalizados','cadastro','faturamento','fluxo'].forEach(t=>{
+['visao','clientes','pedidos','orcamentos','finalizados','cadastro','faturamento','fluxo','manutencoes','cancelados'].forEach(t=>{
   document.getElementById('tab-'+t).addEventListener('click',()=>showTab(t));
 });
 document.getElementById('tab-novo-orc').addEventListener('click',()=>{
@@ -2226,6 +2334,261 @@ window.excluirFinalizado = async function(id) {
   await deleteDoc(doc(db,'pedidos',id));
   showToast('🗑️ Pedido excluído!');
 };
+
+// ══════════════════════════════════════════
+// CANCELAMENTO DE PEDIDO
+// ══════════════════════════════════════════
+let _cancelarPedidoId = null;
+
+document.getElementById('btn-cancelar-pedido').addEventListener('click', () => {
+  const p = pedidos.find(x=>x.id===currentPedidoId);
+  if(!p) return;
+  _cancelarPedidoId = currentPedidoId;
+  document.getElementById('cancelar-info-box').innerHTML =
+    `<strong>${p.nome}</strong> &nbsp;·&nbsp; ${p.codigo}<br><span style="font-size:12px;color:var(--muted);">${p.desc||''}</span>`;
+  document.getElementById('cancelar-motivo-input').value = '';
+  document.getElementById('modal-bg').classList.remove('open');
+  document.getElementById('cancelar-modal-bg').classList.add('open');
+});
+
+document.getElementById('btn-close-cancelar').addEventListener('click', () => {
+  document.getElementById('cancelar-modal-bg').classList.remove('open');
+});
+document.getElementById('btn-fechar-cancelar').addEventListener('click', () => {
+  document.getElementById('cancelar-modal-bg').classList.remove('open');
+  document.getElementById('modal-bg').classList.add('open');
+});
+
+document.getElementById('btn-confirmar-cancelar').addEventListener('click', async () => {
+  const motivo = document.getElementById('cancelar-motivo-input').value.trim();
+  if(!motivo){ alert('Motivo obrigatório!'); return; }
+  const id = _cancelarPedidoId;
+  const p = pedidos.find(x=>x.id===id);
+  if(!p) return;
+  const agora = new Date();
+  const dataHora = agora.toLocaleDateString('pt-BR') + ' às ' + agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  // Marca como cancelado — motivo e data imutáveis no Firestore
+  await updateDoc(doc(db,'pedidos',id), {
+    cancelado: true,
+    motivoCancelamento: motivo,
+    dataCancelamento: dataHora,
+    dataCancelamentoTS: serverTimestamp()
+  });
+  document.getElementById('cancelar-modal-bg').classList.remove('open');
+  showToast('🚫 Pedido cancelado e registrado.');
+  _cancelarPedidoId = null;
+});
+
+// Render aba cancelados
+async function renderCancelados() {
+  const cancelados = pedidos.filter(p=>p.cancelado===true);
+  const el = document.getElementById('cancelados-grid');
+  if(!cancelados.length){
+    el.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Nenhum pedido cancelado.</div>';
+    return;
+  }
+  el.innerHTML = cancelados.map(p=>`
+    <div style="background:var(--surface);border:1px solid #FECACA;border-left:4px solid #DC2626;border-radius:10px;padding:14px 16px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div class="avatar" style="width:36px;height:36px;font-size:11px;background:#991B1B;flex-shrink:0;">${(p.nome||'?').split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('')}</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;">${p.nome||'—'}</div>
+          <div style="font-size:11px;color:var(--muted);">${p.codigo||''} · ${p.tel||''}</div>
+        </div>
+        <span style="background:#FEE2E2;color:#991B1B;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;">🚫 Cancelado</span>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">${p.desc||'—'}</div>
+      <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;padding:10px 12px;">
+        <div style="font-size:11px;font-weight:700;color:#7F1D1D;margin-bottom:4px;">📋 MOTIVO DO CANCELAMENTO</div>
+        <div style="font-size:13px;color:#991B1B;font-weight:500;">${p.motivoCancelamento||'—'}</div>
+        <div style="font-size:11px;color:#B91C1C;margin-top:6px;">🗓️ ${p.dataCancelamento||'—'}</div>
+        <div style="font-size:10px;color:#9CA3AF;margin-top:2px;font-style:italic;">⚠️ Este registro não pode ser alterado</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Esconder pedidos cancelados da lista de pedidos ativos
+const _origRenderPedidos = renderPedidos;
+
+// ══════════════════════════════════════════
+// MANUTENÇÕES / ORDENS DE SERVIÇO
+// ══════════════════════════════════════════
+let manutencoes = [];
+onSnapshot(query(collection(db,'manutencoes'),orderBy('criadoEm','desc')), snap=>{
+  manutencoes = snap.docs.map(d=>({id:d.id,...d.data()}));
+  const tab = document.querySelector('.tab.active');
+  if(tab && tab.id==='tab-manutencoes') renderManutencoes();
+  // Atualiza contador na aba
+  const abertas = manutencoes.filter(m=>m.status==='aberta'||m.status==='andamento').length;
+  document.getElementById('tab-manutencoes').textContent = `🔧 Manutenções${abertas?` (${abertas})`:''}`;
+});
+
+async function renderManutencoes() {
+  const el = document.getElementById('manut-lista');
+  if(!manutencoes.length){
+    el.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Nenhuma O.S. cadastrada ainda.<br><button class="btn btn-primary" onclick="abrirNovaOS()" style="margin-top:16px;">+ Criar primeira O.S.</button></div>';
+    return;
+  }
+  const statusColor = {aberta:'#DBEAFE:#1E40AF',andamento:'#FEF3C7:#92400E',concluida:'#D1FAE5:#065F46',cancelada:'#FEE2E2:#991B1B'};
+  const statusLabel = {aberta:'Aberta',andamento:'Em andamento',concluida:'Concluída',cancelada:'Cancelada'};
+  el.innerHTML = manutencoes.map(m=>{
+    const [bg,cor] = (statusColor[m.status]||'#F3F4F6:#374151').split(':');
+    return `
+    <div style="background:var(--surface);border:1px solid var(--border);border-left:4px solid ${cor};border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;margin-bottom:2px;">${m.cliente||'—'}</div>
+          <div style="font-size:12px;color:var(--muted);">${m.contato||''} ${m.endereco?'· '+m.endereco:''}</div>
+        </div>
+        <span style="background:${bg};color:${cor};padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap;">${statusLabel[m.status]||m.status}</span>
+      </div>
+      <div style="font-size:13px;color:var(--text);background:var(--surface2);border-radius:6px;padding:8px 10px;">${m.desc||'—'}</div>
+      <div style="display:flex;gap:16px;font-size:12px;color:var(--muted);flex-wrap:wrap;">
+        ${m.data?`<span>📅 Data: <strong>${new Date(m.data+'T12:00:00').toLocaleDateString('pt-BR')}</strong></span>`:''}
+        ${m.prazo?`<span>⏱ Prazo: <strong>${m.prazo}</strong></span>`:''}
+        ${m.valor?`<span>💰 R$ <strong>${parseFloat(m.valor).toFixed(2).replace('.',',')}</strong> <em style="font-size:10px;">(interno)</em></span>`:''}
+      </div>
+      ${m.obs?`<div style="font-size:12px;color:var(--muted);border-top:1px solid var(--border);padding-top:6px;">${m.obs}</div>`:''}
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn" onclick="editarOS('${m.id}')" style="font-size:11px;padding:4px 12px;">✏️ Editar</button>
+        <button class="btn" onclick="imprimirOS('${m.id}')" style="font-size:11px;padding:4px 12px;background:#F0FDF4;color:#166534;border-color:#BBF7D0;">🖨️ Imprimir O.S.</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.abrirNovaOS = function() {
+  document.getElementById('os-edit-id').value = '';
+  document.getElementById('os-modal-title').textContent = '🔧 Nova Ordem de Serviço';
+  document.getElementById('os-desc').value = '';
+  document.getElementById('os-cliente-manual').value = '';
+  document.getElementById('os-contato').value = '';
+  document.getElementById('os-endereco').value = '';
+  document.getElementById('os-prazo').value = '';
+  document.getElementById('os-valor').value = '';
+  document.getElementById('os-obs').value = '';
+  document.getElementById('os-status').value = 'aberta';
+  document.getElementById('os-data').value = new Date().toISOString().split('T')[0];
+  // Popular select de clientes
+  const sel = document.getElementById('os-cliente-select');
+  sel.innerHTML = '<option value="">— Selecionar da lista —</option>' +
+    clientes.map(c=>`<option value="${c.nome}">${c.nome}${c.tel?' · '+c.tel:''}</option>`).join('');
+  document.getElementById('os-modal-bg').classList.add('open');
+};
+
+window.editarOS = function(id) {
+  const m = manutencoes.find(x=>x.id===id);
+  if(!m) return;
+  document.getElementById('os-edit-id').value = id;
+  document.getElementById('os-modal-title').textContent = '✏️ Editar O.S.';
+  document.getElementById('os-desc').value = m.desc||'';
+  document.getElementById('os-cliente-manual').value = m.cliente||'';
+  document.getElementById('os-contato').value = m.contato||'';
+  document.getElementById('os-endereco').value = m.endereco||'';
+  document.getElementById('os-prazo').value = m.prazo||'';
+  document.getElementById('os-valor').value = m.valor||'';
+  document.getElementById('os-obs').value = m.obs||'';
+  document.getElementById('os-status').value = m.status||'aberta';
+  document.getElementById('os-data').value = m.data||new Date().toISOString().split('T')[0];
+  const sel = document.getElementById('os-cliente-select');
+  sel.innerHTML = '<option value="">— Selecionar da lista —</option>' +
+    clientes.map(c=>`<option value="${c.nome}">${c.nome}${c.tel?' · '+c.tel:''}</option>`).join('');
+  document.getElementById('os-modal-bg').classList.add('open');
+};
+
+window.imprimirOS = function(id) {
+  const m = manutencoes.find(x=>x.id===id);
+  if(!m) return;
+  const statusLabel = {aberta:'Aberta',andamento:'Em andamento',concluida:'Concluída',cancelada:'Cancelada'};
+  const dataFmt = m.data ? new Date(m.data+'T12:00:00').toLocaleDateString('pt-BR') : '—';
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>O.S. - ${m.cliente||'Cliente'}</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:700px;margin:0 auto;}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #E05A00;padding-bottom:14px;margin-bottom:20px;}
+    .logo-txt{font-size:20px;font-weight:900;color:#E05A00;line-height:1.1;}
+    .logo-sub{font-size:11px;color:#666;}
+    .os-num{font-size:22px;font-weight:900;color:#E05A00;}
+    h2{font-size:14px;text-transform:uppercase;color:#666;margin:18px 0 8px;border-bottom:1px solid #ddd;padding-bottom:4px;}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin-bottom:12px;}
+    .field label{font-size:10px;color:#888;text-transform:uppercase;font-weight:700;}
+    .field p{font-size:13px;margin:2px 0 0;font-weight:500;}
+    .desc-box{background:#f9f9f9;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px;line-height:1.6;margin-bottom:16px;}
+    .assinatura{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px;}
+    .ass-line{border-top:1px solid #999;padding-top:6px;font-size:11px;color:#666;text-align:center;}
+    .badge{display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;background:#DBEAFE;color:#1E40AF;}
+    .footer{margin-top:30px;font-size:10px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:10px;}
+    @media print{body{padding:15px;}}
+  </style></head><body>
+  <div class="header">
+    <div><div class="logo-txt">CMT Projetos e Fachadas</div><div class="logo-sub">Comunicação Visual · Franca/SP</div></div>
+    <div style="text-align:right;"><div class="os-num">O.S. #${String(manutencoes.indexOf(m)+1).padStart(4,'0')}</div><div style="font-size:11px;color:#666;">${new Date().toLocaleDateString('pt-BR')}</div></div>
+  </div>
+  <h2>📋 Dados do Cliente</h2>
+  <div class="grid">
+    <div class="field"><label>Cliente</label><p>${m.cliente||'—'}</p></div>
+    <div class="field"><label>Contato</label><p>${m.contato||'—'}</p></div>
+    <div class="field" style="grid-column:1/-1;"><label>Endereço</label><p>${m.endereco||'—'}</p></div>
+  </div>
+  <h2>🔧 Serviço a Executar</h2>
+  <div class="desc-box">${m.desc||'—'}</div>
+  <div class="grid">
+    <div class="field"><label>Data da O.S.</label><p>${dataFmt}</p></div>
+    <div class="field"><label>Prazo de Execução</label><p>${m.prazo||'—'}</p></div>
+    <div class="field"><label>Status</label><p><span class="badge">${statusLabel[m.status]||m.status}</span></p></div>
+  </div>
+  ${m.obs?`<h2>📝 Observações / Materiais</h2><div class="desc-box">${m.obs}</div>`:''}
+  <div class="assinatura">
+    <div class="ass-line">Responsável pela execução</div>
+    <div class="ass-line">Autorização do cliente</div>
+  </div>
+  <div class="footer">CMT Projetos e Fachadas · Documento gerado em ${new Date().toLocaleDateString('pt-BR')} · Uso interno</div>
+  </body></html>`;
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  w.print();
+};
+
+document.getElementById('btn-nova-os').addEventListener('click', window.abrirNovaOS);
+document.getElementById('btn-close-os').addEventListener('click', ()=>document.getElementById('os-modal-bg').classList.remove('open'));
+document.getElementById('btn-fechar-os').addEventListener('click', ()=>document.getElementById('os-modal-bg').classList.remove('open'));
+
+document.getElementById('os-cliente-select').addEventListener('change', function(){
+  if(this.value) document.getElementById('os-cliente-manual').value = this.value.split(' · ')[0];
+});
+
+document.getElementById('btn-pdf-os').addEventListener('click', ()=>{
+  const id = document.getElementById('os-edit-id').value;
+  if(id){ window.imprimirOS(id); } else { alert('Salve a O.S. primeiro para imprimir!'); }
+});
+
+document.getElementById('btn-salvar-os').addEventListener('click', async ()=>{
+  const desc = document.getElementById('os-desc').value.trim();
+  if(!desc){ alert('Descrição do serviço é obrigatória!'); return; }
+  const cliente = document.getElementById('os-cliente-manual').value.trim() ||
+                  document.getElementById('os-cliente-select').value.split(' · ')[0] || '';
+  const dados = {
+    desc,
+    cliente,
+    contato: document.getElementById('os-contato').value.trim(),
+    endereco: document.getElementById('os-endereco').value.trim(),
+    data: document.getElementById('os-data').value,
+    prazo: document.getElementById('os-prazo').value.trim(),
+    valor: parseFloat(document.getElementById('os-valor').value)||0,
+    obs: document.getElementById('os-obs').value.trim(),
+    status: document.getElementById('os-status').value,
+  };
+  const editId = document.getElementById('os-edit-id').value;
+  if(editId){
+    await updateDoc(doc(db,'manutencoes',editId), dados);
+    showToast('✅ O.S. atualizada!');
+  } else {
+    await addDoc(collection(db,'manutencoes'), {...dados, criadoEm: serverTimestamp()});
+    showToast('✅ O.S. criada!');
+  }
+  document.getElementById('os-modal-bg').classList.remove('open');
+});
 
 // VISÃO GERAL — funções auxiliares (devem vir antes de renderVisaoGeral)
 function normalizaMes(m) {
