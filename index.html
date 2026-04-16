@@ -808,6 +808,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <span class="section-title">🔧 Manutenções / Pós-Venda</span>
     <button class="btn btn-primary" id="btn-nova-os" style="font-size:13px;padding:7px 16px;">+ Nova O.S.</button>
   </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+    <label style="font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;">📅 Filtrar por mês:</label>
+    <select id="manut-mes-select" style="padding:7px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer;">
+      <option value="">Todos os meses</option>
+    </select>
+    <button id="btn-pdf-manut" style="padding:7px 14px;border:1px solid #BBF7D0;border-radius:8px;font-size:12px;font-weight:600;background:#F0FDF4;color:#166534;cursor:pointer;">🖨️ PDF do mês</button>
+  </div>
   <div id="manut-lista"></div>
 </div>
 
@@ -2415,38 +2422,107 @@ const _origRenderPedidos = renderPedidos;
 // MANUTENÇÕES / ORDENS DE SERVIÇO
 // ══════════════════════════════════════════
 let manutencoes = [];
-onSnapshot(query(collection(db,'manutencoes'),orderBy('criadoEm','desc')), snap=>{
+// orderBy criadoEm ASC = mais antiga primeiro
+onSnapshot(query(collection(db,'manutencoes'),orderBy('criadoEm','asc')), snap=>{
   manutencoes = snap.docs.map(d=>({id:d.id,...d.data()}));
   const tab = document.querySelector('.tab.active');
   if(tab && tab.id==='tab-manutencoes') renderManutencoes();
   // Atualiza contador na aba
   const abertas = manutencoes.filter(m=>m.status==='aberta'||m.status==='andamento').length;
   document.getElementById('tab-manutencoes').textContent = `🔧 Manutenções${abertas?` (${abertas})`:''}`;
+  // Popular select de meses
+  popularMesesManut();
 });
+
+function popularMesesManut() {
+  const sel = document.getElementById('manut-mes-select');
+  if(!sel) return;
+  const meses = new Set();
+  manutencoes.forEach(m => {
+    if(m.data) {
+      const d = new Date(m.data+'T12:00:00');
+      const key = String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+      meses.add(key);
+    }
+  });
+  const atual = sel.value;
+  // Ordena meses cronologicamente
+  const sorted = [...meses].sort((a,b)=>{
+    const [ma,ya] = a.split('/'); const [mb,yb] = b.split('/');
+    return (ya*12+Number(ma)) - (yb*12+Number(mb));
+  });
+  sel.innerHTML = '<option value="">Todos os meses</option>' +
+    sorted.map(m => {
+      const [mm,yy] = m.split('/');
+      const nome = new Date(yy,mm-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+      return `<option value="${m}"${m===atual?' selected':''}>${nome.charAt(0).toUpperCase()+nome.slice(1)}</option>`;
+    }).join('');
+}
+
+function getMesFiltro() {
+  return document.getElementById('manut-mes-select')?.value || '';
+}
+
+function prazoVencido(prazoStr) {
+  if(!prazoStr) return false;
+  // Tenta parsear datas no formato DD/MM/YYYY
+  const match = prazoStr.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if(!match) return false;
+  const prazo = new Date(match[3], match[2]-1, match[1]);
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  return prazo < hoje;
+}
 
 async function renderManutencoes() {
   const el = document.getElementById('manut-lista');
-  if(!manutencoes.length){
-    el.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Nenhuma O.S. cadastrada ainda.<br><button class="btn btn-primary" onclick="abrirNovaOS()" style="margin-top:16px;">+ Criar primeira O.S.</button></div>';
+  const mesFiltro = getMesFiltro();
+
+  let lista = [...manutencoes]; // já vem ASC do Firestore
+
+  // Filtrar por mês se selecionado
+  if(mesFiltro) {
+    const [mm, yy] = mesFiltro.split('/');
+    lista = lista.filter(m => {
+      if(!m.data) return false;
+      const d = new Date(m.data+'T12:00:00');
+      return String(d.getMonth()+1).padStart(2,'0') === mm && String(d.getFullYear()) === yy;
+    });
+  }
+
+  if(!lista.length){
+    el.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Nenhuma O.S. encontrada.<br><button class="btn btn-primary" onclick="abrirNovaOS()" style="margin-top:16px;">+ Criar nova O.S.</button></div>';
     return;
   }
+
   const statusColor = {aberta:'#DBEAFE:#1E40AF',andamento:'#FEF3C7:#92400E',concluida:'#D1FAE5:#065F46',cancelada:'#FEE2E2:#991B1B'};
   const statusLabel = {aberta:'Aberta',andamento:'Em andamento',concluida:'Concluída',cancelada:'Cancelada'};
-  el.innerHTML = manutencoes.map(m=>{
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+
+  el.innerHTML = lista.map((m,idx) => {
     const [bg,cor] = (statusColor[m.status]||'#F3F4F6:#374151').split(':');
+    const vencido = m.status!=='concluida' && m.status!=='cancelada' && prazoVencido(m.prazo);
+    const borderColor = vencido ? '#DC2626' : cor;
+    const prazoHtml = m.prazo ? `<span style="color:${vencido?'#DC2626':'inherit'};font-weight:${vencido?'700':'400'};">
+      ⏱ Prazo: <strong>${m.prazo}</strong>${vencido?' 🔴 <em style="font-size:10px;">VENCIDO</em>':''}
+    </span>` : '';
+    const dataFmt = m.data ? new Date(m.data+'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    // Número sequencial
+    const num = String(idx+1).padStart(3,'0');
     return `
-    <div style="background:var(--surface);border:1px solid var(--border);border-left:4px solid ${cor};border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;">
+    <div style="background:var(--surface);border:1px solid ${vencido?'#FECACA':'var(--border)'};border-left:4px solid ${borderColor};border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;${vencido?'box-shadow:0 0 0 1px #FCA5A5;':''}">
+      ${vencido?`<div style="background:#FEF2F2;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;color:#DC2626;">⚠️ PRAZO VENCIDO — requer atenção imediata</div>`:''}
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
         <div style="flex:1;">
+          <div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:2px;">O.S. #${num}</div>
           <div style="font-weight:700;font-size:14px;margin-bottom:2px;">${m.cliente||'—'}</div>
           <div style="font-size:12px;color:var(--muted);">${m.contato||''} ${m.endereco?'· '+m.endereco:''}</div>
         </div>
         <span style="background:${bg};color:${cor};padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap;">${statusLabel[m.status]||m.status}</span>
       </div>
       <div style="font-size:13px;color:var(--text);background:var(--surface2);border-radius:6px;padding:8px 10px;">${m.desc||'—'}</div>
-      <div style="display:flex;gap:16px;font-size:12px;color:var(--muted);flex-wrap:wrap;">
-        ${m.data?`<span>📅 Data: <strong>${new Date(m.data+'T12:00:00').toLocaleDateString('pt-BR')}</strong></span>`:''}
-        ${m.prazo?`<span>⏱ Prazo: <strong>${m.prazo}</strong></span>`:''}
+      <div style="display:flex;gap:16px;font-size:12px;color:var(--muted);flex-wrap:wrap;align-items:center;">
+        ${m.data?`<span>📅 Data: <strong>${dataFmt}</strong></span>`:''}
+        ${prazoHtml}
         ${m.valor?`<span>💰 R$ <strong>${parseFloat(m.valor).toFixed(2).replace('.',',')}</strong> <em style="font-size:10px;">(interno)</em></span>`:''}
       </div>
       ${m.obs?`<div style="font-size:12px;color:var(--muted);border-top:1px solid var(--border);padding-top:6px;">${m.obs}</div>`:''}
@@ -2457,6 +2533,81 @@ async function renderManutencoes() {
     </div>`;
   }).join('');
 }
+
+// PDF do mês
+function gerarPDFManutMes() {
+  const mesFiltro = getMesFiltro();
+  let lista = [...manutencoes];
+  let tituloMes = 'Todos os meses';
+  if(mesFiltro) {
+    const [mm, yy] = mesFiltro.split('/');
+    lista = lista.filter(m => {
+      if(!m.data) return false;
+      const d = new Date(m.data+'T12:00:00');
+      return String(d.getMonth()+1).padStart(2,'0') === mm && String(d.getFullYear()) === yy;
+    });
+    tituloMes = new Date(yy, mm-1, 1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    tituloMes = tituloMes.charAt(0).toUpperCase()+tituloMes.slice(1);
+  }
+  if(!lista.length){ alert('Nenhuma O.S. no período selecionado.'); return; }
+
+  const statusLabel = {aberta:'Aberta',andamento:'Em andamento',concluida:'Concluída',cancelada:'Cancelada'};
+  const statusColor = {aberta:'#1E40AF',andamento:'#92400E',concluida:'#065F46',cancelada:'#991B1B'};
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+
+  const linhas = lista.map((m,i) => {
+    const dataFmt = m.data ? new Date(m.data+'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    const vencido = m.status!=='concluida' && m.status!=='cancelada' && prazoVencido(m.prazo);
+    const cor = statusColor[m.status]||'#374151';
+    return `<tr style="background:${i%2===0?'#fff':'#f9fafb'}${vencido?';outline:1px solid #FCA5A5;':''}" >
+      <td style="padding:8px 10px;font-size:12px;font-weight:600;">${String(i+1).padStart(3,'0')}</td>
+      <td style="padding:8px 10px;font-size:12px;font-weight:700;">${m.cliente||'—'}</td>
+      <td style="padding:8px 10px;font-size:12px;">${m.contato||'—'}</td>
+      <td style="padding:8px 10px;font-size:12px;">${m.desc||'—'}</td>
+      <td style="padding:8px 10px;font-size:12px;text-align:center;">${dataFmt}</td>
+      <td style="padding:8px 10px;font-size:12px;text-align:center;color:${vencido?'#DC2626':'inherit'};font-weight:${vencido?'700':'400'};">${m.prazo||'—'}${vencido?' 🔴':''}</td>
+      <td style="padding:8px 10px;font-size:12px;text-align:center;"><span style="color:${cor};font-weight:700;">${statusLabel[m.status]||m.status}</span></td>
+    </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório Manutenções - ${tituloMes}</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:24px;color:#111;margin:0;}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #E05A00;padding-bottom:12px;margin-bottom:18px;}
+    .logo{font-size:18px;font-weight:900;color:#E05A00;}.logo-sub{font-size:11px;color:#666;}
+    h2{font-size:14px;color:#444;margin:0 0 14px;}
+    table{width:100%;border-collapse:collapse;}
+    th{background:#E05A00;color:#fff;padding:9px 10px;font-size:11px;text-align:left;text-transform:uppercase;}
+    tr:hover{background:#FFF7ED!important;}
+    .footer{margin-top:20px;font-size:10px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:8px;}
+    .resumo{display:flex;gap:20px;margin-bottom:16px;flex-wrap:wrap;}
+    .res-card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px 14px;font-size:12px;}
+    .res-card strong{display:block;font-size:18px;font-weight:900;}
+    @media print{body{padding:12px;}}
+  </style></head><body>
+  <div class="header">
+    <div><div class="logo">CMT Projetos e Fachadas</div><div class="logo-sub">Comunicação Visual · Franca/SP</div></div>
+    <div style="text-align:right;"><div style="font-size:15px;font-weight:700;">Relatório de Manutenções</div><div style="font-size:12px;color:#666;">${tituloMes}</div><div style="font-size:11px;color:#999;">Emitido em ${new Date().toLocaleDateString('pt-BR')}</div></div>
+  </div>
+  <div class="resumo">
+    <div class="res-card"><strong>${lista.length}</strong>Total de O.S.</div>
+    <div class="res-card" style="border-color:#BBF7D0;"><strong style="color:#065F46;">${lista.filter(m=>m.status==='concluida').length}</strong>Concluídas</div>
+    <div class="res-card" style="border-color:#FED7AA;"><strong style="color:#92400E;">${lista.filter(m=>m.status==='andamento').length}</strong>Em andamento</div>
+    <div class="res-card" style="border-color:#DBEAFE;"><strong style="color:#1E40AF;">${lista.filter(m=>m.status==='aberta').length}</strong>Abertas</div>
+    <div class="res-card" style="border-color:#FECACA;"><strong style="color:#DC2626;">${lista.filter(m=>m.status!=='concluida'&&m.status!=='cancelada'&&prazoVencido(m.prazo)).length}</strong>Prazo vencido</div>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>Cliente</th><th>Contato</th><th>Serviço</th><th style="text-align:center;">Data</th><th style="text-align:center;">Prazo</th><th style="text-align:center;">Status</th></tr></thead>
+    <tbody>${linhas}</tbody>
+  </table>
+  <div class="footer">CMT Projetos e Fachadas · Relatório de Manutenções ${tituloMes} · Emitido em ${new Date().toLocaleDateString('pt-BR')} · Uso interno</div>
+  </body></html>`;
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  w.print();
+}
+
 
 window.abrirNovaOS = function() {
   document.getElementById('os-edit-id').value = '';
@@ -2551,6 +2702,8 @@ window.imprimirOS = function(id) {
 };
 
 document.getElementById('btn-nova-os').addEventListener('click', window.abrirNovaOS);
+document.getElementById('manut-mes-select').addEventListener('change', renderManutencoes);
+document.getElementById('btn-pdf-manut').addEventListener('click', gerarPDFManutMes);
 document.getElementById('btn-close-os').addEventListener('click', ()=>document.getElementById('os-modal-bg').classList.remove('open'));
 document.getElementById('btn-fechar-os').addEventListener('click', ()=>document.getElementById('os-modal-bg').classList.remove('open'));
 
