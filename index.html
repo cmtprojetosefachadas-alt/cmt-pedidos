@@ -2524,11 +2524,16 @@ async function renderManutencoes() {
         ${m.data?`<span>📅 Data: <strong>${dataFmt}</strong></span>`:''}
         ${prazoHtml}
         ${m.valor?`<span>💰 R$ <strong>${parseFloat(m.valor).toFixed(2).replace('.',',')}</strong> <em style="font-size:10px;">(interno)</em></span>`:''}
+        ${m.dataInicio?`<span style="color:#92400E;">🔧 Iniciado: <strong>${m.dataInicio}</strong></span>`:''}
+        ${m.dataConclusao?`<span style="color:#065F46;">✅ Concluído: <strong>${m.dataConclusao}</strong></span>`:''}
       </div>
       ${m.obs?`<div style="font-size:12px;color:var(--muted);border-top:1px solid var(--border);padding-top:6px;">${m.obs}</div>`:''}
-      <div style="display:flex;gap:8px;margin-top:4px;">
+      <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;align-items:center;">
         <button class="btn" onclick="editarOS('${m.id}')" style="font-size:11px;padding:4px 12px;">✏️ Editar</button>
         <button class="btn" onclick="imprimirOS('${m.id}')" style="font-size:11px;padding:4px 12px;background:#F0FDF4;color:#166534;border-color:#BBF7D0;">🖨️ Imprimir O.S.</button>
+        ${m.status==='aberta'?`<button class="btn" onclick="avancarStatusOS('${m.id}','andamento')" style="font-size:11px;padding:4px 14px;background:#FEF3C7;color:#92400E;border-color:#FDE68A;font-weight:700;">▶ Iniciar atendimento</button>`:''}
+        ${m.status==='andamento'?`<button class="btn" onclick="avancarStatusOS('${m.id}','concluida')" style="font-size:11px;padding:4px 14px;background:#D1FAE5;color:#065F46;border-color:#6EE7B7;font-weight:700;">✔ Marcar como concluída</button>`:''}
+        ${m.status==='concluida'?`<span style="font-size:11px;color:#065F46;font-weight:700;">✅ Concluída</span>`:''}
       </div>
     </div>`;
   }).join('');
@@ -2608,6 +2613,17 @@ function gerarPDFManutMes() {
   w.print();
 }
 
+
+// Avançar status da O.S. direto no card
+window.avancarStatusOS = async function(id, novoStatus) {
+  const agora = new Date();
+  const dataHora = agora.toLocaleDateString('pt-BR') + ' às ' + agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const upd = {status: novoStatus};
+  if(novoStatus==='andamento') upd.dataInicio = dataHora;
+  if(novoStatus==='concluida') upd.dataConclusao = dataHora;
+  await updateDoc(doc(db,'manutencoes',id), upd);
+  showToast(novoStatus==='andamento'?'🔧 O.S. em andamento!':'✅ O.S. concluída!');
+};
 
 window.abrirNovaOS = function() {
   document.getElementById('os-edit-id').value = '';
