@@ -883,8 +883,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <input type="text" id="os-prazo" placeholder="Ex: Até 30/04/2026"/>
       </div>
       <div class="modal-field" style="margin:0;">
-        <label>Valor cobrado (R$) — interno</label>
-        <input type="number" id="os-valor" placeholder="0,00" step="0.01"/>
+        <label>Custo CMT (R$) — interno</label>
+        <input type="number" id="os-custo" placeholder="0,00" step="0.01"/>
+      </div>
+      <div class="modal-field" style="margin:0;">
+        <label>Venda ao cliente (R$) — interno</label>
+        <input type="number" id="os-venda" placeholder="0,00 (R$ 0 = garantia)" step="0.01"/>
       </div>
       <div class="modal-field" style="margin:0;">
         <label>Status</label>
@@ -2552,7 +2556,12 @@ async function renderManutencoes() {
       <div style="display:flex;gap:16px;font-size:12px;color:var(--muted);flex-wrap:wrap;align-items:center;">
         ${m.data?`<span>📅 Data: <strong>${dataFmt}</strong></span>`:''}
         ${prazoHtml}
-        ${m.valor?`<span>💰 R$ <strong>${parseFloat(m.valor).toFixed(2).replace('.',',')}</strong> <em style="font-size:10px;">(interno)</em></span>`:''}
+        ${(m.custo||m.venda)?`<span style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:6px;padding:2px 8px;">
+          💸 Custo: <strong style="color:#C2410C;">${fmtMoney(m.custo||0)}</strong>
+          &nbsp;|&nbsp;
+          🏷️ Venda: <strong style="color:${(m.venda||0)===0?'#92400E':'#065F46'};">${fmtMoney(m.venda||0)}${(m.venda||0)===0?' (garantia)':''}</strong>
+          ${(m.venda||0)>0&&(m.custo||0)>0?`&nbsp;|&nbsp; <strong style="color:${(m.venda-m.custo)>=0?'#065F46':'#DC2626'};">Resultado: ${fmtMoney((m.venda||0)-(m.custo||0))}</strong>`:''}
+        </span>`:''}
         ${m.dataInicio?`<span style="color:#92400E;">🔧 Iniciado: <strong>${m.dataInicio}</strong></span>`:''}
         ${m.dataConclusao?`<span style="color:#065F46;">✅ Concluído: <strong>${m.dataConclusao}</strong></span>`:''}
       </div>
@@ -2575,53 +2584,123 @@ async function renderManutencoes() {
 // fmtR alias removido — usa fmtMoney existente
 
 function atualizarCustos(lista) {
-  const comValor = lista.filter(m => parseFloat(m.valor) > 0);
-  const total = lista.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
-  const concluidas = lista.filter(m=>m.status==='concluida').reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
-  const andamento = lista.filter(m=>m.status==='andamento').reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+  const totalCusto = lista.reduce((s,m)=>s+(parseFloat(m.custo)||parseFloat(m.valor)||0),0);
+  const totalVenda = lista.reduce((s,m)=>s+(parseFloat(m.venda)||0),0);
+  const resultado = totalVenda - totalCusto;
+  const custoConcl = lista.filter(m=>m.status==='concluida').reduce((s,m)=>s+(parseFloat(m.custo)||parseFloat(m.valor)||0),0);
+  const custoAnd = lista.filter(m=>m.status==='andamento').reduce((s,m)=>s+(parseFloat(m.custo)||parseFloat(m.valor)||0),0);
 
-  document.getElementById('custo-total').textContent = fmtMoney(total);
-  document.getElementById('custo-concluidas').textContent = fmtMoney(concluidas);
-  document.getElementById('custo-andamento').textContent = fmtMoney(andamento);
+  document.getElementById('custo-total').textContent = fmtMoney(totalCusto);
+  document.getElementById('custo-concluidas').textContent = fmtMoney(custoConcl);
+  document.getElementById('custo-andamento').textContent = fmtMoney(custoAnd);
   document.getElementById('custo-qtd').textContent = lista.length;
+
+  // Cards de venda e resultado
+  let extraCards = document.getElementById('custo-extra-cards');
+  if(!extraCards){
+    extraCards = document.createElement('div');
+    extraCards.id = 'custo-extra-cards';
+    extraCards.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;';
+    document.getElementById('custo-detalhe').before(extraCards);
+  }
+  extraCards.innerHTML = `
+    <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;">
+      <div style="font-size:10px;color:#065F46;font-weight:700;text-transform:uppercase;">Total Vendas</div>
+      <div style="font-size:22px;font-weight:900;color:#065F46;">${fmtMoney(totalVenda)}</div>
+    </div>
+    <div style="background:${resultado>=0?'#F0FDF4':'#FEF2F2'};border:1px solid ${resultado>=0?'#BBF7D0':'#FECACA'};border-radius:8px;padding:10px 14px;">
+      <div style="font-size:10px;color:${resultado>=0?'#065F46':'#DC2626'};font-weight:700;text-transform:uppercase;">Resultado (Venda−Custo)</div>
+      <div style="font-size:22px;font-weight:900;color:${resultado>=0?'#065F46':'#DC2626'};">${fmtMoney(resultado)}</div>
+    </div>
+    <div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:8px;padding:10px 14px;">
+      <div style="font-size:10px;color:#5B21B6;font-weight:700;text-transform:uppercase;">Garantias (sem cobrança)</div>
+      <div style="font-size:22px;font-weight:900;color:#5B21B6;">${lista.filter(m=>(parseFloat(m.venda)||0)===0&&(parseFloat(m.custo)||parseFloat(m.valor)||0)>0).length}</div>
+    </div>`;
+
+  // Gráfico Custo x Venda por mês (todos os meses disponíveis)
+  const porMes = {};
+  manutencoes.forEach(m => {
+    if(!m.data) return;
+    const d = new Date(m.data+'T12:00:00');
+    const key = String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+    if(!porMes[key]) porMes[key] = {custo:0, venda:0};
+    porMes[key].custo += parseFloat(m.custo)||parseFloat(m.valor)||0;
+    porMes[key].venda += parseFloat(m.venda)||0;
+  });
+  const mesesOrdenados = Object.keys(porMes).sort((a,b)=>{
+    const [ma,ya]=a.split('/'); const [mb,yb]=b.split('/');
+    return (ya*12+Number(ma))-(yb*12+Number(mb));
+  });
 
   const statusLabel = {aberta:'Aberta',andamento:'Em andamento',concluida:'Concluída',cancelada:'Cancelada'};
   const statusCor = {aberta:'#1E40AF',andamento:'#92400E',concluida:'#065F46',cancelada:'#991B1B'};
+  const comValor = lista.filter(m=>(parseFloat(m.custo)||parseFloat(m.valor)||0)>0||(parseFloat(m.venda)||0)>0);
 
-  if(!comValor.length){
-    document.getElementById('custo-detalhe').innerHTML =
-      '<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px 0;">Nenhuma O.S. com valor lançado no período.</div>';
-    return;
+  let graficoHtml = '';
+  if(mesesOrdenados.length > 0){
+    const maxVal = Math.max(...mesesOrdenados.map(k=>Math.max(porMes[k].custo,porMes[k].venda)),1);
+    graficoHtml = `
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:10px;text-transform:uppercase;">📊 Custo x Venda por Mês</div>
+      <div style="display:flex;gap:12px;align-items:flex-end;overflow-x:auto;padding-bottom:4px;min-height:100px;">
+        ${mesesOrdenados.map(k=>{
+          const [mm,yy] = k.split('/');
+          const nomeMes = new Date(yy,mm-1,1).toLocaleDateString('pt-BR',{month:'short'}).replace('.','');
+          const c = porMes[k].custo; const v = porMes[k].venda;
+          const hC = Math.round((c/maxVal)*80); const hV = Math.round((v/maxVal)*80);
+          const res = v - c;
+          return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:52px;">
+            <div style="font-size:9px;font-weight:700;color:${res>=0?'#065F46':'#DC2626'};">${res>=0?'+':''}${fmtMoney(res).replace('R$ ','')}</div>
+            <div style="display:flex;gap:3px;align-items:flex-end;height:80px;">
+              <div title="Custo: ${fmtMoney(c)}" style="width:18px;height:${Math.max(hC,2)}px;background:#FB923C;border-radius:3px 3px 0 0;cursor:default;"></div>
+              <div title="Venda: ${fmtMoney(v)}" style="width:18px;height:${Math.max(hV,2)}px;background:#34D399;border-radius:3px 3px 0 0;cursor:default;"></div>
+            </div>
+            <div style="font-size:9px;color:var(--muted);white-space:nowrap;">${nomeMes}/${yy.slice(2)}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="display:flex;gap:16px;margin-top:6px;font-size:10px;">
+        <span><span style="display:inline-block;width:10px;height:10px;background:#FB923C;border-radius:2px;margin-right:3px;"></span>Custo CMT</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#34D399;border-radius:2px;margin-right:3px;"></span>Venda ao cliente</span>
+      </div>
+    </div>`;
   }
 
-  document.getElementById('custo-detalhe').innerHTML = `
-    <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+  document.getElementById('custo-detalhe').innerHTML = graficoHtml + (!comValor.length
+    ? '<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px 0;">Nenhuma O.S. com valores no período.</div>'
+    : `<div style="border-top:1px solid var(--border);padding-top:10px;">
       <table style="width:100%;border-collapse:collapse;">
-        <thead>
-          <tr style="background:var(--surface2);">
-            <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;">#</th>
-            <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;">Cliente</th>
-            <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;">Serviço</th>
-            <th style="text-align:center;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;">Status</th>
-            <th style="text-align:right;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;">Custo</th>
-          </tr>
-        </thead>
+        <thead><tr style="background:var(--surface2);">
+          <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;">#</th>
+          <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;">Cliente</th>
+          <th style="text-align:center;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;">Status</th>
+          <th style="text-align:right;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;">Custo</th>
+          <th style="text-align:right;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;">Venda</th>
+          <th style="text-align:right;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;">Resultado</th>
+        </tr></thead>
         <tbody>
-          ${comValor.map((m,i)=>`
-          <tr style="border-top:1px solid var(--border);">
-            <td style="padding:6px 8px;font-size:11px;color:var(--muted);">${String(i+1).padStart(3,'0')}</td>
-            <td style="padding:6px 8px;font-size:12px;font-weight:600;">${m.cliente||'—'}</td>
-            <td style="padding:6px 8px;font-size:11px;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.desc||'—'}</td>
-            <td style="padding:6px 8px;text-align:center;"><span style="font-size:10px;font-weight:700;color:${statusCor[m.status]||'#374151'};">${statusLabel[m.status]||m.status}</span></td>
-            <td style="padding:6px 8px;text-align:right;font-weight:700;color:#C2410C;">${fmtMoney(m.valor)}</td>
-          </tr>`).join('')}
+          ${comValor.map((m,i)=>{
+            const c=parseFloat(m.custo)||parseFloat(m.valor)||0;
+            const v=parseFloat(m.venda)||0;
+            const res=v-c;
+            return `<tr style="border-top:1px solid var(--border);">
+              <td style="padding:6px 8px;font-size:11px;color:var(--muted);">${String(i+1).padStart(3,'0')}</td>
+              <td style="padding:6px 8px;font-size:12px;font-weight:600;">${m.cliente||'—'}${v===0&&c>0?'<br><span style="font-size:9px;color:#7C3AED;">garantia</span>':''}</td>
+              <td style="padding:6px 8px;text-align:center;"><span style="font-size:10px;font-weight:700;color:${statusCor[m.status]||'#374151'};">${statusLabel[m.status]||m.status}</span></td>
+              <td style="padding:6px 8px;text-align:right;font-weight:700;color:#C2410C;">${fmtMoney(c)}</td>
+              <td style="padding:6px 8px;text-align:right;font-weight:700;color:#065F46;">${fmtMoney(v)}${v===0?'<br><span style="font-size:9px;color:#7C3AED;">garantia</span>':''}</td>
+              <td style="padding:6px 8px;text-align:right;font-weight:700;color:${res>=0?'#065F46':'#DC2626'};">${fmtMoney(res)}</td>
+            </tr>`;
+          }).join('')}
           <tr style="border-top:2px solid var(--border);background:var(--surface2);">
-            <td colspan="4" style="padding:7px 8px;font-size:12px;font-weight:700;color:var(--muted);">TOTAL DO PERÍODO</td>
-            <td style="padding:7px 8px;text-align:right;font-size:14px;font-weight:900;color:#C2410C;">${fmtMoney(total)}</td>
+            <td colspan="3" style="padding:7px 8px;font-size:12px;font-weight:700;color:var(--muted);">TOTAL</td>
+            <td style="padding:7px 8px;text-align:right;font-size:13px;font-weight:900;color:#C2410C;">${fmtMoney(totalCusto)}</td>
+            <td style="padding:7px 8px;text-align:right;font-size:13px;font-weight:900;color:#065F46;">${fmtMoney(totalVenda)}</td>
+            <td style="padding:7px 8px;text-align:right;font-size:13px;font-weight:900;color:${resultado>=0?'#065F46':'#DC2626'};">${fmtMoney(resultado)}</td>
           </tr>
         </tbody>
       </table>
-    </div>`;
+    </div>`);
 }
 
 function gerarPDFCustos() {
@@ -2642,23 +2721,27 @@ function gerarPDFCustos() {
 
   const statusLabel = {aberta:'Aberta',andamento:'Em andamento',concluida:'Concluída',cancelada:'Cancelada'};
   const statusCor = {aberta:'#1E40AF',andamento:'#92400E',concluida:'#065F46',cancelada:'#991B1B'};
-  const total = lista.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
-  const concluidas = lista.filter(m=>m.status==='concluida').reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
-  const andamento = lista.filter(m=>m.status==='andamento').reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+  const totalCusto = lista.reduce((s,m)=>s+(parseFloat(m.custo)||parseFloat(m.valor)||0),0);
+  const totalVenda = lista.reduce((s,m)=>s+(parseFloat(m.venda)||0),0);
+  const resultado = totalVenda - totalCusto;
+  const concluidas = lista.filter(m=>m.status==='concluida').reduce((s,m)=>s+(parseFloat(m.custo)||parseFloat(m.valor)||0),0);
+  const andamento = lista.filter(m=>m.status==='andamento').reduce((s,m)=>s+(parseFloat(m.custo)||parseFloat(m.valor)||0),0);
+  const garantias = lista.filter(m=>(parseFloat(m.venda)||0)===0&&(parseFloat(m.custo)||parseFloat(m.valor)||0)>0).length;
 
-  const linhas = lista.filter(m=>parseFloat(m.valor)>0).map((m,i)=>`
-    <tr style="background:${i%2===0?'#fff':'#f9fafb'}">
+  const linhas = lista.filter(m=>(parseFloat(m.custo)||parseFloat(m.valor)||0)>0||(parseFloat(m.venda)||0)>0).map((m,i)=>{
+    const c=parseFloat(m.custo)||parseFloat(m.valor)||0;
+    const v=parseFloat(m.venda)||0;
+    const res=v-c;
+    return `<tr style="background:${i%2===0?'#fff':'#f9fafb'}">
       <td style="padding:8px 10px;font-size:12px;">${String(i+1).padStart(3,'0')}</td>
-      <td style="padding:8px 10px;font-size:12px;font-weight:700;">${m.cliente||'—'}</td>
+      <td style="padding:8px 10px;font-size:12px;font-weight:700;">${m.cliente||'—'}${v===0&&c>0?' <span style="font-size:9px;color:#7C3AED;">(garantia)</span>':''}</td>
       <td style="padding:8px 10px;font-size:11px;color:#555;">${m.desc||'—'}</td>
-      <td style="padding:8px 10px;font-size:11px;text-align:center;">
-        ${m.data?new Date(m.data+'T12:00:00').toLocaleDateString('pt-BR'):'—'}
-      </td>
-      <td style="padding:8px 10px;font-size:11px;text-align:center;">
-        <span style="color:${statusCor[m.status]||'#374151'};font-weight:700;">${statusLabel[m.status]||m.status}</span>
-      </td>
-      <td style="padding:8px 10px;font-size:12px;font-weight:700;text-align:right;color:#C2410C;">${fmtMoney(m.valor)}</td>
-    </tr>`).join('');
+      <td style="padding:8px 10px;font-size:11px;text-align:center;">${m.data?new Date(m.data+'T12:00:00').toLocaleDateString('pt-BR'):'—'}</td>
+      <td style="padding:8px 10px;font-size:12px;font-weight:700;text-align:right;color:#C2410C;">${fmtMoney(c)}</td>
+      <td style="padding:8px 10px;font-size:12px;font-weight:700;text-align:right;color:#065F46;">${fmtMoney(v)}</td>
+      <td style="padding:8px 10px;font-size:12px;font-weight:700;text-align:right;color:${res>=0?'#065F46':'#DC2626'};">${fmtMoney(res)}</td>
+    </tr>`;
+  }).join('');
 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
   <title>Relatório de Custos - ${tituloMes}</title>
@@ -2684,16 +2767,20 @@ function gerarPDFCustos() {
   </div>
   <div class="cards">
     <div class="card" style="background:#FFF7ED;border:1px solid #FED7AA;">
-      <div style="font-size:10px;color:#C2410C;font-weight:700;text-transform:uppercase;">Total de Custos</div>
-      <div style="font-size:24px;font-weight:900;color:#C2410C;">${fmtMoney(total)}</div>
+      <div style="font-size:10px;color:#C2410C;font-weight:700;text-transform:uppercase;">Total Custo CMT</div>
+      <div style="font-size:24px;font-weight:900;color:#C2410C;">${fmtMoney(totalCusto)}</div>
     </div>
     <div class="card" style="background:#F0FDF4;border:1px solid #BBF7D0;">
-      <div style="font-size:10px;color:#065F46;font-weight:700;text-transform:uppercase;">Concluídas</div>
-      <div style="font-size:24px;font-weight:900;color:#065F46;">${fmtMoney(concluidas)}</div>
+      <div style="font-size:10px;color:#065F46;font-weight:700;text-transform:uppercase;">Total Vendas</div>
+      <div style="font-size:24px;font-weight:900;color:#065F46;">${fmtMoney(totalVenda)}</div>
     </div>
-    <div class="card" style="background:#FEF3C7;border:1px solid #FDE68A;">
-      <div style="font-size:10px;color:#92400E;font-weight:700;text-transform:uppercase;">Em andamento</div>
-      <div style="font-size:24px;font-weight:900;color:#92400E;">${fmtMoney(andamento)}</div>
+    <div class="card" style="background:${resultado>=0?'#F0FDF4':'#FEF2F2'};border:1px solid ${resultado>=0?'#BBF7D0':'#FECACA'};">
+      <div style="font-size:10px;color:${resultado>=0?'#065F46':'#DC2626'};font-weight:700;text-transform:uppercase;">Resultado</div>
+      <div style="font-size:24px;font-weight:900;color:${resultado>=0?'#065F46':'#DC2626'};">${fmtMoney(resultado)}</div>
+    </div>
+    <div class="card" style="background:#F5F3FF;border:1px solid #DDD6FE;">
+      <div style="font-size:10px;color:#5B21B6;font-weight:700;text-transform:uppercase;">Garantias</div>
+      <div style="font-size:24px;font-weight:900;color:#5B21B6;">${garantias}</div>
     </div>
     <div class="card" style="background:#DBEAFE;border:1px solid #BFDBFE;">
       <div style="font-size:10px;color:#1E40AF;font-weight:700;text-transform:uppercase;">Total O.S.</div>
@@ -2701,16 +2788,18 @@ function gerarPDFCustos() {
     </div>
   </div>
   <table>
-    <thead><tr><th>#</th><th>Cliente</th><th>Serviço</th><th style="text-align:center;">Data</th><th style="text-align:center;">Status</th><th style="text-align:right;">Custo</th></tr></thead>
+    <thead><tr><th>#</th><th>Cliente</th><th>Serviço</th><th style="text-align:center;">Data</th><th style="text-align:right;">Custo CMT</th><th style="text-align:right;">Venda</th><th style="text-align:right;">Resultado</th></tr></thead>
     <tbody>
       ${linhas}
       <tr class="total-row">
-        <td colspan="5" style="padding:9px 10px;font-size:13px;">TOTAL DO PERÍODO</td>
-        <td style="padding:9px 10px;font-size:15px;text-align:right;color:#C2410C;">${fmtMoney(total)}</td>
+        <td colspan="4" style="padding:9px 10px;font-size:13px;">TOTAL DO PERÍODO</td>
+        <td style="padding:9px 10px;font-size:14px;text-align:right;color:#C2410C;">${fmtMoney(totalCusto)}</td>
+        <td style="padding:9px 10px;font-size:14px;text-align:right;color:#065F46;">${fmtMoney(totalVenda)}</td>
+        <td style="padding:9px 10px;font-size:14px;text-align:right;color:${resultado>=0?'#065F46':'#DC2626'};">${fmtMoney(resultado)}</td>
       </tr>
     </tbody>
   </table>
-  <div style="margin-top:16px;font-size:11px;color:#999;font-style:italic;">* Apenas O.S. com valor lançado aparecem na tabela. Total inclui todas as O.S. do período.</div>
+  <div style="margin-top:16px;font-size:11px;color:#999;font-style:italic;">* Documento de uso interno. Garantia = venda R$ 0,00 com custo para a CMT.</div>
   <div class="footer">CMT Projetos e Fachadas · Relatório de Custos ${tituloMes} · Uso interno</div>
   </body></html>`;
   const w = window.open('','_blank');
@@ -2813,7 +2902,8 @@ window.abrirNovaOS = function() {
   document.getElementById('os-contato').value = '';
   document.getElementById('os-endereco').value = '';
   document.getElementById('os-prazo').value = '';
-  document.getElementById('os-valor').value = '';
+  document.getElementById('os-custo').value = '';
+  document.getElementById('os-venda').value = '';
   document.getElementById('os-obs').value = '';
   document.getElementById('os-status').value = 'aberta';
   document.getElementById('os-data').value = new Date().toISOString().split('T')[0];
@@ -2834,7 +2924,8 @@ window.editarOS = function(id) {
   document.getElementById('os-contato').value = m.contato||'';
   document.getElementById('os-endereco').value = m.endereco||'';
   document.getElementById('os-prazo').value = m.prazo||'';
-  document.getElementById('os-valor').value = m.valor||'';
+  document.getElementById('os-custo').value = m.custo||m.valor||'';
+  document.getElementById('os-venda').value = m.venda||'';
   document.getElementById('os-obs').value = m.obs||'';
   document.getElementById('os-status').value = m.status||'aberta';
   document.getElementById('os-data').value = m.data||new Date().toISOString().split('T')[0];
@@ -2925,7 +3016,8 @@ document.getElementById('btn-salvar-os').addEventListener('click', async ()=>{
     endereco: document.getElementById('os-endereco').value.trim(),
     data: document.getElementById('os-data').value,
     prazo: document.getElementById('os-prazo').value.trim(),
-    valor: parseFloat(document.getElementById('os-valor').value)||0,
+    custo: parseFloat(document.getElementById('os-custo').value)||0,
+    venda: parseFloat(document.getElementById('os-venda').value)||0,
     obs: document.getElementById('os-obs').value.trim(),
     status: document.getElementById('os-status').value,
   };
