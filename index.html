@@ -814,7 +814,34 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <option value="">Todos os meses</option>
     </select>
     <button id="btn-pdf-manut" style="padding:7px 14px;border:1px solid #BBF7D0;border-radius:8px;font-size:12px;font-weight:600;background:#F0FDF4;color:#166534;cursor:pointer;">🖨️ PDF do mês</button>
+    <button id="btn-pdf-custos" style="padding:7px 14px;border:1px solid #FED7AA;border-radius:8px;font-size:12px;font-weight:600;background:#FFF7ED;color:#C2410C;cursor:pointer;">📊 Relatório de Custos</button>
   </div>
+
+  <!-- PAINEL DE CUSTOS -->
+  <div id="manut-custos-painel" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;">
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;">💸 Custos do Período</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;">
+      <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:10px 14px;">
+        <div style="font-size:10px;color:#C2410C;font-weight:700;text-transform:uppercase;">Total de Custos</div>
+        <div id="custo-total" style="font-size:22px;font-weight:900;color:#C2410C;margin-top:2px;">R$ 0,00</div>
+      </div>
+      <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;">
+        <div style="font-size:10px;color:#065F46;font-weight:700;text-transform:uppercase;">O.S. Concluídas</div>
+        <div id="custo-concluidas" style="font-size:22px;font-weight:900;color:#065F46;margin-top:2px;">R$ 0,00</div>
+      </div>
+      <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;">
+        <div style="font-size:10px;color:#92400E;font-weight:700;text-transform:uppercase;">Em andamento</div>
+        <div id="custo-andamento" style="font-size:22px;font-weight:900;color:#92400E;margin-top:2px;">R$ 0,00</div>
+      </div>
+      <div style="background:#DBEAFE;border:1px solid #BFDBFE;border-radius:8px;padding:10px 14px;">
+        <div style="font-size:10px;color:#1E40AF;font-weight:700;text-transform:uppercase;">Qtd. O.S.</div>
+        <div id="custo-qtd" style="font-size:22px;font-weight:900;color:#1E40AF;margin-top:2px;">0</div>
+      </div>
+    </div>
+    <!-- Mini tabela por O.S. com valor -->
+    <div id="custo-detalhe" style="font-size:12px;"></div>
+  </div>
+
   <div id="manut-lista"></div>
 </div>
 
@@ -2489,6 +2516,8 @@ async function renderManutencoes() {
     });
   }
 
+  atualizarCustos(lista);
+
   if(!lista.length){
     el.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Nenhuma O.S. encontrada.<br><button class="btn btn-primary" onclick="abrirNovaOS()" style="margin-top:16px;">+ Criar nova O.S.</button></div>';
     return;
@@ -2540,6 +2569,157 @@ async function renderManutencoes() {
 }
 
 // PDF do mês
+// ══════════════════════════════════════════
+// PAINEL DE CUSTOS DE MANUTENÇÃO
+// ══════════════════════════════════════════
+// fmtR alias removido — usa fmtMoney existente
+
+function atualizarCustos(lista) {
+  const comValor = lista.filter(m => parseFloat(m.valor) > 0);
+  const total = lista.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+  const concluidas = lista.filter(m=>m.status==='concluida').reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+  const andamento = lista.filter(m=>m.status==='andamento').reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+
+  document.getElementById('custo-total').textContent = fmtMoney(total);
+  document.getElementById('custo-concluidas').textContent = fmtMoney(concluidas);
+  document.getElementById('custo-andamento').textContent = fmtMoney(andamento);
+  document.getElementById('custo-qtd').textContent = lista.length;
+
+  const statusLabel = {aberta:'Aberta',andamento:'Em andamento',concluida:'Concluída',cancelada:'Cancelada'};
+  const statusCor = {aberta:'#1E40AF',andamento:'#92400E',concluida:'#065F46',cancelada:'#991B1B'};
+
+  if(!comValor.length){
+    document.getElementById('custo-detalhe').innerHTML =
+      '<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px 0;">Nenhuma O.S. com valor lançado no período.</div>';
+    return;
+  }
+
+  document.getElementById('custo-detalhe').innerHTML = `
+    <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="background:var(--surface2);">
+            <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;">#</th>
+            <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;">Cliente</th>
+            <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;">Serviço</th>
+            <th style="text-align:center;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;">Status</th>
+            <th style="text-align:right;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;">Custo</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${comValor.map((m,i)=>`
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:6px 8px;font-size:11px;color:var(--muted);">${String(i+1).padStart(3,'0')}</td>
+            <td style="padding:6px 8px;font-size:12px;font-weight:600;">${m.cliente||'—'}</td>
+            <td style="padding:6px 8px;font-size:11px;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.desc||'—'}</td>
+            <td style="padding:6px 8px;text-align:center;"><span style="font-size:10px;font-weight:700;color:${statusCor[m.status]||'#374151'};">${statusLabel[m.status]||m.status}</span></td>
+            <td style="padding:6px 8px;text-align:right;font-weight:700;color:#C2410C;">${fmtMoney(m.valor)}</td>
+          </tr>`).join('')}
+          <tr style="border-top:2px solid var(--border);background:var(--surface2);">
+            <td colspan="4" style="padding:7px 8px;font-size:12px;font-weight:700;color:var(--muted);">TOTAL DO PERÍODO</td>
+            <td style="padding:7px 8px;text-align:right;font-size:14px;font-weight:900;color:#C2410C;">${fmtMoney(total)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function gerarPDFCustos() {
+  const mesFiltro = getMesFiltro();
+  let lista = [...manutencoes];
+  let tituloMes = 'Todos os meses';
+  if(mesFiltro) {
+    const [mm, yy] = mesFiltro.split('/');
+    lista = lista.filter(m => {
+      if(!m.data) return false;
+      const d = new Date(m.data+'T12:00:00');
+      return String(d.getMonth()+1).padStart(2,'0') === mm && String(d.getFullYear()) === yy;
+    });
+    tituloMes = new Date(yy, mm-1, 1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    tituloMes = tituloMes.charAt(0).toUpperCase()+tituloMes.slice(1);
+  }
+  if(!lista.length){ alert('Nenhuma O.S. no período selecionado.'); return; }
+
+  const statusLabel = {aberta:'Aberta',andamento:'Em andamento',concluida:'Concluída',cancelada:'Cancelada'};
+  const statusCor = {aberta:'#1E40AF',andamento:'#92400E',concluida:'#065F46',cancelada:'#991B1B'};
+  const total = lista.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+  const concluidas = lista.filter(m=>m.status==='concluida').reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+  const andamento = lista.filter(m=>m.status==='andamento').reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+
+  const linhas = lista.filter(m=>parseFloat(m.valor)>0).map((m,i)=>`
+    <tr style="background:${i%2===0?'#fff':'#f9fafb'}">
+      <td style="padding:8px 10px;font-size:12px;">${String(i+1).padStart(3,'0')}</td>
+      <td style="padding:8px 10px;font-size:12px;font-weight:700;">${m.cliente||'—'}</td>
+      <td style="padding:8px 10px;font-size:11px;color:#555;">${m.desc||'—'}</td>
+      <td style="padding:8px 10px;font-size:11px;text-align:center;">
+        ${m.data?new Date(m.data+'T12:00:00').toLocaleDateString('pt-BR'):'—'}
+      </td>
+      <td style="padding:8px 10px;font-size:11px;text-align:center;">
+        <span style="color:${statusCor[m.status]||'#374151'};font-weight:700;">${statusLabel[m.status]||m.status}</span>
+      </td>
+      <td style="padding:8px 10px;font-size:12px;font-weight:700;text-align:right;color:#C2410C;">${fmtMoney(m.valor)}</td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Relatório de Custos - ${tituloMes}</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:24px;color:#111;margin:0;}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #E05A00;padding-bottom:12px;margin-bottom:18px;}
+    .logo{font-size:18px;font-weight:900;color:#E05A00;}.logo-sub{font-size:11px;color:#666;}
+    .cards{display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;}
+    .card{border-radius:8px;padding:10px 16px;flex:1;min-width:120px;}
+    table{width:100%;border-collapse:collapse;}
+    th{background:#E05A00;color:#fff;padding:9px 10px;font-size:11px;text-align:left;text-transform:uppercase;}
+    .total-row td{background:#FFF7ED;font-weight:900;border-top:2px solid #E05A00;}
+    .footer{margin-top:20px;font-size:10px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:8px;}
+    @media print{body{padding:12px;}}
+  </style></head><body>
+  <div class="header">
+    <div><div class="logo">CMT Projetos e Fachadas</div><div class="logo-sub">Comunicação Visual · Franca/SP</div></div>
+    <div style="text-align:right;">
+      <div style="font-size:15px;font-weight:700;">Relatório de Custos — Manutenções</div>
+      <div style="font-size:12px;color:#666;">${tituloMes}</div>
+      <div style="font-size:11px;color:#999;">Emitido em ${new Date().toLocaleDateString('pt-BR')}</div>
+    </div>
+  </div>
+  <div class="cards">
+    <div class="card" style="background:#FFF7ED;border:1px solid #FED7AA;">
+      <div style="font-size:10px;color:#C2410C;font-weight:700;text-transform:uppercase;">Total de Custos</div>
+      <div style="font-size:24px;font-weight:900;color:#C2410C;">${fmtMoney(total)}</div>
+    </div>
+    <div class="card" style="background:#F0FDF4;border:1px solid #BBF7D0;">
+      <div style="font-size:10px;color:#065F46;font-weight:700;text-transform:uppercase;">Concluídas</div>
+      <div style="font-size:24px;font-weight:900;color:#065F46;">${fmtMoney(concluidas)}</div>
+    </div>
+    <div class="card" style="background:#FEF3C7;border:1px solid #FDE68A;">
+      <div style="font-size:10px;color:#92400E;font-weight:700;text-transform:uppercase;">Em andamento</div>
+      <div style="font-size:24px;font-weight:900;color:#92400E;">${fmtMoney(andamento)}</div>
+    </div>
+    <div class="card" style="background:#DBEAFE;border:1px solid #BFDBFE;">
+      <div style="font-size:10px;color:#1E40AF;font-weight:700;text-transform:uppercase;">Total O.S.</div>
+      <div style="font-size:24px;font-weight:900;color:#1E40AF;">${lista.length}</div>
+    </div>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>Cliente</th><th>Serviço</th><th style="text-align:center;">Data</th><th style="text-align:center;">Status</th><th style="text-align:right;">Custo</th></tr></thead>
+    <tbody>
+      ${linhas}
+      <tr class="total-row">
+        <td colspan="5" style="padding:9px 10px;font-size:13px;">TOTAL DO PERÍODO</td>
+        <td style="padding:9px 10px;font-size:15px;text-align:right;color:#C2410C;">${fmtMoney(total)}</td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="margin-top:16px;font-size:11px;color:#999;font-style:italic;">* Apenas O.S. com valor lançado aparecem na tabela. Total inclui todas as O.S. do período.</div>
+  <div class="footer">CMT Projetos e Fachadas · Relatório de Custos ${tituloMes} · Uso interno</div>
+  </body></html>`;
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  w.print();
+}
+
+
 function gerarPDFManutMes() {
   const mesFiltro = getMesFiltro();
   let lista = [...manutencoes];
@@ -2720,6 +2900,7 @@ window.imprimirOS = function(id) {
 document.getElementById('btn-nova-os').addEventListener('click', window.abrirNovaOS);
 document.getElementById('manut-mes-select').addEventListener('change', renderManutencoes);
 document.getElementById('btn-pdf-manut').addEventListener('click', gerarPDFManutMes);
+document.getElementById('btn-pdf-custos').addEventListener('click', gerarPDFCustos);
 document.getElementById('btn-close-os').addEventListener('click', ()=>document.getElementById('os-modal-bg').classList.remove('open'));
 document.getElementById('btn-fechar-os').addEventListener('click', ()=>document.getElementById('os-modal-bg').classList.remove('open'));
 
