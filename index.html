@@ -2518,13 +2518,15 @@ function prazoVencido(prazoStr) {
   return prazo < hoje;
 }
 
+// Guarda quais meses estão abertos no acordeão
+const _manutMesesAbertos = new Set();
+
 async function renderManutencoes() {
   const el = document.getElementById('manut-lista');
   const mesFiltro = getMesFiltro();
 
-  let lista = [...manutencoes]; // já vem ASC do Firestore
+  let lista = [...manutencoes];
 
-  // Filtrar por mês se selecionado
   if(mesFiltro) {
     const [mm, yy] = mesFiltro.split('/');
     lista = lista.filter(m => {
@@ -2541,23 +2543,37 @@ async function renderManutencoes() {
     return;
   }
 
+  const grupos = {};
+  lista.forEach(m => {
+    const key = m.data ? (()=>{
+      const d = new Date(m.data+'T12:00:00');
+      return String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+    })() : 'sem-data';
+    if(!grupos[key]) grupos[key] = [];
+    grupos[key].push(m);
+  });
+
+  const mesesOrdenados = Object.keys(grupos).sort((a,b) => {
+    if(a==='sem-data') return 1; if(b==='sem-data') return -1;
+    const [ma,ya]=a.split('/'); const [mb,yb]=b.split('/');
+    return (ya*12+Number(ma))-(yb*12+Number(mb));
+  });
+
+  if(mesFiltro && !_manutMesesAbertos.has(mesFiltro)) _manutMesesAbertos.add(mesFiltro);
+
   const statusColor = {aberta:'#DBEAFE:#1E40AF',andamento:'#FEF3C7:#92400E',concluida:'#D1FAE5:#065F46',cancelada:'#FEE2E2:#991B1B'};
   const statusLabel = {aberta:'Aberta',andamento:'Em andamento',concluida:'Concluída',cancelada:'Cancelada'};
-  const hoje = new Date(); hoje.setHours(0,0,0,0);
 
-  el.innerHTML = lista.map((m,idx) => {
+  function cardOS(m, idx) {
     const [bg,cor] = (statusColor[m.status]||'#F3F4F6:#374151').split(':');
     const vencido = m.status!=='concluida' && m.status!=='cancelada' && prazoVencido(m.prazo);
     const borderColor = vencido ? '#DC2626' : cor;
-    const prazoHtml = m.prazo ? `<span style="color:${vencido?'#DC2626':'inherit'};font-weight:${vencido?'700':'400'};">
-      ⏱ Prazo: <strong>${m.prazo}</strong>${vencido?' 🔴 <em style="font-size:10px;">VENCIDO</em>':''}
-    </span>` : '';
+    const prazoHtml = m.prazo ? `<span style="color:${vencido?'#DC2626':'inherit'};font-weight:${vencido?'700':'400'};">⏱ Prazo: <strong>${m.prazo}</strong>${vencido?' 🔴 <em style="font-size:10px;">VENCIDO</em>':''}</span>` : '';
     const dataFmt = m.data ? new Date(m.data+'T12:00:00').toLocaleDateString('pt-BR') : '—';
-    // Número sequencial
     const num = String(idx+1).padStart(3,'0');
     return `
-    <div onclick="abrirDetalheOS('${m.id}')" style="background:var(--surface);border:1px solid ${vencido?'#FECACA':'var(--border)'};border-left:4px solid ${borderColor};border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;${vencido?'box-shadow:0 0 0 1px #FCA5A5;':''}cursor:pointer;" onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.09)'" onmouseout="this.style.boxShadow='${vencido?'0 0 0 1px #FCA5A5':'none'}'">
-      ${vencido?`<div style="background:#FEF2F2;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;color:#DC2626;">⚠️ PRAZO VENCIDO — requer atenção imediata</div>`:''}
+    <div onclick="abrirDetalheOS('${m.id}')" style="background:var(--surface);border:1px solid ${vencido?'#FECACA':'var(--border)'};border-left:4px solid ${borderColor};border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;cursor:pointer;" onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.09)'" onmouseout="this.style.boxShadow='none'">
+      ${vencido?`<div style="background:#FEF2F2;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;color:#DC2626;">⚠️ PRAZO VENCIDO</div>`:''}
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
         <div style="flex:1;">
           <div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:2px;">O.S. #${num}</div>
@@ -2567,29 +2583,66 @@ async function renderManutencoes() {
         <span style="background:${bg};color:${cor};padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap;">${statusLabel[m.status]||m.status}</span>
       </div>
       <div style="font-size:13px;color:var(--text);background:var(--surface2);border-radius:6px;padding:8px 10px;">${m.desc||'—'}</div>
-      <div style="display:flex;gap:16px;font-size:12px;color:var(--muted);flex-wrap:wrap;align-items:center;">
-        ${m.data?`<span>📅 Data: <strong>${dataFmt}</strong></span>`:''}
+      <div style="display:flex;gap:12px;font-size:12px;color:var(--muted);flex-wrap:wrap;align-items:center;">
+        ${m.data?`<span>📅 <strong>${dataFmt}</strong></span>`:''}
         ${prazoHtml}
-        ${(m.custo||m.venda)?`<span style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:6px;padding:2px 8px;">
-          💸 Custo: <strong style="color:#C2410C;">${fmtMoney(m.custo||0)}</strong>
-          &nbsp;|&nbsp;
-          🏷️ Venda: <strong style="color:${(m.venda||0)===0?'#92400E':'#065F46'};">${fmtMoney(m.venda||0)}${(m.venda||0)===0?' (garantia)':''}</strong>
-          ${(m.venda||0)>0&&(m.custo||0)>0?`&nbsp;|&nbsp; <strong style="color:${(m.venda-m.custo)>=0?'#065F46':'#DC2626'};">Resultado: ${fmtMoney((m.venda||0)-(m.custo||0))}</strong>`:''}
-        </span>`:''}
-        ${m.dataInicio?`<span style="color:#92400E;">🔧 Iniciado: <strong>${m.dataInicio}</strong></span>`:''}
-        ${m.dataConclusao?`<span style="color:#065F46;">✅ Concluído: <strong>${m.dataConclusao}</strong></span>`:''}
+        ${(m.custo||m.venda)?`<span style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:6px;padding:2px 8px;">💸 ${fmtMoney(m.custo||0)} | 🏷️ ${fmtMoney(m.venda||0)}${(m.venda||0)===0?' (garantia)':''}</span>`:''}
+        ${m.dataConclusao?`<span style="color:#065F46;">✅ ${m.dataConclusao}</span>`:''}
       </div>
-      ${m.obs?`<div style="font-size:12px;color:var(--muted);border-top:1px solid var(--border);padding-top:6px;">${m.obs}</div>`:''}
-      <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;align-items:center;">
+      <div style="display:flex;gap:8px;margin-top:2px;flex-wrap:wrap;">
         <button class="btn" onclick="event.stopPropagation();editarOS('${m.id}')" style="font-size:11px;padding:4px 12px;">✏️ Editar</button>
-        <button class="btn" onclick="event.stopPropagation();imprimirOS('${m.id}')" style="font-size:11px;padding:4px 12px;background:#F0FDF4;color:#166534;border-color:#BBF7D0;">🖨️ Imprimir O.S.</button>
-        ${m.status==='aberta'?`<button class="btn" onclick="event.stopPropagation();avancarStatusOS('${m.id}','andamento')" style="font-size:11px;padding:4px 14px;background:#FEF3C7;color:#92400E;border-color:#FDE68A;font-weight:700;">▶ Iniciar atendimento</button>`:''}
-        ${m.status==='andamento'?`<button class="btn" onclick="event.stopPropagation();avancarStatusOS('${m.id}','concluida')" style="font-size:11px;padding:4px 14px;background:#D1FAE5;color:#065F46;border-color:#6EE7B7;font-weight:700;">✔ Marcar como concluída</button>`:''}
+        <button class="btn" onclick="event.stopPropagation();imprimirOS('${m.id}')" style="font-size:11px;padding:4px 12px;background:#F0FDF4;color:#166534;border-color:#BBF7D0;">🖨️ Imprimir</button>
+        ${m.status==='aberta'?`<button class="btn" onclick="event.stopPropagation();avancarStatusOS('${m.id}','andamento')" style="font-size:11px;padding:4px 14px;background:#FEF3C7;color:#92400E;border-color:#FDE68A;font-weight:700;">▶ Iniciar</button>`:''}
+        ${m.status==='andamento'?`<button class="btn" onclick="event.stopPropagation();avancarStatusOS('${m.id}','concluida')" style="font-size:11px;padding:4px 14px;background:#D1FAE5;color:#065F46;border-color:#6EE7B7;font-weight:700;">✔ Concluir</button>`:''}
         ${m.status==='concluida'?`<span style="font-size:11px;color:#065F46;font-weight:700;">✅ Concluída</span>`:''}
+      </div>
+    </div>`;
+  }
+
+  el.innerHTML = mesesOrdenados.map(mesKey => {
+    const itens = grupos[mesKey];
+    const aberto = _manutMesesAbertos.has(mesKey);
+    const nomeMes = mesKey==='sem-data' ? 'Sem data' : (()=>{
+      const [mm,yy]=mesKey.split('/');
+      const n=new Date(yy,mm-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+      return n.charAt(0).toUpperCase()+n.slice(1);
+    })();
+    const abertas = itens.filter(m=>m.status==='aberta'||m.status==='andamento').length;
+    const concluidas = itens.filter(m=>m.status==='concluida').length;
+    const vencidas = itens.filter(m=>m.status!=='concluida'&&m.status!=='cancelada'&&prazoVencido(m.prazo)).length;
+    const mesId = 'manut-mes-'+mesKey.replace('/','_');
+    return `
+    <div style="margin-bottom:10px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      <div onclick="toggleMesManut('${mesKey}')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface2);cursor:pointer;user-select:none;" onmouseover="this.style.background='var(--border2)'" onmouseout="this.style.background='var(--surface2)'">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span id="${mesId}-seta" style="font-size:14px;color:var(--muted);">${aberto?'▼':'▶'}</span>
+          <div>
+            <div style="font-weight:700;font-size:14px;">${nomeMes}</div>
+            <div style="font-size:11px;color:var(--muted);">${itens.length} O.S. · ${abertas} em aberto · ${concluidas} concluída${concluidas!==1?'s':''}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          ${vencidas?`<span style="background:#FEE2E2;color:#DC2626;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">🔴 ${vencidas} vencida${vencidas>1?'s':''}</span>`:''}
+          <span style="background:var(--surface);border:1px solid var(--border);padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600;">${itens.length}</span>
+        </div>
+      </div>
+      <div id="${mesId}" style="display:${aberto?'block':'none'};padding:12px;">
+        ${itens.map((m,i)=>cardOS(m,i)).join('')}
       </div>
     </div>`;
   }).join('');
 }
+
+window.toggleMesManut = function(mesKey) {
+  const el = document.getElementById('manut-mes-'+mesKey.replace('/','_'));
+  const seta = document.getElementById('manut-mes-'+mesKey.replace('/','_')+'-seta');
+  if(!el) return;
+  const aberto = el.style.display !== 'none';
+  el.style.display = aberto ? 'none' : 'block';
+  if(aberto) _manutMesesAbertos.delete(mesKey);
+  else _manutMesesAbertos.add(mesKey);
+  if(seta) seta.textContent = aberto ? '▶' : '▼';
+};
 
 // PDF do mês
 // ══════════════════════════════════════════
