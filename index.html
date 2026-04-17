@@ -913,6 +913,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 
 <!-- PAINEL CANCELADOS (aba oculta interna) -->
+<!-- MODAL DETALHE O.S. -->
+<div class="modal-bg" id="os-detalhe-bg">
+  <div class="modal" style="max-width:560px;">
+    <button class="modal-close" id="btn-close-os-detalhe">×</button>
+    <div id="os-detalhe-body"></div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-fechar-os-detalhe">Fechar</button>
+      <button class="btn" id="btn-editar-os-detalhe" style="display:none;">✏️ Editar</button>
+      <button class="btn" id="btn-imprimir-os-exec" style="background:#F0FDF4;color:#166534;border-color:#BBF7D0;font-weight:600;">🖨️ Imprimir O.S. (execução)</button>
+      <button class="btn" id="btn-imprimir-os-conclusao" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;font-weight:600;">📋 Comprovante ao cliente</button>
+    </div>
+  </div>
+</div>
+
 <div id="panel-cancelados" class="panel">
   <div class="section-header">
     <span class="section-title">🚫 Pedidos Cancelados</span>
@@ -2542,7 +2556,7 @@ async function renderManutencoes() {
     // Número sequencial
     const num = String(idx+1).padStart(3,'0');
     return `
-    <div style="background:var(--surface);border:1px solid ${vencido?'#FECACA':'var(--border)'};border-left:4px solid ${borderColor};border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;${vencido?'box-shadow:0 0 0 1px #FCA5A5;':''}">
+    <div onclick="abrirDetalheOS('${m.id}')" style="background:var(--surface);border:1px solid ${vencido?'#FECACA':'var(--border)'};border-left:4px solid ${borderColor};border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;${vencido?'box-shadow:0 0 0 1px #FCA5A5;':''}cursor:pointer;" onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.09)'" onmouseout="this.style.boxShadow='${vencido?'0 0 0 1px #FCA5A5':'none'}'">
       ${vencido?`<div style="background:#FEF2F2;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;color:#DC2626;">⚠️ PRAZO VENCIDO — requer atenção imediata</div>`:''}
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
         <div style="flex:1;">
@@ -2567,10 +2581,10 @@ async function renderManutencoes() {
       </div>
       ${m.obs?`<div style="font-size:12px;color:var(--muted);border-top:1px solid var(--border);padding-top:6px;">${m.obs}</div>`:''}
       <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;align-items:center;">
-        <button class="btn" onclick="editarOS('${m.id}')" style="font-size:11px;padding:4px 12px;">✏️ Editar</button>
-        <button class="btn" onclick="imprimirOS('${m.id}')" style="font-size:11px;padding:4px 12px;background:#F0FDF4;color:#166534;border-color:#BBF7D0;">🖨️ Imprimir O.S.</button>
-        ${m.status==='aberta'?`<button class="btn" onclick="avancarStatusOS('${m.id}','andamento')" style="font-size:11px;padding:4px 14px;background:#FEF3C7;color:#92400E;border-color:#FDE68A;font-weight:700;">▶ Iniciar atendimento</button>`:''}
-        ${m.status==='andamento'?`<button class="btn" onclick="avancarStatusOS('${m.id}','concluida')" style="font-size:11px;padding:4px 14px;background:#D1FAE5;color:#065F46;border-color:#6EE7B7;font-weight:700;">✔ Marcar como concluída</button>`:''}
+        <button class="btn" onclick="event.stopPropagation();editarOS('${m.id}')" style="font-size:11px;padding:4px 12px;">✏️ Editar</button>
+        <button class="btn" onclick="event.stopPropagation();imprimirOS('${m.id}')" style="font-size:11px;padding:4px 12px;background:#F0FDF4;color:#166534;border-color:#BBF7D0;">🖨️ Imprimir O.S.</button>
+        ${m.status==='aberta'?`<button class="btn" onclick="event.stopPropagation();avancarStatusOS('${m.id}','andamento')" style="font-size:11px;padding:4px 14px;background:#FEF3C7;color:#92400E;border-color:#FDE68A;font-weight:700;">▶ Iniciar atendimento</button>`:''}
+        ${m.status==='andamento'?`<button class="btn" onclick="event.stopPropagation();avancarStatusOS('${m.id}','concluida')" style="font-size:11px;padding:4px 14px;background:#D1FAE5;color:#065F46;border-color:#6EE7B7;font-weight:700;">✔ Marcar como concluída</button>`:''}
         ${m.status==='concluida'?`<span style="font-size:11px;color:#065F46;font-weight:700;">✅ Concluída</span>`:''}
       </div>
     </div>`;
@@ -2992,8 +3006,170 @@ document.getElementById('btn-nova-os').addEventListener('click', window.abrirNov
 document.getElementById('manut-mes-select').addEventListener('change', renderManutencoes);
 document.getElementById('btn-pdf-manut').addEventListener('click', gerarPDFManutMes);
 document.getElementById('btn-pdf-custos').addEventListener('click', gerarPDFCustos);
-document.getElementById('btn-close-os').addEventListener('click', ()=>document.getElementById('os-modal-bg').classList.remove('open'));
-document.getElementById('btn-fechar-os').addEventListener('click', ()=>document.getElementById('os-modal-bg').classList.remove('open'));
+document.getElementById('btn-close-os-detalhe').addEventListener('click', ()=>document.getElementById('os-detalhe-bg').classList.remove('open'));
+document.getElementById('btn-fechar-os-detalhe').addEventListener('click', ()=>document.getElementById('os-detalhe-bg').classList.remove('open'));
+
+document.getElementById('btn-editar-os-detalhe').addEventListener('click', ()=>{
+  const id = document.getElementById('btn-editar-os-detalhe').dataset.osId;
+  document.getElementById('os-detalhe-bg').classList.remove('open');
+  window.editarOS(id);
+});
+
+document.getElementById('btn-imprimir-os-exec').addEventListener('click', ()=>{
+  const id = document.getElementById('btn-imprimir-os-exec').dataset.osId;
+  window.imprimirOS(id);
+});
+
+document.getElementById('btn-imprimir-os-conclusao').addEventListener('click', ()=>{
+  const id = document.getElementById('btn-imprimir-os-conclusao').dataset.osId;
+  imprimirComprovanteOS(id);
+});
+
+window.abrirDetalheOS = function(id) {
+  const m = manutencoes.find(x=>x.id===id);
+  if(!m) return;
+  const statusLabel = {aberta:'Aberta',andamento:'Em andamento',concluida:'Concluída',cancelada:'Cancelada'};
+  const statusCor = {aberta:'#1E40AF',andamento:'#92400E',concluida:'#065F46',cancelada:'#991B1B'};
+  const statusBg = {aberta:'#DBEAFE',andamento:'#FEF3C7',concluida:'#D1FAE5',cancelada:'#FEE2E2'};
+  const dataFmt = m.data ? new Date(m.data+'T12:00:00').toLocaleDateString('pt-BR') : '—';
+  const custo = parseFloat(m.custo)||parseFloat(m.valor)||0;
+  const venda = parseFloat(m.venda)||0;
+  const resultado = venda - custo;
+
+  document.getElementById('os-detalhe-body').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-size:11px;color:var(--muted);font-weight:600;">ORDEM DE SERVIÇO</div>
+        <h2 style="margin:2px 0 0;font-size:18px;">${m.cliente||'—'}</h2>
+        <div style="font-size:12px;color:var(--muted);">${m.contato||''} ${m.endereco?'· '+m.endereco:''}</div>
+      </div>
+      <span style="background:${statusBg[m.status]||'#F3F4F6'};color:${statusCor[m.status]||'#374151'};padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;">${statusLabel[m.status]||m.status}</span>
+    </div>
+
+    <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+      <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px;">🔧 Serviço realizado</div>
+      <div style="font-size:14px;color:var(--text);line-height:1.5;">${m.desc||'—'}</div>
+    </div>
+
+    ${m.obs?`<div style="background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+      <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px;">📝 Observações</div>
+      <div style="font-size:13px;color:var(--text);">${m.obs}</div>
+    </div>`:''}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;">
+        <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:3px;">📅 Data da O.S.</div>
+        <div style="font-size:13px;font-weight:600;">${dataFmt}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;">
+        <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:3px;">⏱ Prazo</div>
+        <div style="font-size:13px;font-weight:600;">${m.prazo||'—'}</div>
+      </div>
+      ${m.dataInicio?`<div style="background:#FEF3C7;border-radius:8px;padding:10px 12px;">
+        <div style="font-size:10px;color:#92400E;font-weight:700;margin-bottom:3px;">🔧 Iniciado em</div>
+        <div style="font-size:13px;font-weight:600;color:#92400E;">${m.dataInicio}</div>
+      </div>`:''}
+      ${m.dataConclusao?`<div style="background:#D1FAE5;border-radius:8px;padding:10px 12px;">
+        <div style="font-size:10px;color:#065F46;font-weight:700;margin-bottom:3px;">✅ Concluído em</div>
+        <div style="font-size:13px;font-weight:600;color:#065F46;">${m.dataConclusao}</div>
+      </div>`:''}
+    </div>
+
+    ${custo||venda?`<div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:10px 14px;display:flex;gap:20px;flex-wrap:wrap;">
+      <div><div style="font-size:10px;color:#C2410C;font-weight:700;text-transform:uppercase;">Custo CMT</div><div style="font-size:16px;font-weight:900;color:#C2410C;">${fmtMoney(custo)}</div></div>
+      <div><div style="font-size:10px;color:#065F46;font-weight:700;text-transform:uppercase;">Venda</div><div style="font-size:16px;font-weight:900;color:#065F46;">${fmtMoney(venda)}${venda===0?' <span style="font-size:10px;color:#7C3AED;">(garantia)</span>':''}</div></div>
+      <div><div style="font-size:10px;color:${resultado>=0?'#065F46':'#DC2626'};font-weight:700;text-transform:uppercase;">Resultado</div><div style="font-size:16px;font-weight:900;color:${resultado>=0?'#065F46':'#DC2626'};">${fmtMoney(resultado)}</div></div>
+    </div>`:''}`;
+
+  // Passa o id para os botões de ação
+  ['btn-editar-os-detalhe','btn-imprimir-os-exec','btn-imprimir-os-conclusao'].forEach(bid=>{
+    document.getElementById(bid).dataset.osId = id;
+  });
+  // Só mostra editar se não for só visualização
+  document.getElementById('btn-editar-os-detalhe').style.display = 'inline-flex';
+
+  document.getElementById('os-detalhe-bg').classList.add('open');
+};
+
+function imprimirComprovanteOS(id) {
+  const m = manutencoes.find(x=>x.id===id);
+  if(!m) return;
+  const dataFmt = m.data ? new Date(m.data+'T12:00:00').toLocaleDateString('pt-BR') : '—';
+  const statusLabel = {aberta:'Aberta',andamento:'Em andamento',concluida:'Concluída',cancelada:'Cancelada'};
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Comprovante O.S. - ${m.cliente||'Cliente'}</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:680px;margin:0 auto;}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #E05A00;padding-bottom:14px;margin-bottom:22px;}
+    .logo{font-size:19px;font-weight:900;color:#E05A00;line-height:1.1;}
+    .logo-sub{font-size:11px;color:#666;}
+    .badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;background:#D1FAE5;color:#065F46;}
+    .section{margin-bottom:18px;}
+    .section-title{font-size:11px;text-transform:uppercase;color:#888;font-weight:700;letter-spacing:.5px;margin-bottom:6px;}
+    .box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px;font-size:13px;line-height:1.6;}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .field label{font-size:10px;color:#888;text-transform:uppercase;font-weight:700;display:block;}
+    .field p{font-size:13px;margin:2px 0 0;font-weight:600;}
+    .assinatura{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px;}
+    .ass-line{border-top:1px solid #999;padding-top:6px;font-size:11px;color:#666;text-align:center;}
+    .footer{margin-top:28px;font-size:10px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:10px;}
+    .highlight{background:#E0F2FE;border:1px solid #BAE6FD;border-radius:8px;padding:12px 16px;margin-bottom:18px;}
+    @media print{body{padding:16px;}}
+  </style></head><body>
+  <div class="header">
+    <div>
+      <div class="logo">CMT Projetos e Fachadas</div>
+      <div class="logo-sub">Comunicação Visual · Franca/SP</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:13px;font-weight:700;color:#444;">Comprovante de Serviço</div>
+      <div style="font-size:11px;color:#888;margin-top:2px;">${new Date().toLocaleDateString('pt-BR')}</div>
+      <div style="margin-top:6px;"><span class="badge">${statusLabel[m.status]||m.status}</span></div>
+    </div>
+  </div>
+
+  <div class="highlight">
+    <div style="font-size:11px;color:#0369A1;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Cliente</div>
+    <div style="font-size:16px;font-weight:900;">${m.cliente||'—'}</div>
+    ${m.contato?`<div style="font-size:12px;color:#555;margin-top:2px;">📞 ${m.contato}</div>`:''}
+    ${m.endereco?`<div style="font-size:12px;color:#555;">📍 ${m.endereco}</div>`:''}
+  </div>
+
+  <div class="section">
+    <div class="section-title">🔧 Serviço Realizado</div>
+    <div class="box">${m.desc||'—'}</div>
+  </div>
+
+  ${m.obs?`<div class="section">
+    <div class="section-title">📝 Observações</div>
+    <div class="box">${m.obs}</div>
+  </div>`:''}
+
+  <div class="grid" style="margin-bottom:18px;">
+    <div class="field"><label>Data do serviço</label><p>${dataFmt}</p></div>
+    <div class="field"><label>Prazo acordado</label><p>${m.prazo||'—'}</p></div>
+    ${m.dataInicio?`<div class="field"><label>Iniciado em</label><p style="color:#92400E;">${m.dataInicio}</p></div>`:''}
+    ${m.dataConclusao?`<div class="field"><label>Concluído em</label><p style="color:#065F46;">${m.dataConclusao}</p></div>`:''}
+  </div>
+
+  <div class="assinatura">
+    <div class="ass-line">Responsável CMT Projetos e Fachadas</div>
+    <div class="ass-line">Ciente — Assinatura do cliente</div>
+  </div>
+
+  <div class="footer">
+    CMT Projetos e Fachadas · Comunicação Visual · Franca/SP<br>
+    Documento emitido em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
+  </div>
+  </body></html>`;
+
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  w.print();
+}
+
 
 document.getElementById('os-cliente-select').addEventListener('change', function(){
   if(this.value) document.getElementById('os-cliente-manual').value = this.value.split(' · ')[0];
