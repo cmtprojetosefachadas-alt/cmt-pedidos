@@ -4070,14 +4070,25 @@ function popularCatsLM() {
 
 function popularFiltroMesLM() {
   const nomes=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const hoje = new Date();
+  const chaveHoje = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
   const set = new Set();
-  set.add(new Date().getMonth()+1);
-  (window._listaMaterial||[]).forEach(i=>{ if(i.criadoEm) set.add(new Date(i.criadoEm).getMonth()+1); });
+  set.add(chaveHoje);
+  (window._listaMaterial||[]).forEach(i=>{
+    const ref = i.data || i.criadoEm;
+    if(ref) {
+      const d = new Date(ref);
+      set.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    }
+  });
   const sel = document.getElementById('lm-filtro-mes');
   if(!sel) return;
-  const cur = sel.value;
+  const cur = sel.value || chaveHoje;
   sel.innerHTML = '<option value="">Todos os meses</option>' +
-    [...set].sort((a,b)=>b-a).map(m=>`<option value="${m}" ${m==cur?'selected':''}>${nomes[m]} 2026</option>`).join('');
+    [...set].sort((a,b)=>b>a?-1:1).map(ch=>{
+      const [ano,mes] = ch.split('-');
+      return `<option value="${ch}" ${ch===cur?'selected':''}>${nomes[parseInt(mes)]} ${ano}</option>`;
+    }).join('');
 }
 
 function iniciarListaMaterial() {
@@ -4215,15 +4226,18 @@ window.toggleCardLM = function(cliente) {
 
 window.renderListaMaterial = function() {
   // Filtros
-  const mesFiltro     = parseInt(document.getElementById('lm-filtro-mes')?.value)||0;
+  const mesFiltro     = document.getElementById('lm-filtro-mes')?.value||'';
   const statusFiltro  = document.getElementById('lm-filtro-status')?.value||'';
 
   let lista = (window._listaMaterial||[]);
 
   if(mesFiltro) {
     lista = lista.filter(i=>{
-      const d = new Date(i.criadoEm||i.data);
-      return d.getMonth()+1 === mesFiltro;
+      const ref = i.data || i.criadoEm;
+      if(!ref) return false;
+      const d = new Date(ref);
+      const chave = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      return chave === mesFiltro;
     });
   }
 
@@ -4365,13 +4379,20 @@ window.gerarPDFListaMaterialCliente = function(clienteEnc) {
 };
 
 window.gerarPDFListaMaterialMes = function() {
-  const mesFiltro = parseInt(document.getElementById('lm-filtro-mes')?.value)||0;
+  const mesFiltro = document.getElementById('lm-filtro-mes')?.value||'';
   const nomes=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   let items = window._listaMaterial||[];
   let titulo = 'Todos os meses';
   if(mesFiltro) {
-    items = items.filter(i=>{ const d=new Date(i.criadoEm||i.data); return d.getMonth()+1===mesFiltro; });
-    titulo = nomes[mesFiltro]+' 2026';
+    items = items.filter(i=>{
+      const ref = i.data || i.criadoEm;
+      if(!ref) return false;
+      const d = new Date(ref);
+      const chave = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      return chave === mesFiltro;
+    });
+    const [ano,mes] = mesFiltro.split('-');
+    titulo = nomes[parseInt(mes)]+' '+ano;
   }
   _gerarPDFListaMaterial(items, '', titulo);
 };
