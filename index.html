@@ -259,15 +259,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <span>Faturado: <strong id="meta-fat">R$ 0</strong></span>
         <span style="font-weight:600;color:var(--brand);" id="meta-pct">0%</span>
       </div>
-      <div style="height:12px;background:var(--surface2);border-radius:6px;overflow:hidden;margin-bottom:8px;">
+      <div style="position:relative;height:22px;background:var(--surface2);border-radius:6px;overflow:hidden;margin-bottom:6px;">
         <div id="meta-bar" style="height:100%;border-radius:6px;background:var(--brand);width:0%;transition:width 0.5s ease;"></div>
+        <span id="meta-bar-label" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:11px;font-weight:600;color:#fff;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.4);pointer-events:none;"></span>
       </div>
       <div style="font-size:12px;color:var(--muted);text-align:right;" id="meta-msg">Digite sua meta mensal</div>
 
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px;">
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:16px;">
         <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Falta para a meta</div>
           <div style="font-size:14px;font-weight:600;color:var(--brand);" id="meta-falta">—</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Necessário/dia</div>
+          <div style="font-size:14px;font-weight:600;color:var(--red);" id="meta-dia">—</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;" id="meta-dias-rest"></div>
         </div>
         <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Em andamento</div>
@@ -3322,17 +3328,30 @@ function atualizarMeta() {
   const pct = meta > 0 ? Math.min(Math.round((fatVal/meta)*100),100) : 0;
   const falta = meta > 0 ? Math.max(meta-fatVal,0) : 0;
 
+  // Dias restantes no mês — automático para qualquer mês/ano
+  const hoje = new Date();
+  const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0).getDate();
+  const diasRestantes = ultimoDia - hoje.getDate();
+  const diasBase = diasRestantes > 0 ? diasRestantes : 1;
+  const porDia = falta > 0 && meta > 0 ? falta / diasBase : 0;
+
   const barEl = document.getElementById('meta-bar');
+  const barLabel = document.getElementById('meta-bar-label');
   const pctEl = document.getElementById('meta-pct');
   const fatEl = document.getElementById('meta-fat');
   const faltaEl = document.getElementById('meta-falta');
   const msgEl = document.getElementById('meta-msg');
+  const diaEl = document.getElementById('meta-dia');
+  const diasRestEl = document.getElementById('meta-dias-rest');
 
   if(barEl){ barEl.style.width=pct+'%'; barEl.style.background=pct>=100?'var(--green)':'var(--brand)'; }
+  if(barLabel) barLabel.textContent = meta > 0 && pct > 0 ? fmtMoney(fatVal)+' ('+pct+'%)' : '';
   if(pctEl) pctEl.textContent = pct+'%';
   if(fatEl) fatEl.textContent = fmtMoney(fatVal);
   if(faltaEl) faltaEl.textContent = meta > 0 ? fmtMoney(falta) : '—';
   if(msgEl) msgEl.textContent = meta <= 0 ? 'Digite sua meta mensal' : pct>=100 ? '🎉 Meta atingida!' : 'Faltam '+fmtMoney(falta)+' para atingir a meta';
+  if(diaEl) diaEl.textContent = meta > 0 && falta > 0 ? fmtMoney(porDia) : pct>=100 ? '✓ Meta!' : '—';
+  if(diasRestEl) diasRestEl.textContent = meta > 0 && falta > 0 ? diasRestantes+' dias restantes' : '';
 }
 
 function popularMeses() {
