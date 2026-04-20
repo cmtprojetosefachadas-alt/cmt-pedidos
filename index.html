@@ -3366,7 +3366,7 @@ function atualizarMeta() {
 
   const feriados = feriadosNacionais(hoje.getFullYear());
   let diasUteisRestantes = 0;
-  for(let d = hoje.getDate()+1; d <= ultimoDia; d++) {
+  for(let d = hoje.getDate(); d <= ultimoDia; d++) {
     const dt = new Date(hoje.getFullYear(), hoje.getMonth(), d);
     const diaSemana = dt.getDay(); // 0=dom, 6=sab
     const iso = dt.toISOString().split('T')[0];
