@@ -368,6 +368,7 @@ body {
     <button class="nav-btn" onclick="window.showScreen('relatorio',this)">Relatório</button>
     <button class="nav-btn" onclick="window.showScreen('despesas',this)">Despesas</button>
     <button class="nav-btn" onclick="window.showScreen('materiais',this)">Materiais</button>
+    <button class="nav-btn" id="nav-lista-material" onclick="window.showScreen('lista-material',this)">Lista de Material</button>
     <button class="nav-btn" id="nav-usuarios" onclick="window.showScreen('usuarios',this)">Usuários</button>
   </nav>
 </div>
@@ -777,6 +778,81 @@ body {
 </div>
 
 </div><!-- /main -->
+
+<!-- ===== LISTA DE MATERIAL ===== -->
+<div class="screen" id="screen-lista-material" style="padding:0 28px 28px">
+
+  <!-- Cabeçalho -->
+  <div class="orc-header" style="padding-top:28px">
+    <h2>Lista de Material por Cliente</h2>
+    <div style="display:flex;gap:8px;align-items:center;margin-left:auto">
+      <select class="field" id="lm-filtro-mes" style="width:160px;padding:7px 12px;font-size:13px" onchange="window.renderListaMaterial()">
+        <option value="">Todos os meses</option>
+      </select>
+      <select class="field" id="lm-filtro-status" style="width:150px;padding:7px 12px;font-size:13px" onchange="window.renderListaMaterial()">
+        <option value="">Todos</option>
+        <option value="pendente">Com pendências</option>
+        <option value="concluido">Concluídos</option>
+      </select>
+      <button class="btn-ghost" style="font-size:12px;padding:6px 14px;white-space:nowrap;background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700" onclick="window.gerarPDFListaMaterialMes()">📄 PDF do Mês</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div id="lm-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px"></div>
+
+  <!-- Formulário de lançamento -->
+  <div class="card" style="padding:20px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Lançar material</div>
+      <div style="display:flex;gap:4px">
+        <button id="lm-tab-sistema" onclick="window.toggleTipoLM('sistema')" style="font-size:11px;font-weight:600;padding:5px 12px;border-radius:6px;cursor:pointer;border:1.5px solid var(--accent);background:var(--accent);color:#fff;font-family:'Inter',sans-serif">📋 Orçamento do sistema</button>
+        <button id="lm-tab-manual" onclick="window.toggleTipoLM('manual')" style="font-size:11px;font-weight:600;padding:5px 12px;border-radius:6px;cursor:pointer;border:1.5px solid var(--border2);background:#fff;color:var(--muted);font-family:'Inter',sans-serif">✏️ Lançamento manual</button>
+      </div>
+    </div>
+
+    <!-- Sistema -->
+    <div id="lm-bloco-sistema">
+      <div style="display:grid;grid-template-columns:2fr 1.2fr 1fr 0.8fr 0.8fr;gap:10px;margin-bottom:10px">
+        <div><label class="field-label">Orçamento / Cliente</label><select class="field" id="lm-orc"></select></div>
+        <div><label class="field-label">Descrição / Material</label><input class="field" id="lm-desc" placeholder="Ex: Lona banner 3×2m"></div>
+        <div><label class="field-label">Categoria</label><select class="field" id="lm-cat"></select></div>
+        <div><label class="field-label">Qtd</label><input class="field" id="lm-qtd" type="number" min="0.01" step="0.01" value="1" placeholder="1"></div>
+        <div><label class="field-label">Valor unit. (R$)</label><input class="field" id="lm-valor" type="number" min="0" step="0.01" placeholder="0,00"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;align-items:flex-end">
+        <div><label class="field-label">Observação (opcional)</label><input class="field" id="lm-obs" placeholder="Ex: fornecedor, NF, detalhe..."></div>
+        <div><label class="field-label">Data</label><input class="field" id="lm-data" type="date"></div>
+        <div><label class="field-label">Total</label><div id="lm-total-preview" style="font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:var(--accent);padding:10px 0">R$ 0,00</div></div>
+        <button class="btn btn-primary" style="margin-bottom:1px" onclick="window.lancarItemLM()">+ Lançar</button>
+      </div>
+    </div>
+
+    <!-- Manual -->
+    <div id="lm-bloco-manual" style="display:none">
+      <div style="background:rgba(232,82,10,0.06);border:1px solid rgba(232,82,10,0.15);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--accent);font-weight:500">
+        ✏️ Use para clientes e obras não cadastradas no sistema.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1.2fr 1fr 0.8fr 0.8fr;gap:10px;margin-bottom:10px">
+        <div><label class="field-label">Cliente / Obra</label><input class="field" id="lm-m-cliente" placeholder="Ex: João Silva"></div>
+        <div><label class="field-label">Descrição / Material</label><input class="field" id="lm-m-desc" placeholder="Ex: ACM 1,22×5m"></div>
+        <div><label class="field-label">Categoria</label><select class="field" id="lm-m-cat"></select></div>
+        <div><label class="field-label">Qtd</label><input class="field" id="lm-m-qtd" type="number" min="0.01" step="0.01" value="1" placeholder="1"></div>
+        <div><label class="field-label">Valor unit. (R$)</label><input class="field" id="lm-m-valor" type="number" min="0" step="0.01" placeholder="0,00"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;align-items:flex-end">
+        <div><label class="field-label">Observação (opcional)</label><input class="field" id="lm-m-obs" placeholder="Ex: fornecedor, NF, detalhe..."></div>
+        <div><label class="field-label">Data</label><input class="field" id="lm-m-data" type="date"></div>
+        <div><label class="field-label">Total</label><div id="lm-m-total-preview" style="font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:var(--accent);padding:10px 0">R$ 0,00</div></div>
+        <button class="btn btn-primary" style="margin-bottom:1px" onclick="window.lancarItemLMManual()">+ Lançar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cards por cliente -->
+  <div id="lm-clientes-lista"></div>
+
+</div>
 
 <!-- ===== DESPESAS ===== -->
 <div class="screen" id="screen-despesas">
@@ -1782,6 +1858,7 @@ async function init() {
   await carregarOrcamentos();
   await carregarDespesas();
   await carregarSaldos();
+  await carregarListaMaterial();
   renderCatalogo();
   renderListaOrcamentos();
   renderRelatorio();
@@ -3073,6 +3150,7 @@ window.showScreen = function(name,btn) {
   if(name==='lista') renderListaOrcamentos();
   if(name==='usuarios') renderTabelaUsuarios();
   if(name==='despesas') iniciarDespesas();
+  if(name==='lista-material') iniciarListaMaterial();
   if(name==='materiais') { renderFiltrosCategorias(); renderListaCategorias(); popularSelectCategorias('g-nm-cat'); }
 };
 
@@ -3957,6 +4035,436 @@ window.gerarPDFDespesas = function() {
   w.document.close();
   setTimeout(()=>w.print(), 600);
 };
+
+// ══════════════════════════════════════
+// MÓDULO LISTA DE MATERIAL
+// ══════════════════════════════════════
+
+window._listaMaterial = []; // cache local
+
+async function carregarListaMaterial() {
+  try {
+    const snap = await getDocs(query(collection(db,'cmt_lista_material'), orderBy('criadoEm','desc')));
+    window._listaMaterial = snap.docs.map(d=>({id:d.id,...d.data()}));
+  } catch(e){ window._listaMaterial=[]; }
+}
+
+function popularSelectOrcamentosLM() {
+  const orcs = (window._orcamentos||[]).filter(o=>o.status==='Aprovado'||o.status==='Aguardando');
+  const sel = document.getElementById('lm-orc');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">Selecione o orçamento...</option>' +
+    orcs.map(o=>`<option value="${o.id}" data-cliente="${o.cliente}">#${o.numero||o.num||''} — ${o.cliente}</option>`).join('');
+}
+
+function popularCatsLM() {
+  const catsMat = [...new Set((window._materiais||[]).map(m=>m.cat).filter(Boolean))];
+  const catsFixas = ['Mão de obra','ACM','PVC','Acrílico','Lona','Fixação','Elétrico','Logística','Terceirizado','Outros'];
+  const todas = [...new Set([...catsMat, ...catsFixas])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  ['lm-cat','lm-m-cat'].forEach(id=>{
+    const s = document.getElementById(id);
+    if(s) s.innerHTML = todas.map(c=>`<option>${c}</option>`).join('');
+  });
+}
+
+function popularFiltroMesLM() {
+  const nomes=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const set = new Set();
+  set.add(new Date().getMonth()+1);
+  (window._listaMaterial||[]).forEach(i=>{ if(i.criadoEm) set.add(new Date(i.criadoEm).getMonth()+1); });
+  const sel = document.getElementById('lm-filtro-mes');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Todos os meses</option>' +
+    [...set].sort((a,b)=>b-a).map(m=>`<option value="${m}" ${m==cur?'selected':''}>${nomes[m]} 2026</option>`).join('');
+}
+
+function iniciarListaMaterial() {
+  const hoje = new Date().toISOString().split('T')[0];
+  document.getElementById('lm-data').value = hoje;
+  document.getElementById('lm-m-data').value = hoje;
+  popularSelectOrcamentosLM();
+  popularCatsLM();
+  popularFiltroMesLM();
+  // live total preview
+  ['lm-qtd','lm-valor'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('input',()=>{
+      const q=parseFloat(document.getElementById('lm-qtd').value)||0;
+      const v=parseFloat(document.getElementById('lm-valor').value)||0;
+      const p=document.getElementById('lm-total-preview');
+      if(p) p.textContent=fmt(q*v);
+    });
+  });
+  ['lm-m-qtd','lm-m-valor'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('input',()=>{
+      const q=parseFloat(document.getElementById('lm-m-qtd').value)||0;
+      const v=parseFloat(document.getElementById('lm-m-valor').value)||0;
+      const p=document.getElementById('lm-m-total-preview');
+      if(p) p.textContent=fmt(q*v);
+    });
+  });
+  window.renderListaMaterial();
+}
+
+window.toggleTipoLM = function(tipo) {
+  document.getElementById('lm-bloco-sistema').style.display = tipo==='sistema'?'block':'none';
+  document.getElementById('lm-bloco-manual').style.display  = tipo==='manual'?'block':'none';
+  const bs = document.getElementById('lm-tab-sistema');
+  const bm = document.getElementById('lm-tab-manual');
+  if(bs){ bs.style.background=tipo==='sistema'?'var(--accent)':'#fff'; bs.style.color=tipo==='sistema'?'#fff':'var(--muted)'; bs.style.borderColor=tipo==='sistema'?'var(--accent)':'var(--border2)'; }
+  if(bm){ bm.style.background=tipo==='manual'?'var(--accent)':'#fff'; bm.style.color=tipo==='manual'?'#fff':'var(--muted)'; bm.style.borderColor=tipo==='manual'?'var(--accent)':'var(--border2)'; }
+};
+
+window.lancarItemLM = async function() {
+  const orcId = document.getElementById('lm-orc').value;
+  const desc  = document.getElementById('lm-desc').value.trim();
+  const cat   = document.getElementById('lm-cat').value;
+  const qtd   = parseFloat(document.getElementById('lm-qtd').value)||1;
+  const valor = parseFloat(document.getElementById('lm-valor').value)||0;
+  const obs   = document.getElementById('lm-obs').value.trim();
+  const data  = document.getElementById('lm-data').value;
+  if(!orcId||orcId===''||!desc||!valor) { showToast('Preencha orçamento, descrição e valor!'); return; }
+  const orc = (window._orcamentos||[]).find(o=>o.id===orcId);
+  const total = Math.round(qtd*valor*100)/100;
+  const item = {
+    tipo:'sistema', orcId, orcNum: orc?.numero||orc?.num||'', cliente: orc?.cliente||'',
+    desc, cat, qtd, valorUnit: valor, total, obs,
+    data: data||new Date().toISOString().split('T')[0],
+    criadoEm: new Date().toISOString(),
+    lancadoPor: _usuarioLogado?.nome||'Sistema',
+    concluido: false
+  };
+  try {
+    const ref = await addDoc(collection(db,'cmt_lista_material'), item);
+    item.id = ref.id;
+    window._listaMaterial.unshift(item);
+    document.getElementById('lm-desc').value='';
+    document.getElementById('lm-valor').value='';
+    document.getElementById('lm-qtd').value='1';
+    document.getElementById('lm-obs').value='';
+    document.getElementById('lm-total-preview').textContent='R$ 0,00';
+    popularFiltroMesLM();
+    window.renderListaMaterial();
+    showToast('Material lançado para '+item.cliente+'!');
+  } catch(e){ showToast('Erro ao salvar: '+e.message); }
+};
+
+window.lancarItemLMManual = async function() {
+  const cliente = document.getElementById('lm-m-cliente').value.trim();
+  const desc    = document.getElementById('lm-m-desc').value.trim();
+  const cat     = document.getElementById('lm-m-cat').value;
+  const qtd     = parseFloat(document.getElementById('lm-m-qtd').value)||1;
+  const valor   = parseFloat(document.getElementById('lm-m-valor').value)||0;
+  const obs     = document.getElementById('lm-m-obs').value.trim();
+  const data    = document.getElementById('lm-m-data').value;
+  if(!cliente||!desc||!valor) { showToast('Preencha cliente, descrição e valor!'); return; }
+  const total = Math.round(qtd*valor*100)/100;
+  const item = {
+    tipo:'manual', orcId:'', orcNum:'', cliente,
+    desc, cat, qtd, valorUnit: valor, total, obs,
+    data: data||new Date().toISOString().split('T')[0],
+    criadoEm: new Date().toISOString(),
+    lancadoPor: _usuarioLogado?.nome||'Sistema',
+    concluido: false
+  };
+  try {
+    const ref = await addDoc(collection(db,'cmt_lista_material'), item);
+    item.id = ref.id;
+    window._listaMaterial.unshift(item);
+    document.getElementById('lm-m-cliente').value='';
+    document.getElementById('lm-m-desc').value='';
+    document.getElementById('lm-m-valor').value='';
+    document.getElementById('lm-m-qtd').value='1';
+    document.getElementById('lm-m-obs').value='';
+    document.getElementById('lm-m-total-preview').textContent='R$ 0,00';
+    popularFiltroMesLM();
+    window.renderListaMaterial();
+    showToast('Material lançado para '+cliente+'!');
+  } catch(e){ showToast('Erro ao salvar: '+e.message); }
+};
+
+window.toggleConcluido = async function(id, val) {
+  try {
+    await updateDoc(doc(db,'cmt_lista_material',id),{concluido:val});
+    const item = (window._listaMaterial||[]).find(x=>x.id===id);
+    if(item) item.concluido = val;
+    window.renderListaMaterial();
+  } catch(e){ showToast('Erro ao atualizar.'); }
+};
+
+window.deletarItemLM = async function(id) {
+  if(!confirm('Remover este item da lista?')) return;
+  try {
+    await deleteDoc(doc(db,'cmt_lista_material',id));
+    window._listaMaterial = (window._listaMaterial||[]).filter(x=>x.id!==id);
+    window.renderListaMaterial();
+    showToast('Item removido.');
+  } catch(e){}
+};
+
+// ── Estado de cards abertos ──
+window._lmOpen = {};
+
+window.toggleCardLM = function(cliente) {
+  window._lmOpen[cliente] = !window._lmOpen[cliente];
+  window.renderListaMaterial();
+};
+
+window.renderListaMaterial = function() {
+  // Filtros
+  const mesFiltro     = parseInt(document.getElementById('lm-filtro-mes')?.value)||0;
+  const statusFiltro  = document.getElementById('lm-filtro-status')?.value||'';
+
+  let lista = (window._listaMaterial||[]);
+
+  if(mesFiltro) {
+    lista = lista.filter(i=>{
+      const d = new Date(i.criadoEm||i.data);
+      return d.getMonth()+1 === mesFiltro;
+    });
+  }
+
+  // Agrupar por cliente
+  const porCliente = {};
+  lista.forEach(i=>{
+    const cli = i.cliente||'Sem cliente';
+    if(!porCliente[cli]) porCliente[cli]=[];
+    porCliente[cli].push(i);
+  });
+
+  // Filtro de status
+  let clientes = Object.entries(porCliente);
+  if(statusFiltro==='pendente')  clientes = clientes.filter(([,items])=>items.some(i=>!i.concluido));
+  if(statusFiltro==='concluido') clientes = clientes.filter(([,items])=>items.every(i=>i.concluido));
+
+  // KPIs
+  const allItems = clientes.flatMap(([,items])=>items);
+  const totalGeral   = allItems.reduce((a,i)=>a+i.total,0);
+  const totalConcl   = allItems.filter(i=>i.concluido).length;
+  const pctGeral     = allItems.length?Math.round(totalConcl/allItems.length*100):0;
+  const cliConcl     = clientes.filter(([,items])=>items.every(i=>i.concluido)).length;
+
+  const kpiEl = document.getElementById('lm-kpis');
+  if(kpiEl) kpiEl.innerHTML=`
+    <div class="card" style="padding:16px;border-left:4px solid var(--accent)">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Total lançado</div>
+      <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--accent)">${fmt(totalGeral)}</div>
+    </div>
+    <div class="card" style="padding:16px;border-left:4px solid var(--green)">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Itens concluídos</div>
+      <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--green)">${totalConcl} / ${allItems.length}</div>
+    </div>
+    <div class="card" style="padding:16px;border-left:4px solid var(--blue)">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">% geral completo</div>
+      <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--blue)">${pctGeral}%</div>
+    </div>
+    <div class="card" style="padding:16px;border-left:4px solid var(--purple)">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Clientes finalizados</div>
+      <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--purple)">${cliConcl} / ${clientes.length}</div>
+    </div>`;
+
+  const listEl = document.getElementById('lm-clientes-lista');
+  if(!listEl) return;
+
+  if(!clientes.length) {
+    listEl.innerHTML='<div class="card" style="text-align:center;padding:40px;color:var(--muted)">Nenhum material lançado neste filtro.</div>';
+    return;
+  }
+
+  const CORES=['#e8520a','#0a8a4a','#1a5fa8','#e9b94e','#6b46c1','#c0392b','#2980b9','#27ae60'];
+
+  listEl.innerHTML = clientes.map(([cli, items], ci)=>{
+    const total  = items.reduce((a,i)=>a+i.total,0);
+    const concl  = items.filter(i=>i.concluido).length;
+    const pct    = items.length?Math.round(concl/items.length*100):0;
+    const isDone = pct===100;
+    const isOpen = !!window._lmOpen[cli];
+    const cor    = CORES[ci%CORES.length];
+    const ini    = cli.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
+
+    const itemsHtml = isOpen ? `
+      <div style="border-top:1px solid var(--border);padding:0 20px 16px">
+        <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:13px">
+          <thead>
+            <tr>
+              <th style="text-align:left;font-size:11px;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;width:32px">Ok</th>
+              <th style="text-align:left;font-size:11px;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Material / Descrição</th>
+              <th style="text-align:left;font-size:11px;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Categoria</th>
+              <th style="text-align:right;font-size:11px;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Qtd</th>
+              <th style="text-align:right;font-size:11px;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Unit.</th>
+              <th style="text-align:right;font-size:11px;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Total</th>
+              <th style="text-align:left;font-size:11px;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Obs.</th>
+              <th style="text-align:left;font-size:11px;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Data</th>
+              <th style="width:30px;border-bottom:1px solid var(--border)"></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map(it=>`
+              <tr style="${it.concluido?'opacity:0.55':''}">
+                <td style="padding:9px 8px;border-bottom:1px solid var(--border)">
+                  <input type="checkbox" ${it.concluido?'checked':''} onchange="window.toggleConcluido('${it.id}',this.checked)"
+                    style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer">
+                </td>
+                <td style="padding:9px 8px;border-bottom:1px solid var(--border);font-weight:600;${it.concluido?'text-decoration:line-through':''}">${it.desc}</td>
+                <td style="padding:9px 8px;border-bottom:1px solid var(--border)"><span class="badge badge-blue" style="font-size:10px">${it.cat||'—'}</span></td>
+                <td style="padding:9px 8px;border-bottom:1px solid var(--border);text-align:right;color:var(--muted)">${(it.qtd||1).toLocaleString('pt-BR',{maximumFractionDigits:2})}</td>
+                <td style="padding:9px 8px;border-bottom:1px solid var(--border);text-align:right;color:var(--muted)">${fmt(it.valorUnit||0)}</td>
+                <td style="padding:9px 8px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:var(--accent);white-space:nowrap">${fmt(it.total)}</td>
+                <td style="padding:9px 8px;border-bottom:1px solid var(--border);color:var(--muted);font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.obs||'—'}</td>
+                <td style="padding:9px 8px;border-bottom:1px solid var(--border);color:var(--muted);white-space:nowrap;font-size:12px">${fmtData(it.data||it.criadoEm)}</td>
+                <td style="padding:9px 8px;border-bottom:1px solid var(--border)">
+                  <span style="cursor:pointer;color:var(--muted2);font-size:16px" onclick="window.deletarItemLM('${it.id}')" title="Remover">×</span>
+                </td>
+              </tr>`).join('')}
+            <tr>
+              <td colspan="5" style="padding:10px 8px;text-align:right;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Total do cliente</td>
+              <td style="padding:10px 8px;text-align:right;font-size:15px;font-weight:800;color:var(--accent)">${fmt(total)}</td>
+              <td colspan="3"></td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:12px">
+          <button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="window.gerarPDFListaMaterialCliente('${encodeURIComponent(cli)}')">📄 PDF deste cliente</button>
+        </div>
+      </div>` : '';
+
+    return `
+      <div class="card" style="padding:0;margin-bottom:12px;overflow:hidden;${isDone?'border-color:var(--green)':''}" id="lm-card-${ci}">
+        <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;transition:background .15s" onclick="window.toggleCardLM('${cli.replace(/'/g,"\\'")}')">
+          <div style="width:38px;height:38px;border-radius:50%;background:${cor}22;color:${cor};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">${ini}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:600;color:var(--text)">${cli}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">${items.length} item${items.length!==1?'s':''} lançado${items.length!==1?'s':''}</div>
+          </div>
+          <div style="flex:1;max-width:180px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px">
+              <span>${pct}% completo</span><span>${concl}/${items.length}</span>
+            </div>
+            <div style="height:6px;background:var(--bg4);border-radius:3px;overflow:hidden">
+              <div style="height:100%;border-radius:3px;background:${isDone?'var(--green)':'var(--accent)'};width:${pct}%;transition:width .4s"></div>
+            </div>
+          </div>
+          <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:var(--accent);min-width:90px;text-align:right">${fmt(total)}</div>
+          ${isDone?`<span class="badge badge-green">Concluído</span>`:''}
+          <span style="font-size:13px;color:var(--muted);transition:transform .2s;${isOpen?'transform:rotate(180deg)':''}">▾</span>
+        </div>
+        ${itemsHtml}
+      </div>`;
+  }).join('');
+};
+
+window.gerarPDFListaMaterialCliente = function(clienteEnc) {
+  const cliente = decodeURIComponent(clienteEnc);
+  const items   = (window._listaMaterial||[]).filter(i=>i.cliente===cliente);
+  _gerarPDFListaMaterial(items, cliente, '');
+};
+
+window.gerarPDFListaMaterialMes = function() {
+  const mesFiltro = parseInt(document.getElementById('lm-filtro-mes')?.value)||0;
+  const nomes=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  let items = window._listaMaterial||[];
+  let titulo = 'Todos os meses';
+  if(mesFiltro) {
+    items = items.filter(i=>{ const d=new Date(i.criadoEm||i.data); return d.getMonth()+1===mesFiltro; });
+    titulo = nomes[mesFiltro]+' 2026';
+  }
+  _gerarPDFListaMaterial(items, '', titulo);
+};
+
+function _gerarPDFListaMaterial(items, cliente, periodoLabel) {
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  const total = items.reduce((a,i)=>a+i.total,0);
+  const concl = items.filter(i=>i.concluido).length;
+  const pct   = items.length?Math.round(concl/items.length*100):0;
+
+  // Agrupar por cliente para PDF do mês
+  const porCli = {};
+  items.forEach(i=>{ const c=i.cliente||'Sem cliente'; if(!porCli[c])porCli[c]=[]; porCli[c].push(i); });
+
+  const catColors = {'ACM':'#1a2332','PVC':'#2980b9','Acrílico':'#e9b94e','Lona':'#27ae60','Fixação':'#7b5fc9','Mão de obra':'#0a8a4a','Elétrico':'#f39c12','Logística':'#1a5fa8','Terceirizado':'#c0392b','Outros':'#888'};
+
+  const blocosCliente = Object.entries(porCli).map(([cli,citems])=>{
+    const ctot = citems.reduce((a,i)=>a+i.total,0);
+    const cconcl = citems.filter(i=>i.concluido).length;
+    const cpct = citems.length?Math.round(cconcl/citems.length*100):0;
+    return `
+      <div style="margin-bottom:22px">
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#1a2332;color:#fff;padding:8px 14px;border-radius:6px;margin-bottom:8px">
+          <span style="font-weight:700;font-size:13px">${cli}</span>
+          <span style="font-size:11px;color:rgba(255,255,255,0.7)">${citems.length} itens · ${cpct}% concluído · <strong style="color:#e8520a">R$ ${ctot.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></span>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead>
+            <tr style="background:#f8f7f4">
+              <th style="padding:5px 8px;text-align:left;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0ddd6">Status</th>
+              <th style="padding:5px 8px;text-align:left;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0ddd6">Material / Descrição</th>
+              <th style="padding:5px 8px;text-align:left;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0ddd6">Categoria</th>
+              <th style="padding:5px 8px;text-align:right;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0ddd6">Qtd</th>
+              <th style="padding:5px 8px;text-align:right;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0ddd6">Unit.</th>
+              <th style="padding:5px 8px;text-align:right;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0ddd6">Total</th>
+              <th style="padding:5px 8px;text-align:left;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0ddd6">Obs.</th>
+              <th style="padding:5px 8px;text-align:left;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0ddd6">Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${citems.map((it,idx)=>`
+              <tr style="background:${idx%2===1?'#fafaf8':'#fff'}">
+                <td style="padding:6px 8px;border-bottom:1px solid #f0ede8">
+                  <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${it.concluido?'#0a8a4a':'#e8e4de'};border:1px solid ${it.concluido?'#0a8a4a':'#ccc'};text-align:center;line-height:14px;font-size:9px;color:#fff;font-weight:700">${it.concluido?'✓':''}</span>
+                </td>
+                <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;font-weight:${it.concluido?'400':'600'};${it.concluido?'text-decoration:line-through;color:#aaa':''}">${it.desc}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid #f0ede8"><span style="background:${catColors[it.cat]||'#888'};color:#fff;font-size:9px;padding:2px 6px;border-radius:10px;font-weight:700">${it.cat||'—'}</span></td>
+                <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;text-align:right;color:#888">${(it.qtd||1).toLocaleString('pt-BR',{maximumFractionDigits:2})}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;text-align:right;color:#888">R$ ${(it.valorUnit||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;text-align:right;font-weight:700;color:#e8520a">R$ ${(it.total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;color:#aaa;font-size:10px">${it.obs||'—'}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;color:#aaa;white-space:nowrap">${fmtData(it.data||it.criadoEm)}</td>
+              </tr>`).join('')}
+            <tr style="background:#1a2332">
+              <td colspan="5" style="padding:7px 8px;text-align:right;color:rgba(255,255,255,0.7);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em">Total ${cli}</td>
+              <td style="padding:7px 8px;text-align:right;font-weight:800;color:#e8520a;font-size:13px">R$ ${ctot.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+              <td colspan="2"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>`;
+  }).join('');
+
+  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>Lista de Material — CMT</title>
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:12px;color:#222;background:#f0ede8;padding:0}.page{background:#fff;max-width:960px;margin:0 auto;padding:28px 32px}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid #e8520a}.logo{font-size:24px;font-weight:900;color:#1a2332}.logo span{color:#e8520a}.kpis{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:22px}.kpi{background:#f8f7f4;border-left:4px solid #e8520a;padding:12px 14px;border-radius:6px}.kpi-l{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;font-weight:700}.kpi-v{font-size:18px;font-weight:800}.footer{margin-top:20px;padding-top:10px;border-top:1px solid #e0ddd6;font-size:10px;color:#aaa;display:flex;justify-content:space-between}@media print{body{background:#fff}.page{padding:16px;max-width:100%}}</style>
+  </head><body><div class="page">
+  <div class="header">
+    <div>
+      <div class="logo">CMT <span>Projetos e Fachadas</span></div>
+      <div style="font-size:14px;font-weight:700;color:#1a2332;margin-top:4px">Lista de Material${cliente?' — '+cliente:' — '+periodoLabel}</div>
+      <div style="font-size:11px;color:#888;margin-top:2px">Gerado em ${hoje}</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:11px;color:#888">Total geral</div>
+      <div style="font-size:26px;font-weight:900;color:#e8520a">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+      <div style="font-size:11px;color:#888">${items.length} itens · ${pct}% concluído</div>
+    </div>
+  </div>
+  <div class="kpis">
+    <div class="kpi" style="border-left-color:#e8520a"><div class="kpi-l">Total lançado</div><div class="kpi-v" style="color:#e8520a">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
+    <div class="kpi" style="border-left-color:#0a8a4a"><div class="kpi-l">Itens concluídos</div><div class="kpi-v" style="color:#0a8a4a">${concl} / ${items.length}</div></div>
+    <div class="kpi" style="border-left-color:#1a5fa8"><div class="kpi-l">% completo</div><div class="kpi-v" style="color:#1a5fa8">${pct}%</div></div>
+    <div class="kpi" style="border-left-color:#6b46c1"><div class="kpi-l">Clientes / obras</div><div class="kpi-v" style="color:#6b46c1">${Object.keys(porCli).length}</div></div>
+  </div>
+  ${blocosCliente}
+  <div class="footer"><span>CMT Projetos e Fachadas — Lista de Material</span><span>Gerado em ${hoje} · ${items.length} itens</span></div>
+  </div></body></html>`;
+
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(),600);
+}
 
 // ── PWA INSTALL BANNER (iOS Safari) ──
 (function() {
