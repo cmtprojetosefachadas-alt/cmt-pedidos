@@ -3329,11 +3329,50 @@ function atualizarMeta() {
   const pct = meta > 0 ? Math.min(Math.round((fatVal/meta)*100),100) : 0;
   const falta = meta > 0 ? Math.max(meta-fatVal,0) : 0;
 
-  // Dias restantes no mês — automático para qualquer mês/ano
+  // Dias úteis restantes no mês (seg-sex, sem feriados nacionais BR)
   const hoje = new Date();
   const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0).getDate();
   const diasRestantes = ultimoDia - hoje.getDate();
-  const diasBase = diasRestantes > 0 ? diasRestantes : 1;
+
+  function feriadosNacionais(ano) {
+    // Cálculo da Páscoa (algoritmo de Butcher)
+    const a=ano%19,b=Math.floor(ano/100),c=ano%100,d=Math.floor(b/4),e=b%4;
+    const f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30;
+    const i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7;
+    const m=Math.floor((a+11*h+22*l)/451);
+    const mes=Math.floor((h+l-7*m+114)/31)-1; // 0-indexed
+    const dia=(h+l-7*m+114)%31+1;
+    const pascoa = new Date(ano, mes, dia);
+    const d1 = (d,m,a) => `${a}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dp = (offset) => { const x=new Date(pascoa); x.setDate(x.getDate()+offset); return x.toISOString().split('T')[0]; };
+    return new Set([
+      d1(1,1,ano),   // Confraternização
+      d1(25,1,ano),  // Aniversário SP (só se quiser remover)
+      dp(-48),        // 2ª Carnaval
+      dp(-47),        // 3ª Carnaval
+      dp(-2),         // Sexta-feira Santa
+      dp(0),          // Páscoa
+      d1(21,4,ano),  // Tiradentes
+      d1(1,5,ano),   // Dia do Trabalho
+      dp(60),         // Corpus Christi
+      d1(7,9,ano),   // Independência
+      d1(12,10,ano), // Nossa Senhora Aparecida
+      d1(2,11,ano),  // Finados
+      d1(15,11,ano), // Proclamação da República
+      d1(20,11,ano), // Consciência Negra
+      d1(25,12,ano), // Natal
+    ]);
+  }
+
+  const feriados = feriadosNacionais(hoje.getFullYear());
+  let diasUteisRestantes = 0;
+  for(let d = hoje.getDate()+1; d <= ultimoDia; d++) {
+    const dt = new Date(hoje.getFullYear(), hoje.getMonth(), d);
+    const diaSemana = dt.getDay(); // 0=dom, 6=sab
+    const iso = dt.toISOString().split('T')[0];
+    if(diaSemana !== 0 && diaSemana !== 6 && !feriados.has(iso)) diasUteisRestantes++;
+  }
+  const diasBase = diasUteisRestantes > 0 ? diasUteisRestantes : 1;
   const porDia = falta > 0 && meta > 0 ? falta / diasBase : 0;
 
   const barEl = document.getElementById('meta-bar');
@@ -3353,7 +3392,7 @@ function atualizarMeta() {
   if(faltaEl) faltaEl.textContent = meta > 0 ? fmtMoney(falta) : '—';
   if(msgEl) msgEl.textContent = meta <= 0 ? 'Digite sua meta mensal' : pct>=100 ? '🎉 Meta atingida!' : 'Faltam '+fmtMoney(falta)+' para atingir a meta';
   if(diaEl) diaEl.textContent = meta > 0 && falta > 0 ? fmtMoney(porDia) : pct>=100 ? '✓ Meta!' : '—';
-  if(diasRestEl) diasRestEl.textContent = meta > 0 && falta > 0 ? diasRestantes+' dias restantes' : '';
+  if(diasRestEl) diasRestEl.textContent = meta > 0 && falta > 0 ? diasUteisRestantes+' dias úteis restantes' : '';
 }
 
 function popularMeses() {
