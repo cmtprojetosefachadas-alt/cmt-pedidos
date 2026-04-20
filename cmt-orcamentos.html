@@ -4050,9 +4050,10 @@ async function carregarListaMaterial() {
 }
 
 function popularSelectOrcamentosLM() {
-  const orcs = (window._orcamentos||[]).filter(o=>o.status==='Aprovado'||o.status==='Aguardando');
+  const orcs = (window._orcamentos||[]).filter(o=>o.status==='Aprovado');
   const sel = document.getElementById('lm-orc');
   if(!sel) return;
+  if(!orcs.length){sel.innerHTML='<option value="">Nenhum orçamento aprovado ainda</option>';return;}
   sel.innerHTML = '<option value="">Selecione o orçamento...</option>' +
     orcs.map(o=>`<option value="${o.id}" data-cliente="${o.cliente}">#${o.numero||o.num||''} — ${o.cliente}</option>`).join('');
 }
