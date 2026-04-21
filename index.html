@@ -2116,7 +2116,13 @@ document.addEventListener('click',async e=>{
   if(e.target.id==='btn-avancar'){
     const p=pedidos.find(x=>x.id===currentPedidoId);if(!p)return;
     const nova=Math.min((p.etapa||0)+1,ETAPAS.length-1);
-    await updateDoc(doc(db,'pedidos',currentPedidoId),{etapa:nova});
+    const update={etapa:nova};
+    if(nova===ETAPAS.length-1){
+      update.finalizado=true;
+      update.mes=new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+      update.dataFinalizacao=new Date().toLocaleDateString('pt-BR');
+    }
+    await updateDoc(doc(db,'pedidos',currentPedidoId),update);
     renderEtapas(nova);showToast('✓ '+ETAPAS[nova]);return;
   }
   // Voltar etapa
@@ -2193,7 +2199,14 @@ document.addEventListener('click',async e=>{
   // Finalizar
   if(e.target.id==='btn-finalizar'){
     if(!confirm('Finalizar este pedido?'))return;
-    await updateDoc(doc(db,'pedidos',currentPedidoId),{etapa:ETAPAS.length-1,finalizado:true});
+    const mesAtual = new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+    const dataHoje = new Date().toLocaleDateString('pt-BR');
+    await updateDoc(doc(db,'pedidos',currentPedidoId),{
+      etapa:ETAPAS.length-1,
+      finalizado:true,
+      mes:mesAtual,
+      dataFinalizacao:dataHoje
+    });
     document.getElementById('modal-bg').classList.remove('open');
     showToast('Pedido finalizado!');return;
   }
