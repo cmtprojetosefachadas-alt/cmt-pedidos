@@ -4222,6 +4222,35 @@ window._lmOpen = {};
 window.toggleCardLM = function(cliente) {
   window._lmOpen[cliente] = !window._lmOpen[cliente];
   window.renderListaMaterial();
+
+  // Pré-seleciona o cliente no formulário de lançamento
+  if(window._lmOpen[cliente]) {
+    // Descobre se existe orçamento APROVADO para este cliente
+    const orcAprov = (window._orcamentos||[]).find(o=>o.cliente===cliente && o.status==='Aprovado');
+
+    if(orcAprov) {
+      // Ativa aba "Orçamento do sistema"
+      window.toggleTipoLM('sistema');
+      const sel = document.getElementById('lm-orc');
+      if(sel) {
+        // Tenta selecionar o orçamento do cliente
+        const opt = [...sel.options].find(o=>o.value===orcAprov.id);
+        if(opt) sel.value = orcAprov.id;
+      }
+    } else {
+      // Cliente manual — ativa aba manual e preenche o nome
+      window.toggleTipoLM('manual');
+      const inp = document.getElementById('lm-m-cliente');
+      if(inp) inp.value = cliente;
+    }
+
+    // Scroll suave até o formulário de lançamento
+    setTimeout(()=>{
+      const form = document.getElementById('lm-bloco-sistema').closest('.card') ||
+                   document.querySelector('#screen-lista-material .card');
+      if(form) form.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }, 80);
+  }
 };
 
 window.renderListaMaterial = function() {
