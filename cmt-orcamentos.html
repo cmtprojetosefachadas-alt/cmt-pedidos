@@ -4286,6 +4286,7 @@ window.renderListaMaterial = function() {
   // KPIs
   const allItems = clientes.flatMap(([,items])=>items);
   const totalGeral   = allItems.reduce((a,i)=>a+i.total,0);
+  const totalPendente= allItems.filter(i=>!i.concluido).reduce((a,i)=>a+i.total,0);
   const totalConcl   = allItems.filter(i=>i.concluido).length;
   const pctGeral     = allItems.length?Math.round(totalConcl/allItems.length*100):0;
   const cliConcl     = clientes.filter(([,items])=>items.every(i=>i.concluido)).length;
@@ -4293,8 +4294,9 @@ window.renderListaMaterial = function() {
   const kpiEl = document.getElementById('lm-kpis');
   if(kpiEl) kpiEl.innerHTML=`
     <div class="card" style="padding:16px;border-left:4px solid var(--accent)">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Total lançado</div>
-      <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--accent)">${fmt(totalGeral)}</div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">A comprar (pendente)</div>
+      <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--accent)">${fmt(totalPendente)}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">de ${fmt(totalGeral)} total</div>
     </div>
     <div class="card" style="padding:16px;border-left:4px solid var(--green)">
       <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Itens concluídos</div>
@@ -4364,8 +4366,11 @@ window.renderListaMaterial = function() {
                 </td>
               </tr>`).join('')}
             <tr>
-              <td colspan="5" style="padding:10px 8px;text-align:right;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Total do cliente</td>
-              <td style="padding:10px 8px;text-align:right;font-size:15px;font-weight:800;color:var(--accent)">${fmt(total)}</td>
+              <td colspan="5" style="padding:10px 8px;text-align:right;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">A comprar</td>
+              <td style="padding:10px 8px;text-align:right">
+                <div style="font-size:15px;font-weight:800;color:var(--accent)">${fmt(items.filter(i=>!i.concluido).reduce((a,i)=>a+i.total,0))}</div>
+                ${items.some(i=>i.concluido)?`<div style="font-size:11px;color:var(--muted);text-decoration:line-through;margin-top:2px">Total: ${fmt(total)}</div>`:''}
+              </td>
               <td colspan="3"></td>
             </tr>
           </tbody>
@@ -4382,7 +4387,7 @@ window.renderListaMaterial = function() {
           <div style="width:38px;height:38px;border-radius:50%;background:${cor}22;color:${cor};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">${ini}</div>
           <div style="flex:1;min-width:0">
             <div style="font-size:14px;font-weight:600;color:var(--text)">${cli}</div>
-            <div style="font-size:12px;color:var(--muted);margin-top:2px">${items.length} item${items.length!==1?'s':''} lançado${items.length!==1?'s':''}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">${items.length} iten${items.length!==1?'s':''} lançado${items.length!==1?'s':''}</div>
           </div>
           <div style="flex:1;max-width:180px">
             <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px">
@@ -4392,7 +4397,10 @@ window.renderListaMaterial = function() {
               <div style="height:100%;border-radius:3px;background:${isDone?'var(--green)':'var(--accent)'};width:${pct}%;transition:width .4s"></div>
             </div>
           </div>
-          <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:var(--accent);min-width:90px;text-align:right">${fmt(total)}</div>
+          <div style="text-align:right;min-width:90px">
+            <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:var(--accent)">${fmt(items.filter(i=>!i.concluido).reduce((a,i)=>a+i.total,0))}</div>
+            ${concl>0?`<div style="font-size:10px;color:var(--muted);margin-top:1px">de ${fmt(total)}</div>`:''}
+          </div>
           ${isDone?`<span class="badge badge-green">Concluído</span>`:''}
           <span style="font-size:13px;color:var(--muted);transition:transform .2s;${isOpen?'transform:rotate(180deg)':''}">▾</span>
         </div>
