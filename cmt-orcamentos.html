@@ -1002,6 +1002,7 @@ body {
       <table>
         <thead>
           <tr>
+            <th style="width:36px"></th>
             <th>Data</th><th>Cliente / Orçamento</th><th>Descrição</th>
             <th>Categoria</th><th>Valor</th><th>Obs.</th>
             <th>Lançado por</th><th></th>
@@ -3245,6 +3246,9 @@ async function carregarDespesas() {
     const snap = await getDocs(collection(db,'cmt_despesas'));
     _despesas = snap.docs.map(d=>({id:d.id,...d.data()}));
     _despesas.sort((a,b)=>new Date(b.criadoEm)-new Date(a.criadoEm));
+    // Restaura estado de comprado do Firestore
+    if(!window._despChecked) window._despChecked = {};
+    _despesas.forEach(d=>{ if(d.comprado) window._despChecked[d.id]=true; });
   } catch(e) { _despesas=[]; }
 }
 
@@ -3516,6 +3520,7 @@ function renderDespesas() {
     const orcsAprov = (window._orcamentos||[]).filter(o=>o.status==='Aprovado');
     // Estado de expansão — persiste enquanto não recarregar
     if(!window._cliExpandido) window._cliExpandido = {};
+    if(!window._despChecked) window._despChecked = {};
 
     tbody.innerHTML = Object.entries(porCli).sort((a,b)=>b[1].total-a[1].total).map(([cli,{items,total}])=>{
       const cliKey = 'cli_'+cli.replace(/[^a-zA-Z0-9]/g,'_');
@@ -3550,8 +3555,15 @@ function renderDespesas() {
         </td>
       </tr>`;
 
-      const detalheRows = expanded ? items.map(d=>`<tr id="row_${cliKey}" style="opacity:0.88">
-        <td style="padding-left:32px;font-size:12px;color:var(--muted)">${fmtData(d.data||d.criadoEm)}</td>
+      const detalheRows = expanded ? items.map(d=>{
+        const ck = window._despChecked?.[d.id];
+        const riscado = ck ? 'opacity:0.45;text-decoration:line-through;' : 'opacity:0.88;';
+        return `<tr id="row_${cliKey}" style="${riscado}">
+        <td style="padding-left:12px;text-align:center">
+          <input type="checkbox" ${ck?'checked':''} onchange="window.toggleDespCheck('${d.id}',this.checked)"
+            style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer">
+        </td>
+        <td style="padding-left:16px;font-size:12px;color:var(--muted)">${fmtData(d.data||d.criadoEm)}</td>
         <td style="font-size:12px;color:var(--muted)">#${d.orcNum}</td>
         <td style="font-weight:500">${d.desc}</td>
         <td><span style="background:${catColors[d.cat]||'#888'};color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px">${d.cat}</span></td>
@@ -3559,7 +3571,7 @@ function renderDespesas() {
         <td style="font-size:12px;color:var(--muted)">${d.obs||'—'}</td>
         <td style="font-size:12px;color:var(--muted)">${d.lancadoPor||'—'}</td>
         <td><button onclick="window.excluirDespesa('${d.id}')" style="background:none;border:none;color:var(--muted2);cursor:pointer;font-size:16px;padding:2px 6px">🗑</button></td>
-      </tr>`).join('') : '';
+      </tr>`;}).join('') : '';
 
       return headerRow + detalheRows;
     }).join('');
@@ -3579,7 +3591,14 @@ function renderDespesas() {
       window.atualizarSaldoClienteBox();
   window.renderClientSummary();
   }
-    tbody.innerHTML = lista.map(d=>`<tr>
+    tbody.innerHTML = lista.map(d=>{
+      const ck = window._despChecked?.[d.id];
+      const riscado = ck ? 'opacity:0.45;text-decoration:line-through;' : '';
+      return `<tr style="${riscado}">
+      <td style="text-align:center">
+        <input type="checkbox" ${ck?'checked':''} onchange="window.toggleDespCheck('${d.id}',this.checked)"
+          style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer">
+      </td>
       <td style="white-space:nowrap;font-size:12px">${fmtData(d.data||d.criadoEm)}</td>
       <td><span style="font-weight:600">#${d.orcNum}</span> <span style="font-size:12px;color:var(--muted)">${d.orcCliente}</span></td>
       <td style="font-weight:500">${d.desc}</td>
@@ -3588,13 +3607,25 @@ function renderDespesas() {
       <td style="font-size:12px;color:var(--muted)">${d.obs||'—'}</td>
       <td style="font-size:12px;color:var(--muted)">${d.lancadoPor||'—'}</td>
       <td><button onclick="window.excluirDespesa('${d.id}')" style="background:none;border:none;color:var(--muted2);cursor:pointer;font-size:16px;padding:2px 6px">🗑</button></td>
-    </tr>`).join('');
+    </tr>`;}).join('');
   }
 }
 
 window.toggleCliExpandido = function(key) {
   if(!window._cliExpandido) window._cliExpandido = {};
   window._cliExpandido[key] = !( window._cliExpandido[key] !== false );
+  renderDespesas();
+};
+
+window.toggleDespCheck = async function(id, val) {
+  if(!window._despChecked) window._despChecked = {};
+  if(val) window._despChecked[id] = true;
+  else delete window._despChecked[id];
+  // Salva no Firestore — só o campo comprado, não mexe em nada mais
+  try { await updateDoc(doc(db,'cmt_despesas',id), {comprado: !!val}); } catch(e){}
+  // Atualiza cache local
+  const d = (_despesas||[]).find(x=>x.id===id);
+  if(d) d.comprado = !!val;
   renderDespesas();
 };
 
@@ -4007,13 +4038,13 @@ window.gerarPDFDespesas = function() {
     <thead><tr><th>Data</th><th>Orçamento / Cliente</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Obs.</th><th>Lançado por</th></tr></thead>
     <tbody>
       ${lista.map((d,i)=>`<tr>
-        <td style="white-space:nowrap;color:#888">${fmtData(d.data||d.criadoEm)}</td>
-        <td><strong>#${d.orcNum}</strong> ${d.orcCliente}</td>
-        <td style="font-weight:500">${d.desc}</td>
-        <td><span class="badge" style="background:${catColors[d.cat]||'#888'}">${d.cat}</span></td>
-        <td style="font-weight:700;color:#e8520a;white-space:nowrap">${fmt(d.valor)}</td>
-        <td style="color:#aaa">${d.obs||'—'}</td>
-        <td style="color:#aaa">${d.lancadoPor||'—'}</td>
+        <td style="white-space:nowrap;color:#888;${d.comprado?'text-decoration:line-through;opacity:.5':''}">${fmtData(d.data||d.criadoEm)}</td>
+        <td style="${d.comprado?'text-decoration:line-through;opacity:.5':''}"><strong>#${d.orcNum}</strong> ${d.orcCliente}</td>
+        <td style="font-weight:500;${d.comprado?'text-decoration:line-through;opacity:.5':''}">${d.desc}</td>
+        <td><span class="badge" style="background:${catColors[d.cat]||'#888'};${d.comprado?'opacity:.5':''}">${d.cat}</span></td>
+        <td style="font-weight:700;color:#e8520a;white-space:nowrap;${d.comprado?'text-decoration:line-through;opacity:.5':''}">${fmt(d.valor)}</td>
+        <td style="color:#aaa;${d.comprado?'opacity:.5':''}">${d.obs||'—'}</td>
+        <td style="color:#aaa;${d.comprado?'opacity:.5':''}"><span style="color:${d.comprado?'#0a8a4a':'#aaa'};font-weight:${d.comprado?'700':'400'}">${d.comprado?'✓ Comprado':d.lancadoPor||'—'}</span></td>
       </tr>`).join('')}
       <tr class="total-row">
         <td colspan="4" style="text-align:right;letter-spacing:0.05em">TOTAL GERAL</td>
