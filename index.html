@@ -755,9 +755,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="modal-actions">
       <button class="btn" id="btn-fechar-modal">Fechar</button>
       <button class="btn" id="btn-ver-orc" style="display:none;">📄 Ver Orçamento</button>
+      <button class="btn" id="btn-ver-pdf-finalizado" style="display:none;background:#f0fdf4;border-color:#86efac;color:#166534;font-weight:700;">📄 Ver Pedido / PDF</button>
       <button class="btn btn-wpp" id="btn-status-wpp">&#128172; Status via WhatsApp</button>
       <button class="btn" id="btn-cancelar-pedido" style="background:#FEF2F2;color:#991B1B;border-color:#FECACA;font-weight:600;">🚫 Cancelar pedido</button>
       <button class="btn btn-red" id="btn-finalizar">&#10003; Finalizar pedido</button>
+    </div>
+    <div id="modal-historico-reversoes" style="display:none;margin-top:12px;padding:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;">
+      <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:8px;">⚠️ Histórico de reversões</div>
+      <div id="modal-historico-lista"></div>
     </div>
   </div>
 </div>
@@ -1587,7 +1592,33 @@ async function openModal(id){
   const credTel=document.getElementById('cred-tel');
   if(credTel) credTel.value=p.tel||'';
   const verOrcBtn=document.getElementById('btn-ver-orc');
-  if(verOrcBtn) verOrcBtn.style.display=p.orcItens&&p.orcItens.length?'inline-flex':'none';
+  if(verOrcBtn) verOrcBtn.style.display=p.orcItens&&p.orcItens.length&&!p.finalizado?'inline-flex':'none';
+
+  // Botão PDF finalizado
+  const verPdfFin=document.getElementById('btn-ver-pdf-finalizado');
+  if(verPdfFin) verPdfFin.style.display=p.finalizado?'inline-flex':'none';
+
+  // Botão finalizar — esconde se já finalizado
+  const btnFin=document.getElementById('btn-finalizar');
+  if(btnFin) btnFin.style.display=p.finalizado?'none':'inline-flex';
+
+  // Histórico de reversões
+  const histEl=document.getElementById('modal-historico-reversoes');
+  const histLista=document.getElementById('modal-historico-lista');
+  if(histEl&&histLista){
+    try {
+      const snap=await getDocs(query(collection(db,'pedidos',id,'historico'),orderBy('timestamp','asc')));
+      const revs=snap.docs.map(d=>d.data()).filter(d=>d.tipo==='reversao');
+      if(revs.length){
+        histEl.style.display='block';
+        histLista.innerHTML=revs.map(r=>`<div style="font-size:12px;color:#92400e;padding:4px 0;border-bottom:1px solid #fde68a;">
+          <strong>${r.dataHora}</strong> — ${r.motivo}
+        </div>`).join('');
+      } else {
+        histEl.style.display='none';
+      }
+    } catch(e){ histEl.style.display='none'; }
+  }
   // Carregar fotos
   const f1=document.getElementById('foto1-preview');
   const f2=document.getElementById('foto2-preview');
@@ -2036,32 +2067,8 @@ document.addEventListener('click',async e=>{
   // Abrir pedido finalizado → PDF
   if(e.target.closest('[data-type="pedido-fin"]')){
     const el=e.target.closest('[data-type="pedido-fin"]');
-    if(!el)return;
-    const p=pedidos.find(x=>x.id===el.dataset.id);
-    if(!p)return;
-    // Se tem itens do orçamento salvo, abre PDF
-    if(p.orcItens&&p.orcItens.length){
-      const rows=(p.orcItens||[]).map(it=>`<tr><td>${it.desc}</td><td style="text-align:right;font-weight:600;color:#0F6E56;">${fmtMoney(it.valor||0)}</td></tr>`).join('');
-      document.getElementById('pdf-content').innerHTML=`
-        <div class="pdf-header">
-          <div><div class="pdf-co">CMT Projetos e Fachadas</div><div class="pdf-co-sub">CNPJ: 53.466.209/0001-01 · Franca, SP · Comercial: (16) 99649-2182</div></div>
-          <div><div class="pdf-badge">PEDIDO FINALIZADO</div><div class="pdf-badge-sub">Nº ${p.orcNum||p.codigo}<br/>Entregue em ${p.dataConversao||''}</div></div>
-        </div>
-        <div class="pdf-cliente"><strong>Cliente:</strong> ${p.nome} &nbsp;|&nbsp; <strong>Pedido:</strong> ${p.codigo}${p.enderecoEntrega&&(p.enderecoEntrega.rua||p.enderecoEntrega.cidade)?' &nbsp;|&nbsp; <strong>Entrega:</strong> '+[p.enderecoEntrega.rua,p.enderecoEntrega.num,p.enderecoEntrega.bairro,p.enderecoEntrega.cidade,p.enderecoEntrega.uf?'&#8211;'+p.enderecoEntrega.uf:'',p.enderecoEntrega.cep?'CEP: '+p.enderecoEntrega.cep:''].filter(Boolean).join(', '):''}</div>
-        <table class="pdf-tbl"><thead><tr><th style="width:70%">Descrição do serviço</th><th>Valor</th></tr></thead>
-        <tbody>${rows}</tbody></table>
-        <div class="pdf-total"><div class="pdf-total-final">Total: ${fmtMoney(p.valor||0)}</div></div>
-        ${p.orcObs?`<div class="pdf-obs"><strong>Observações:</strong><br/>${(p.orcObs||'').split('\n').join('<br/>')}</div>`:''}
-        <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
-          <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>CMT Projetos e Fachadas</strong><br/>CNPJ: 53.466.209/0001-01</div></div>
-          <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>Cliente: ${p.nome}</strong><br/>Assinatura</div></div>
-        </div>
-        <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Pedido: ${p.codigo}</span></div>`;
-      showTab('preview');
-    } else {
-      // Sem orçamento salvo, abre modal normal
-      openModal(el.dataset.id);
-    }
+    if(!el||e.target.closest('button'))return;
+    openModal(el.dataset.id);
     return;
   }
   // Abrir pedido
@@ -2154,6 +2161,13 @@ document.addEventListener('click',async e=>{
     await renderPosvenda(currentPedidoId);
     if(p&&p.tel){const telMsg=p.tel.replace(/\D/g,'');window.open('https://wa.me/55'+telMsg+'?text='+encodeURIComponent('CMT Projetos e Fachadas 🏗️\n\n*Atualização do pedido '+p.codigo+':*\n'+texto),'_blank');}
     showToast('Mensagem enviada!');return;
+  }
+  // Ver PDF pedido finalizado
+  if(e.target.id==='btn-ver-pdf-finalizado'){
+    const p=pedidos.find(x=>x.id===currentPedidoId);if(!p)return;
+    window.verPedidoPDF(currentPedidoId);
+    document.getElementById('modal-bg').classList.remove('open');
+    return;
   }
   // Enviar credenciais
   if(e.target.id==='btn-ver-orc'){
