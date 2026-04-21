@@ -2383,8 +2383,13 @@ window.reativarPedido = async function(id) {
   const agora = new Date();
   const dataHora = agora.toLocaleDateString('pt-BR') + ' às ' + agora.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
 
-  // Volta o pedido para Em andamento
-  await updateDoc(doc(db,'pedidos',id), {etapa: ETAPAS.length-2, finalizado: false});
+  // Volta o pedido para Em andamento e limpa dados de finalização
+  await updateDoc(doc(db,'pedidos',id), {
+    etapa: ETAPAS.length-2,
+    finalizado: false,
+    mes: p.dataConversao ? p.dataConversao.substring(3) : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}),
+    dataFinalizacao: null
+  });
 
   // Grava log imutável na subcoleção — não pode ser editado, só adicionado
   await addDoc(collection(db,'pedidos',id,'historico'), {
