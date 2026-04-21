@@ -3940,21 +3940,21 @@ window.renderEntradasLista = function renderEntradasLista(lista) {
     return new Date() >= fim;
   };
 
+  const hojeISO = new Date().toISOString().split('T')[0];
   const rowsEnt = arr => arr.map(e=>{
-    // Calcula o mês da entrada para checar se encerrou sem baixa
-    const eMes = e.data ? (e.data.split('-')[1]+'/'+e.data.split('-')[0]) : '';
-    const atrasada = e.recebido!==true && mesEncerrado(eMes);
+    // Atrasada = não recebida E data já passou (compara data exata com hoje)
+    const atrasada = e.recebido!==true && e.data && e.data < hojeISO;
     const corNome = atrasada ? 'color:#A32D2D;font-weight:700;' : 'font-weight:500;';
     const corValor = atrasada ? 'color:#A32D2D;' : 'color:var(--green);';
     const alertaAtrasada = atrasada ? '⚠️ ' : '';
     return `
     <tr style="border-bottom:1px solid var(--border);${atrasada?'background:#fff5f5;':''}">
-      <td style="padding:8px;${atrasada?'color:#A32D2D;font-weight:600;':''}">${fmtDataBr(e.data)}</td>
+      <td style="padding:8px;${atrasada?'color:#A32D2D;font-weight:600;':''}">${fmtDataBr(e.data)}${atrasada?'<br/><span style="font-size:10px;color:#A32D2D;font-weight:700;">EM ATRASO</span>':''}</td>
       <td style="padding:8px;${corNome}">${alertaAtrasada}${e.clienteNome||'—'}</td>
-      <td style="padding:8px;"><span style="background:var(--green-bg);color:var(--green-text);padding:2px 8px;border-radius:12px;font-size:11px;">${e.tipo||'Entrada'}</span>
+      <td style="padding:8px;"><span style="background:${atrasada?'var(--red-bg)':'var(--green-bg)'};color:${atrasada?'#A32D2D':'var(--green-text)'};padding:2px 8px;border-radius:12px;font-size:11px;">${e.tipo||'Entrada'}</span>
       ${e.compensacao?`<br/><span style="font-size:11px;color:var(--muted);">Comp: ${fmtDataBr(e.compensacao)}</span>`:''}
       </td>
-      <td style="padding:8px;color:var(--muted);font-size:12px;">${e.obs||''}</td>
+      <td style="padding:8px;color:${atrasada?'#A32D2D':'var(--muted)'};font-size:12px;">${e.obs||''}</td>
       <td style="padding:8px;text-align:right;font-weight:600;${corValor}">${fmtMoney(e.valor||0)}</td>
       <td style="padding:8px;display:flex;gap:4px;">
         <button class="btn btn-primary" style="font-size:11px;padding:3px 8px;white-space:nowrap;" data-id="${e.id}" data-recebido="0" data-type="toggle-recebido">✅ Dar baixa</button>
@@ -4049,18 +4049,19 @@ function renderSaidasLista(lista) {
     return new Date() >= fim;
   };
 
+  const hojeISOSai = new Date().toISOString().split('T')[0];
   const tabelaRows = (arr, isFutura=false) => arr.map(s=>{
-    const sMes = s.data ? (s.data.split('-')[1]+'/'+s.data.split('-')[0]) : '';
-    const atrasada = isFutura && mesEncerradoSai(sMes);
+    // Atrasada = futura, não paga, e data já passou
+    const atrasada = isFutura && s.data && s.data < hojeISOSai;
     const corDesc = atrasada ? 'color:#A32D2D;font-weight:700;' : 'font-weight:500;';
     const corValor = atrasada ? 'color:#A32D2D;' : 'color:var(--red);';
     const alertaAtrasada = atrasada ? '⚠️ ' : '';
     return `
     <tr style="border-bottom:1px solid var(--border);${atrasada?'background:#fff5f5;':''}">
-      <td style="padding:8px;${atrasada?'color:#A32D2D;font-weight:600;':''}">${fmtDataBr(s.data)}</td>
+      <td style="padding:8px;${atrasada?'color:#A32D2D;font-weight:600;':''}">${fmtDataBr(s.data)}${atrasada?'<br/><span style="font-size:10px;color:#A32D2D;font-weight:700;">EM ATRASO</span>':''}</td>
       <td style="padding:8px;${corDesc}">${alertaAtrasada}${s.desc||'—'}</td>
-      <td style="padding:8px;"><span style="background:var(--red-bg);color:var(--red-text);padding:2px 8px;border-radius:12px;font-size:11px;">${s.cat||'Outro'}</span></td>
-      <td style="padding:8px;color:var(--muted);font-size:12px;">${s.ref||s.obs||''}</td>
+      <td style="padding:8px;"><span style="background:${atrasada?'var(--red-bg)':'var(--red-bg)'};color:${atrasada?'#A32D2D':'var(--red-text)'};padding:2px 8px;border-radius:12px;font-size:11px;">${s.cat||'Outro'}</span></td>
+      <td style="padding:8px;color:${atrasada?'#A32D2D':'var(--muted)'};font-size:12px;">${s.ref||s.obs||''}</td>
       <td style="padding:8px;text-align:right;font-weight:600;${corValor}">${fmtMoney(s.valor||0)}</td>
       <td style="padding:8px;display:flex;gap:4px;">
         ${isFutura?`<button class="btn btn-primary" style="font-size:11px;padding:3px 8px;white-space:nowrap;" data-id="${s.id}" data-type="baixa-saida">✅ Dar baixa</button>`:''}
