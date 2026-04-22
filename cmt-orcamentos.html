@@ -3892,12 +3892,132 @@ window.iniciarDespesas = iniciarDespesas;
 window.gerarPDFDespesasCliente = function() {
   const filtroCliEl = document.getElementById('desp-filtro-cliente');
   const cliente = filtroCliEl?.value||'';
-  if(!cliente) {
-    showToast('Selecione um cliente no filtro para gerar o PDF!');
-    return;
-  }
-  // Força o filtro e chama o PDF geral que já suporta filtro por cliente
-  window.gerarPDFDespesas();
+  if(!cliente) { showToast('Selecione um cliente no filtro para gerar o PDF!'); return; }
+
+  const hoje   = new Date().toLocaleDateString('pt-BR');
+  const lista  = _despesas.filter(d=>(d.orcCliente||'Manual')===cliente);
+  const total  = lista.reduce((a,d)=>a+d.valor,0);
+
+  // Saldo do cliente
+  const orcsAprov   = (window._orcamentos||[]).filter(o=>o.status==='Aprovado'&&o.cliente===cliente);
+  const orcadoOrc   = orcsAprov.reduce((a,o)=>a+(o.custoTotal||0),0);
+  const orcadoMan   = _saldosClientes[cliente]?.valor||0;
+  const orcado      = orcadoOrc>0?orcadoOrc:orcadoMan;
+  const saldo       = orcado - total;
+  const pctUsado    = orcado>0?Math.min(Math.round(total/orcado*100),100):0;
+  const corSaldo    = total>orcado?'#cc2222':pctUsado>80?'#e8520a':'#0a8a4a';
+
+  // Categorias
+  const porCat = {};
+  lista.forEach(d=>{ porCat[d.cat]=(porCat[d.cat]||0)+d.valor; });
+  const catRows = Object.entries(porCat).sort((a,b)=>b[1]-a[1]).map(([cat,val])=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f0ede8">
+      <span style="font-size:11px">${cat}</span>
+      <span style="font-size:11px;font-weight:700;color:#e8520a">${fmt(val)}</span>
+    </div>`).join('');
+
+  const catColors = {'Material':'#e8520a','Mão de obra':'#0a8a4a','Frete':'#1a5fa8','Alimentação':'#e67e22','Fixação':'#7b5fc9','Pró-labore':'#c0392b','ACM':'#1a2332','PVC':'#2980b9','Elétrico':'#f39c12','Serviço':'#8e44ad','Impressão':'#0984e3','Logística':'#16a085','Outros':'#888'};
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>Despesas — ${cliente}</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:Arial,sans-serif;font-size:12px;color:#222;background:#f0ede8}
+    .page{background:#fff;max-width:900px;margin:0 auto;padding:28px 32px}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid #e8520a}
+    .logo{font-size:24px;font-weight:900;color:#1a2332}.logo span{color:#e8520a}
+    .title{font-size:15px;font-weight:700;color:#1a2332;margin-top:4px}
+    .sub{font-size:11px;color:#888;margin-top:2px}
+    .header-right{text-align:right}
+    .header-right .val{font-size:26px;font-weight:900;color:#e8520a}
+    .header-right .lbl{font-size:11px;color:#888}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+    .box{background:#f8f7f4;border-radius:8px;padding:14px 18px}
+    .box-title{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:10px}
+    h3{font-size:12px;font-weight:800;margin:16px 0 8px;padding:6px 10px;background:#1a2332;color:#fff;border-radius:4px}
+    table{width:100%;border-collapse:collapse;margin-bottom:4px}
+    th{text-align:left;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;padding:6px 10px;background:#f8f7f4;border-bottom:2px solid #e0ddd6;font-weight:700}
+    td{padding:7px 10px;border-bottom:1px solid #f0ede8;font-size:11px;vertical-align:middle}
+    tr:nth-child(even) td{background:#fafaf8}
+    tr.total-row td{background:#1a2332;color:#fff;font-weight:700;border:none}
+    tr.total-row td.val{color:#e8520a;font-size:13px}
+    .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;color:#fff}
+    .footer{margin-top:20px;padding-top:10px;border-top:1px solid #e0ddd6;font-size:10px;color:#aaa;display:flex;justify-content:space-between}
+    @media print{body{background:#fff}.page{padding:16px;max-width:100%}}
+  </style></head><body><div class="page">
+
+  <div class="header">
+    <div>
+      <div class="logo">CMT <span>Projetos e Fachadas</span></div>
+      <div class="title">Despesas — ${cliente}</div>
+      <div class="sub">Gerado em ${hoje} · ${lista.length} lançamentos</div>
+    </div>
+    <div class="header-right">
+      <div class="lbl">Total gasto</div>
+      <div class="val">${fmt(total)}</div>
+      <div class="lbl">${lista.length} lançamentos</div>
+    </div>
+  </div>
+
+  ${orcado>0?`
+  <div style="background:#f8f7f4;border-radius:8px;padding:14px 18px;margin-bottom:16px;border-left:4px solid ${corSaldo}">
+    <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:10px">📊 Saldo de ${cliente}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:8px">
+      <div><div style="font-size:10px;color:#888">Orçamento</div><div style="font-size:16px;font-weight:800;color:#0a8a4a">${fmt(orcado)}</div></div>
+      <div><div style="font-size:10px;color:#888">Gasto</div><div style="font-size:16px;font-weight:800;color:#e8520a">${fmt(total)}</div></div>
+      <div><div style="font-size:10px;color:#888">Saldo</div><div style="font-size:16px;font-weight:800;color:${corSaldo}">${saldo>=0?'+':''}${fmt(saldo)}</div></div>
+      <div><div style="font-size:10px;color:#888">Utilização</div><div style="font-size:16px;font-weight:800;color:${corSaldo}">${pctUsado}%</div></div>
+    </div>
+    <div style="height:8px;background:#e8e4de;border-radius:4px;overflow:hidden">
+      <div style="height:100%;border-radius:4px;background:${corSaldo};width:${pctUsado}%"></div>
+    </div>
+  </div>`:''}
+
+  <div class="grid2">
+    <div class="box">
+      <div class="box-title">Gastos por categoria</div>
+      ${catRows||'<div style="font-size:11px;color:#aaa">Sem lançamentos</div>'}
+    </div>
+    <div class="box">
+      <div class="box-title">Resumo</div>
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0ede8"><span style="font-size:11px;color:#888">Total lançamentos</span><span style="font-weight:700">${lista.length}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0ede8"><span style="font-size:11px;color:#888">Total gasto</span><span style="font-weight:700;color:#e8520a">${fmt(total)}</span></div>
+      ${orcado>0?`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0ede8"><span style="font-size:11px;color:#888">Orçamento</span><span style="font-weight:700;color:#0a8a4a">${fmt(orcado)}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:5px 0"><span style="font-size:11px;color:#888">Saldo</span><span style="font-weight:700;color:${corSaldo}">${saldo>=0?'+':''}${fmt(saldo)}</span></div>`:''}
+    </div>
+  </div>
+
+  <h3>📋 Lançamentos detalhados</h3>
+  <table>
+    <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Obs.</th><th>Lançado por</th></tr></thead>
+    <tbody>
+      ${lista.map((d,i)=>`<tr>
+        <td style="white-space:nowrap;color:#888">${fmtData(d.data||d.criadoEm)}</td>
+        <td style="font-weight:500;${d.comprado?'text-decoration:line-through;opacity:.5':''}">${d.desc}</td>
+        <td><span class="badge" style="background:${catColors[d.cat]||'#888'}">${d.cat}</span></td>
+        <td style="font-weight:700;color:#e8520a;white-space:nowrap;${d.comprado?'text-decoration:line-through;opacity:.5':''}">${fmt(d.valor)}</td>
+        <td style="color:#aaa">${d.obs||'—'}</td>
+        <td style="color:${d.comprado?'#0a8a4a':'#aaa'};font-weight:${d.comprado?'700':'400'}">${d.comprado?'✓ Comprado':d.lancadoPor||'—'}</td>
+      </tr>`).join('')}
+      <tr class="total-row">
+        <td colspan="3" style="text-align:right;letter-spacing:.05em">TOTAL</td>
+        <td class="val">${fmt(total)}</td>
+        <td colspan="2"></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <span>CMT Projetos e Fachadas — Despesas de ${cliente}</span>
+    <span>Gerado em ${hoje} · ${lista.length} lançamentos</span>
+  </div>
+
+  </div></body></html>`;
+
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(), 600);
 };
 
 window.gerarPDFDespesas = function() {
