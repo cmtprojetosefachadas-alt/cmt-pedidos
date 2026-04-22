@@ -897,9 +897,10 @@ body {
 
 <!-- MODAL LANÇAR ITEM DE ESTOQUE -->
 <div class="modal-overlay" id="modal-est-item" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="modal" style="max-width:560px">
+  <div class="modal" style="max-width:580px">
     <h3 id="modal-est-item-title">Lançar material</h3>
     <input type="hidden" id="est-item-entidade-id">
+    <input type="hidden" id="est-item-edit-id">
     <div class="field-row" style="margin-bottom:14px">
       <div class="field-group" style="margin:0">
         <label class="field-label">Material / Descrição</label>
@@ -929,12 +930,18 @@ body {
         <input class="field" id="est-item-data" type="date">
       </div>
     </div>
-    <div class="field-group">
-      <label class="field-label">Observação / Destino</label>
-      <input class="field" id="est-item-obs" placeholder="Ex: será usado na fachada do cliente X">
+    <div class="field-row" style="margin-bottom:0">
+      <div class="field-group">
+        <label class="field-label">Cliente destino <span style="color:var(--muted);font-weight:400">(opcional)</span></label>
+        <input class="field" id="est-item-cliente" placeholder="Ex: Vitor Tresoldi / Allp FIT">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Observação</label>
+        <input class="field" id="est-item-obs" placeholder="Ex: fachada frente loja, 2º andar...">
+      </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-primary" style="flex:1" onclick="window.salvarEstoqueItem()">+ Lançar</button>
+      <button class="btn btn-primary" style="flex:1" id="est-item-btn-salvar" onclick="window.salvarEstoqueItem()">+ Lançar</button>
       <button class="btn btn-secondary" style="flex:1" onclick="document.getElementById('modal-est-item').classList.remove('open')">Cancelar</button>
     </div>
   </div>
@@ -4601,6 +4608,7 @@ function _gerarPDFListaMaterial(items, cliente, periodoLabel) {
                 <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;text-align:right;color:#888">R$ ${(it.valorUnit||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
                 <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;text-align:right;font-weight:700;color:#e8520a">R$ ${(it.total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
                 <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;color:#aaa;font-size:10px">${it.obs||'—'}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;font-weight:${it.cliente?'700':'400'};color:${it.cliente?'#1a5fa8':'#aaa'};font-size:10px">${it.cliente||'—'}</td>
                 <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;color:#aaa;white-space:nowrap">${fmtData(it.data||it.criadoEm)}</td>
               </tr>`).join('')}
             <tr style="background:#1a2332">
@@ -4719,34 +4727,72 @@ window.abrirModalEstoqueItem = function(entidadeId) {
   const ent = (window._estoqueEntidades||[]).find(e=>e.id===entidadeId);
   document.getElementById('modal-est-item-title').textContent = 'Lançar material — '+(ent?.nome||'');
   document.getElementById('est-item-entidade-id').value = entidadeId;
+  document.getElementById('est-item-edit-id').value = '';
   document.getElementById('est-item-nome').value = '';
   document.getElementById('est-item-valor').value = '';
   document.getElementById('est-item-qtd').value = '1';
   document.getElementById('est-item-obs').value = '';
+  document.getElementById('est-item-cliente').value = '';
   document.getElementById('est-item-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('est-item-btn-salvar').textContent = '+ Lançar';
+  document.getElementById('modal-est-item').classList.add('open');
+};
+
+window.editarEstoqueItem = function(id) {
+  const it = (window._estoqueItens||[]).find(x=>x.id===id);
+  if(!it) return;
+  const ent = (window._estoqueEntidades||[]).find(e=>e.id===it.entidadeId);
+  document.getElementById('modal-est-item-title').textContent = 'Editar material — '+(ent?.nome||'');
+  document.getElementById('est-item-entidade-id').value = it.entidadeId;
+  document.getElementById('est-item-edit-id').value = id;
+  document.getElementById('est-item-nome').value = it.nome||'';
+  document.getElementById('est-item-cat').value = it.cat||'ACM';
+  document.getElementById('est-item-qtd').value = it.qtd||1;
+  document.getElementById('est-item-valor').value = it.valorUnit||0;
+  document.getElementById('est-item-data').value = it.data||new Date().toISOString().split('T')[0];
+  document.getElementById('est-item-obs').value = it.obs||'';
+  document.getElementById('est-item-cliente').value = it.cliente||'';
+  document.getElementById('est-item-btn-salvar').textContent = '💾 Salvar alterações';
   document.getElementById('modal-est-item').classList.add('open');
 };
 
 window.salvarEstoqueItem = async function() {
+  const editId     = document.getElementById('est-item-edit-id').value;
   const entidadeId = document.getElementById('est-item-entidade-id').value;
-  const nome  = document.getElementById('est-item-nome').value.trim();
-  const cat   = document.getElementById('est-item-cat').value;
-  const qtd   = parseFloat(document.getElementById('est-item-qtd').value)||1;
-  const valor = parseFloat(document.getElementById('est-item-valor').value)||0;
-  const data  = document.getElementById('est-item-data').value;
-  const obs   = document.getElementById('est-item-obs').value.trim();
+  const nome    = document.getElementById('est-item-nome').value.trim();
+  const cat     = document.getElementById('est-item-cat').value;
+  const qtd     = parseFloat(document.getElementById('est-item-qtd').value)||1;
+  const valor   = parseFloat(document.getElementById('est-item-valor').value)||0;
+  const data    = document.getElementById('est-item-data').value;
+  const obs     = document.getElementById('est-item-obs').value.trim();
+  const cliente = document.getElementById('est-item-cliente').value.trim();
   if(!nome) { showToast('Preencha o nome do material!'); return; }
   const total = Math.round(qtd*valor*100)/100;
-  const item  = { entidadeId, nome, cat, qtd, valorUnit: valor, total, data, obs,
-    criadoEm: new Date().toISOString(), lancadoPor: _usuarioLogado?.nome||'Sistema', usado: false };
-  try {
-    const ref = await addDoc(collection(db,'cmt_estoque_itens'), item);
-    item.id = ref.id;
-    window._estoqueItens.unshift(item);
-    document.getElementById('modal-est-item').classList.remove('open');
-    renderEstoque();
-    showToast('Material lançado no estoque!');
-  } catch(e){ showToast('Erro: '+e.message); }
+
+  if(editId) {
+    // MODO EDIÇÃO — atualiza no Firestore
+    const updates = { nome, cat, qtd, valorUnit: valor, total, data, obs, cliente };
+    try {
+      await updateDoc(doc(db,'cmt_estoque_itens',editId), updates);
+      const it = (window._estoqueItens||[]).find(x=>x.id===editId);
+      if(it) Object.assign(it, updates);
+      document.getElementById('modal-est-item').classList.remove('open');
+      renderEstoque();
+      showToast('Item atualizado!');
+    } catch(e){ showToast('Erro ao salvar: '+e.message); }
+  } else {
+    // MODO NOVO
+    const item = { entidadeId, nome, cat, qtd, valorUnit: valor, total, data, obs, cliente,
+      criadoEm: new Date().toISOString(), lancadoPor: _usuarioLogado?.nome||'Sistema', usado: false };
+    try {
+      const ref = await addDoc(collection(db,'cmt_estoque_itens'), item);
+      item.id = ref.id;
+      window._estoqueItens.unshift(item);
+      document.getElementById('modal-est-item').classList.remove('open');
+      renderEstoque();
+      showToast('Material lançado no estoque!');
+    } catch(e){ showToast('Erro: '+e.message); }
+  }
 };
 
 window.toggleEstoqueUsado = async function(id, val) {
@@ -4857,9 +4903,10 @@ function renderEstoque() {
                   <th style="text-align:right;font-size:10px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Qtd</th>
                   <th style="text-align:right;font-size:10px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Unit.</th>
                   <th style="text-align:right;font-size:10px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Total</th>
-                  <th style="text-align:left;font-size:10px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Observação / Destino</th>
+                  <th style="text-align:left;font-size:10px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Observação</th>
+                  <th style="text-align:left;font-size:10px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Cliente destino</th>
                   <th style="text-align:left;font-size:10px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Data</th>
-                  <th style="width:28px;border-bottom:1px solid var(--border)"></th>
+                  <th style="width:60px;border-bottom:1px solid var(--border)"></th>
                 </tr></thead>
                 <tbody>
                   ${itens.map(it=>`
@@ -4873,9 +4920,13 @@ function renderEstoque() {
                       <td style="padding:8px;border-bottom:1px solid var(--border);text-align:right;color:var(--muted)">${(it.qtd||1).toLocaleString('pt-BR',{maximumFractionDigits:2})}</td>
                       <td style="padding:8px;border-bottom:1px solid var(--border);text-align:right;color:var(--muted)">${fmt(it.valorUnit||0)}</td>
                       <td style="padding:8px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:${it.usado?'var(--muted)':'var(--accent)'};${it.usado?'text-decoration:line-through':''}">${fmt(it.total)}</td>
-                      <td style="padding:8px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.obs||'—'}</td>
+                      <td style="padding:8px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.obs||'—'}</td>
+                      <td style="padding:8px;border-bottom:1px solid var(--border);font-size:12px;font-weight:${it.cliente?'600':'400'};color:${it.cliente?'var(--blue)':'var(--muted2)'};white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis">${it.cliente||'—'}</td>
                       <td style="padding:8px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);white-space:nowrap">${fmtData(it.data||it.criadoEm)}</td>
-                      <td style="padding:8px;border-bottom:1px solid var(--border)"><span style="cursor:pointer;color:var(--muted2);font-size:16px" onclick="window.deletarEstoqueItem('${it.id}')">×</span></td>
+                      <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center">
+                        <span style="cursor:pointer;color:var(--blue);font-size:13px;padding:2px 4px" onclick="window.editarEstoqueItem('${it.id}')" title="Editar">✏️</span>
+                        <span style="cursor:pointer;color:var(--muted2);font-size:16px" onclick="window.deletarEstoqueItem('${it.id}')" title="Remover">×</span>
+                      </td>
                     </tr>`).join('')}
                   <tr>
                     <td colspan="5" style="padding:9px 8px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Disponível</td>
@@ -4959,7 +5010,8 @@ function _gerarPDFEstoque(itens, entidade) {
             <th style="padding:5px 8px;text-align:right;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e0ddd6">Qtd</th>
             <th style="padding:5px 8px;text-align:right;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e0ddd6">Unit.</th>
             <th style="padding:5px 8px;text-align:right;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e0ddd6">Total</th>
-            <th style="padding:5px 8px;text-align:left;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e0ddd6">Observação / Destino</th>
+            <th style="padding:5px 8px;text-align:left;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e0ddd6">Observação</th>
+            <th style="padding:5px 8px;text-align:left;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e0ddd6">Cliente destino</th>
             <th style="padding:5px 8px;text-align:left;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e0ddd6">Data</th>
           </tr></thead>
           <tbody>
@@ -4974,6 +5026,7 @@ function _gerarPDFEstoque(itens, entidade) {
                 <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;text-align:right;color:#888">R$ ${(it.valorUnit||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
                 <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;text-align:right;font-weight:700;color:#e8520a">R$ ${(it.total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
                 <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;color:#aaa;font-size:10px">${it.obs||'—'}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;font-weight:${it.cliente?'700':'400'};color:${it.cliente?'#1a5fa8':'#aaa'};font-size:10px">${it.cliente||'—'}</td>
                 <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;color:#aaa;white-space:nowrap">${fmtData(it.data||it.criadoEm)}</td>
               </tr>`).join('')}
             <tr style="background:#1a2332">
