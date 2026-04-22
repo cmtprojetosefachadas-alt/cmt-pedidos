@@ -368,7 +368,7 @@ body {
     <button class="nav-btn" onclick="window.showScreen('relatorio',this)">Relatório</button>
     <button class="nav-btn" onclick="window.showScreen('despesas',this)">Despesas</button>
     <button class="nav-btn" onclick="window.showScreen('materiais',this)">Materiais</button>
-    <button class="nav-btn" id="nav-lista-material" onclick="window.showScreen('lista-material',this)">Lista de Material</button>
+    <button class="nav-btn" onclick="window.showScreen('estoque',this)">Estoque</button>
     <button class="nav-btn" id="nav-usuarios" onclick="window.showScreen('usuarios',this)">Usuários</button>
   </nav>
 </div>
@@ -779,80 +779,95 @@ body {
 
 </div><!-- /main -->
 
-<!-- ===== LISTA DE MATERIAL ===== -->
-<div class="screen" id="screen-lista-material" style="padding:0 28px 28px">
+<!-- ===== ESTOQUE ===== -->
+<div class="screen" id="screen-estoque" style="padding:0 28px 28px">
 
-  <!-- Cabeçalho -->
   <div class="orc-header" style="padding-top:28px">
-    <h2>Lista de Material por Cliente</h2>
+    <h2>Controle de Estoque</h2>
     <div style="display:flex;gap:8px;align-items:center;margin-left:auto">
-      <select class="field" id="lm-filtro-mes" style="width:160px;padding:7px 12px;font-size:13px" onchange="window.renderListaMaterial()">
-        <option value="">Todos os meses</option>
-      </select>
-      <select class="field" id="lm-filtro-status" style="width:150px;padding:7px 12px;font-size:13px" onchange="window.renderListaMaterial()">
-        <option value="">Todos</option>
-        <option value="pendente">Com pendências</option>
-        <option value="concluido">Concluídos</option>
-      </select>
-      <button class="btn-ghost" style="font-size:12px;padding:6px 14px;white-space:nowrap;background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700" onclick="window.gerarPDFListaMaterialMes()">📄 PDF do Mês</button>
+      <button class="btn-ghost" onclick="window.abrirModalEstoqueLocal()" style="font-size:12px;padding:6px 14px">+ Adicionar Local</button>
+      <button class="btn-ghost" onclick="window.abrirModalEstoquePrestador()" style="font-size:12px;padding:6px 14px">+ Adicionar Prestador</button>
+      <button class="btn-ghost" style="font-size:12px;padding:6px 14px;background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700" onclick="window.gerarPDFEstoque()">📄 PDF Geral</button>
     </div>
   </div>
 
-  <!-- KPIs -->
-  <div id="lm-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px"></div>
-
-  <!-- Formulário de lançamento -->
-  <div class="card" style="padding:20px;margin-bottom:20px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Lançar material</div>
-      <div style="display:flex;gap:4px">
-        <button id="lm-tab-sistema" onclick="window.toggleTipoLM('sistema')" style="font-size:11px;font-weight:600;padding:5px 12px;border-radius:6px;cursor:pointer;border:1.5px solid var(--accent);background:var(--accent);color:#fff;font-family:'Inter',sans-serif">📋 Orçamento do sistema</button>
-        <button id="lm-tab-manual" onclick="window.toggleTipoLM('manual')" style="font-size:11px;font-weight:600;padding:5px 12px;border-radius:6px;cursor:pointer;border:1.5px solid var(--border2);background:#fff;color:var(--muted);font-family:'Inter',sans-serif">✏️ Lançamento manual</button>
-      </div>
-    </div>
-
-    <!-- Sistema -->
-    <div id="lm-bloco-sistema">
-      <div style="display:grid;grid-template-columns:2fr 1.2fr 1fr 0.8fr 0.8fr;gap:10px;margin-bottom:10px">
-        <div><label class="field-label">Orçamento / Cliente</label><select class="field" id="lm-orc"></select></div>
-        <div><label class="field-label">Descrição / Material</label><input class="field" id="lm-desc" placeholder="Ex: Lona banner 3×2m"></div>
-        <div><label class="field-label">Categoria</label><select class="field" id="lm-cat"></select></div>
-        <div><label class="field-label">Qtd</label><input class="field" id="lm-qtd" type="number" min="0.01" step="0.01" value="1" placeholder="1"></div>
-        <div><label class="field-label">Valor unit. (R$)</label><input class="field" id="lm-valor" type="number" min="0" step="0.01" placeholder="0,00"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;align-items:flex-end">
-        <div><label class="field-label">Observação (opcional)</label><input class="field" id="lm-obs" placeholder="Ex: fornecedor, NF, detalhe..."></div>
-        <div><label class="field-label">Data</label><input class="field" id="lm-data" type="date"></div>
-        <div><label class="field-label">Total</label><div id="lm-total-preview" style="font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:var(--accent);padding:10px 0">R$ 0,00</div></div>
-        <button class="btn btn-primary" style="margin-bottom:1px" onclick="window.lancarItemLM()">+ Lançar</button>
-      </div>
-    </div>
-
-    <!-- Manual -->
-    <div id="lm-bloco-manual" style="display:none">
-      <div style="background:rgba(232,82,10,0.06);border:1px solid rgba(232,82,10,0.15);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--accent);font-weight:500">
-        ✏️ Use para clientes e obras não cadastradas no sistema.
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1.2fr 1fr 0.8fr 0.8fr;gap:10px;margin-bottom:10px">
-        <div><label class="field-label">Cliente / Obra</label><input class="field" id="lm-m-cliente" placeholder="Ex: João Silva"></div>
-        <div><label class="field-label">Descrição / Material</label><input class="field" id="lm-m-desc" placeholder="Ex: ACM 1,22×5m"></div>
-        <div><label class="field-label">Categoria</label><select class="field" id="lm-m-cat"></select></div>
-        <div><label class="field-label">Qtd</label><input class="field" id="lm-m-qtd" type="number" min="0.01" step="0.01" value="1" placeholder="1"></div>
-        <div><label class="field-label">Valor unit. (R$)</label><input class="field" id="lm-m-valor" type="number" min="0" step="0.01" placeholder="0,00"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;align-items:flex-end">
-        <div><label class="field-label">Observação (opcional)</label><input class="field" id="lm-m-obs" placeholder="Ex: fornecedor, NF, detalhe..."></div>
-        <div><label class="field-label">Data</label><input class="field" id="lm-m-data" type="date"></div>
-        <div><label class="field-label">Total</label><div id="lm-m-total-preview" style="font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:var(--accent);padding:10px 0">R$ 0,00</div></div>
-        <button class="btn btn-primary" style="margin-bottom:1px" onclick="window.lancarItemLMManual()">+ Lançar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Cards por cliente -->
-  <div id="lm-clientes-lista"></div>
+  <div id="est-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px"></div>
+  <div id="est-cards"></div>
 
 </div>
+
+<!-- MODAL NOVO LOCAL/PRESTADOR -->
+<div class="modal-overlay" id="modal-est-entidade" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:420px">
+    <h3 id="modal-est-entidade-title">Adicionar</h3>
+    <input type="hidden" id="est-entidade-tipo">
+    <div class="field-group">
+      <label class="field-label" id="est-entidade-label">Nome</label>
+      <input class="field" id="est-entidade-nome" placeholder="Ex: Galpão Central / João Prestador">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Observação (opcional)</label>
+      <input class="field" id="est-entidade-obs" placeholder="Ex: Rua das Flores, 123 / tel: (16)99999-9999">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" style="flex:1" onclick="window.salvarEstoqueEntidade()">Salvar</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="document.getElementById('modal-est-entidade').classList.remove('open')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LANÇAR/EDITAR ITEM DE ESTOQUE -->
+<div class="modal-overlay" id="modal-est-item" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:580px">
+    <h3 id="modal-est-item-title">Lançar material</h3>
+    <input type="hidden" id="est-item-entidade-id">
+    <input type="hidden" id="est-item-edit-id">
+    <div class="field-row" style="margin-bottom:14px">
+      <div class="field-group" style="margin:0">
+        <label class="field-label">Material / Descrição</label>
+        <input class="field" id="est-item-nome" placeholder="Ex: ACM 1,22×5m preto fosco">
+      </div>
+      <div class="field-group" style="margin:0">
+        <label class="field-label">Categoria</label>
+        <select class="field" id="est-item-cat">
+          <option>ACM</option><option>PVC</option><option>Acrílico</option>
+          <option>Lona</option><option>Fixação</option><option>Elétrico</option>
+          <option>Metalon</option><option>Impressão</option><option>Terceirizado</option>
+          <option>Outros</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="field-group" style="margin:0">
+        <label class="field-label">Quantidade</label>
+        <input class="field" id="est-item-qtd" type="number" min="0.01" step="0.01" value="1" placeholder="1">
+      </div>
+      <div class="field-group" style="margin:0">
+        <label class="field-label">Valor unit. (R$)</label>
+        <input class="field" id="est-item-valor" type="number" min="0" step="0.01" placeholder="0,00">
+      </div>
+      <div class="field-group" style="margin:0">
+        <label class="field-label">Data</label>
+        <input class="field" id="est-item-data" type="date">
+      </div>
+    </div>
+    <div class="field-row" style="margin-bottom:0">
+      <div class="field-group">
+        <label class="field-label">Cliente destino <span style="color:var(--muted);font-weight:400">(opcional)</span></label>
+        <input class="field" id="est-item-cliente" placeholder="Ex: Vitor Tresoldi / Allp FIT">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Observação</label>
+        <input class="field" id="est-item-obs" placeholder="Ex: fachada frente loja, 2º andar...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" style="flex:1" id="est-item-btn-salvar" onclick="window.salvarEstoqueItem()">+ Lançar</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="document.getElementById('modal-est-item').classList.remove('open')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- ===== DESPESAS ===== -->
 <div class="screen" id="screen-despesas">
@@ -993,6 +1008,7 @@ body {
     </select>
     <button onclick="window.limparFiltrosDespesas()" style="background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;font-size:12px;padding:7px 12px">✕ Limpar</button>
     <span id="desp-total-label" style="margin-left:auto;font-size:13px;font-weight:700;color:var(--text)"></span>
+    <button class="btn-ghost" style="font-size:12px;padding:6px 14px;white-space:nowrap" id="btn-pdf-cliente-desp" onclick="window.gerarPDFDespesasCliente()" title="PDF do cliente selecionado">📄 PDF por Cliente</button>
     <button class="btn-ghost" style="font-size:12px;padding:6px 14px;white-space:nowrap" onclick="window.gerarPDFDespesas()">📄 Relatório PDF</button>
   </div>
 
@@ -1859,7 +1875,7 @@ async function init() {
   await carregarOrcamentos();
   await carregarDespesas();
   await carregarSaldos();
-  await carregarListaMaterial();
+  await carregarEstoque();
   renderCatalogo();
   renderListaOrcamentos();
   renderRelatorio();
@@ -3151,7 +3167,7 @@ window.showScreen = function(name,btn) {
   if(name==='lista') renderListaOrcamentos();
   if(name==='usuarios') renderTabelaUsuarios();
   if(name==='despesas') iniciarDespesas();
-  if(name==='lista-material') iniciarListaMaterial();
+  if(name==='estoque') iniciarEstoque();
   if(name==='materiais') { renderFiltrosCategorias(); renderListaCategorias(); popularSelectCategorias('g-nm-cat'); }
 };
 
@@ -3533,15 +3549,19 @@ function renderDespesas() {
       const pct         = orcado>0?Math.min(Math.round(total/orcado*100),100):0;
       const cor         = total>orcado?'var(--red)':pct>80?'var(--accent)':'var(--green)';
       const nomeEsc     = cli.replace(/"/g,'&quot;');
+      // Verifica se TODOS os itens estão ticados
+      const todosChecked = items.length>0 && items.every(d=>window._despChecked?.[d.id]);
+      const bgHeader    = todosChecked ? 'background:rgba(10,138,74,0.10);border-left:4px solid var(--green)' : 'background:var(--bg3)';
 
-      const headerRow = `<tr style="background:var(--bg3)">
+      const headerRow = `<tr style="${bgHeader}">
         <td colspan="4" style="padding:10px 14px">
           <div style="display:flex;align-items:center;gap:10px">
             <button data-key="${cliKey}" onclick="window.toggleCliExpandido(this.dataset.key)"
               style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);padding:0;line-height:1;transition:transform .2s;transform:${expanded?'rotate(90deg)':'rotate(0deg)'}"
               id="arrow_${cliKey}">▶</button>
-            <span style="font-weight:700;font-size:13px;color:var(--accent);cursor:pointer" data-cli="${nomeEsc}" onclick="window.filtrarPorCliente(this.dataset.cli)">${cli}</span>
+            <span style="font-weight:700;font-size:13px;color:${todosChecked?'var(--green)':'var(--accent)'};cursor:pointer" data-cli="${nomeEsc}" onclick="window.filtrarPorCliente(this.dataset.cli)">${cli}</span>
             <span style="font-size:11px;color:var(--muted);font-weight:400">${items.length} lançamento${items.length!==1?'s':''}</span>
+            ${todosChecked?`<span style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;background:rgba(10,138,74,0.15);color:var(--green)">✓ Concluído</span>`:''}
             ${orcado>0?`<span style="display:flex;align-items:center;gap:6px;margin-left:auto">
               <div style="width:80px;height:5px;background:var(--bg4);border-radius:3px;overflow:hidden">
                 <div style="height:100%;background:${cor};border-radius:3px;width:${pct}%"></div>
@@ -3550,7 +3570,7 @@ function renderDespesas() {
             </span>`:''}
           </div>
         </td>
-        <td style="font-weight:800;color:var(--accent);padding:10px 14px">${fmt(total)}</td>
+        <td style="font-weight:800;color:${todosChecked?'var(--green)':'var(--accent)'};padding:10px 14px">${fmt(total)}</td>
         <td colspan="3" style="padding:10px 14px">
           ${orcado>0?`<span style="font-size:11px;color:${cor};font-weight:700">Saldo: ${total>orcado?'':'+'}${fmt(orcado-total)}</span>`:'<span style="font-size:11px;color:var(--accent);cursor:pointer" data-cli="'+nomeEsc+'" onclick="window.filtrarPorCliente(this.dataset.cli)">Ver detalhes →</span>'}
         </td>
@@ -3869,6 +3889,17 @@ window.renderDespesasKPIs = renderDespesasKPIs;
 window.renderComparativo = renderComparativo;
 window.iniciarDespesas = iniciarDespesas;
 
+window.gerarPDFDespesasCliente = function() {
+  const filtroCliEl = document.getElementById('desp-filtro-cliente');
+  const cliente = filtroCliEl?.value||'';
+  if(!cliente) {
+    showToast('Selecione um cliente no filtro para gerar o PDF!');
+    return;
+  }
+  // Força o filtro e chama o PDF geral que já suporta filtro por cliente
+  window.gerarPDFDespesas();
+};
+
 window.gerarPDFDespesas = function() {
   const lista  = getDespesasFiltradas();
   const total  = lista.reduce((a,d)=>a+d.valor,0);
@@ -4070,492 +4101,406 @@ window.gerarPDFDespesas = function() {
 };
 
 // ══════════════════════════════════════
-// MÓDULO LISTA DE MATERIAL
+// MÓDULO CONTROLE DE ESTOQUE
 // ══════════════════════════════════════
 
-window._listaMaterial = []; // cache local
+window._estoqueEntidades = [];
+window._estoqueItens     = [];
+window._estOpen          = {};
 
-async function carregarListaMaterial() {
+async function carregarEstoque() {
   try {
-    const snap = await getDocs(query(collection(db,'cmt_lista_material'), orderBy('criadoEm','desc')));
-    window._listaMaterial = snap.docs.map(d=>({id:d.id,...d.data()}));
-  } catch(e){ window._listaMaterial=[]; }
+    const [snapE, snapI] = await Promise.all([
+      getDocs(collection(db,'cmt_estoque_entidades')),
+      getDocs(collection(db,'cmt_estoque_itens'))
+    ]);
+    window._estoqueEntidades = snapE.docs.map(d=>({id:d.id,...d.data()}));
+    window._estoqueItens     = snapI.docs.map(d=>({id:d.id,...d.data()}));
+    window._estoqueItens.sort((a,b)=>new Date(b.criadoEm)-new Date(a.criadoEm));
+  } catch(e){ window._estoqueEntidades=[]; window._estoqueItens=[]; }
 }
 
-function popularSelectOrcamentosLM() {
-  const orcs = (window._orcamentos||[]).filter(o=>o.status==='Aprovado');
-  const sel = document.getElementById('lm-orc');
-  if(!sel) return;
-  if(!orcs.length){sel.innerHTML='<option value="">Nenhum orçamento aprovado ainda</option>';return;}
-  sel.innerHTML = '<option value="">Selecione o orçamento...</option>' +
-    orcs.map(o=>`<option value="${o.id}" data-cliente="${o.cliente}">#${o.numero||o.num||''} — ${o.cliente}</option>`).join('');
-}
+function iniciarEstoque() { renderEstoque(); }
 
-function popularCatsLM() {
-  const catsMat = [...new Set((window._materiais||[]).map(m=>m.cat).filter(Boolean))];
-  const catsFixas = ['Mão de obra','ACM','PVC','Acrílico','Lona','Fixação','Elétrico','Logística','Terceirizado','Outros'];
-  const todas = [...new Set([...catsMat, ...catsFixas])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
-  ['lm-cat','lm-m-cat'].forEach(id=>{
-    const s = document.getElementById(id);
-    if(s) s.innerHTML = todas.map(c=>`<option>${c}</option>`).join('');
-  });
-}
-
-function popularFiltroMesLM() {
-  const nomes=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const hoje = new Date();
-  const chaveHoje = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
-  const set = new Set();
-  set.add(chaveHoje);
-  (window._listaMaterial||[]).forEach(i=>{
-    const ref = i.data || i.criadoEm;
-    if(ref) {
-      const d = new Date(ref);
-      set.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
-    }
-  });
-  const sel = document.getElementById('lm-filtro-mes');
-  if(!sel) return;
-  const cur = sel.value || chaveHoje;
-  sel.innerHTML = '<option value="">Todos os meses</option>' +
-    [...set].sort((a,b)=>b>a?-1:1).map(ch=>{
-      const [ano,mes] = ch.split('-');
-      return `<option value="${ch}" ${ch===cur?'selected':''}>${nomes[parseInt(mes)]} ${ano}</option>`;
-    }).join('');
-}
-
-function iniciarListaMaterial() {
-  const hoje = new Date().toISOString().split('T')[0];
-  document.getElementById('lm-data').value = hoje;
-  document.getElementById('lm-m-data').value = hoje;
-  popularSelectOrcamentosLM();
-  popularCatsLM();
-  popularFiltroMesLM();
-  // live total preview
-  ['lm-qtd','lm-valor'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.addEventListener('input',()=>{
-      const q=parseFloat(document.getElementById('lm-qtd').value)||0;
-      const v=parseFloat(document.getElementById('lm-valor').value)||0;
-      const p=document.getElementById('lm-total-preview');
-      if(p) p.textContent=fmt(q*v);
-    });
-  });
-  ['lm-m-qtd','lm-m-valor'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.addEventListener('input',()=>{
-      const q=parseFloat(document.getElementById('lm-m-qtd').value)||0;
-      const v=parseFloat(document.getElementById('lm-m-valor').value)||0;
-      const p=document.getElementById('lm-m-total-preview');
-      if(p) p.textContent=fmt(q*v);
-    });
-  });
-  window.renderListaMaterial();
-}
-
-window.toggleTipoLM = function(tipo) {
-  document.getElementById('lm-bloco-sistema').style.display = tipo==='sistema'?'block':'none';
-  document.getElementById('lm-bloco-manual').style.display  = tipo==='manual'?'block':'none';
-  const bs = document.getElementById('lm-tab-sistema');
-  const bm = document.getElementById('lm-tab-manual');
-  if(bs){ bs.style.background=tipo==='sistema'?'var(--accent)':'#fff'; bs.style.color=tipo==='sistema'?'#fff':'var(--muted)'; bs.style.borderColor=tipo==='sistema'?'var(--accent)':'var(--border2)'; }
-  if(bm){ bm.style.background=tipo==='manual'?'var(--accent)':'#fff'; bm.style.color=tipo==='manual'?'#fff':'var(--muted)'; bm.style.borderColor=tipo==='manual'?'var(--accent)':'var(--border2)'; }
+window.abrirModalEstoqueLocal = function() {
+  document.getElementById('modal-est-entidade-title').textContent = 'Adicionar Local';
+  document.getElementById('est-entidade-label').textContent = 'Nome do local';
+  document.getElementById('est-entidade-tipo').value = 'local';
+  document.getElementById('est-entidade-nome').value = '';
+  document.getElementById('est-entidade-obs').value = '';
+  document.getElementById('modal-est-entidade').classList.add('open');
 };
 
-window.lancarItemLM = async function() {
-  const orcId = document.getElementById('lm-orc').value;
-  const desc  = document.getElementById('lm-desc').value.trim();
-  const cat   = document.getElementById('lm-cat').value;
-  const qtd   = parseFloat(document.getElementById('lm-qtd').value)||1;
-  const valor = parseFloat(document.getElementById('lm-valor').value)||0;
-  const obs   = document.getElementById('lm-obs').value.trim();
-  const data  = document.getElementById('lm-data').value;
-  if(!orcId||orcId===''||!desc||!valor) { showToast('Preencha orçamento, descrição e valor!'); return; }
-  const orc = (window._orcamentos||[]).find(o=>o.id===orcId);
+window.abrirModalEstoquePrestador = function() {
+  document.getElementById('modal-est-entidade-title').textContent = 'Adicionar Prestador / Terceirizado';
+  document.getElementById('est-entidade-label').textContent = 'Nome do prestador';
+  document.getElementById('est-entidade-tipo').value = 'prestador';
+  document.getElementById('est-entidade-nome').value = '';
+  document.getElementById('est-entidade-obs').value = '';
+  document.getElementById('modal-est-entidade').classList.add('open');
+};
+
+window.salvarEstoqueEntidade = async function() {
+  const tipo = document.getElementById('est-entidade-tipo').value;
+  const nome = document.getElementById('est-entidade-nome').value.trim();
+  const obs  = document.getElementById('est-entidade-obs').value.trim();
+  if(!nome) { showToast('Preencha o nome!'); return; }
+  try {
+    const ref = await addDoc(collection(db,'cmt_estoque_entidades'), {tipo, nome, obs, criadoEm: new Date().toISOString()});
+    window._estoqueEntidades.push({id:ref.id, tipo, nome, obs});
+    document.getElementById('modal-est-entidade').classList.remove('open');
+    renderEstoque();
+    showToast((tipo==='local'?'Local':'Prestador')+' "'+nome+'" adicionado!');
+  } catch(e){ showToast('Erro ao salvar.'); }
+};
+
+window.deletarEstoqueEntidade = async function(id) {
+  if(!confirm('Remover este local/prestador e todos os itens?')) return;
+  try {
+    await deleteDoc(doc(db,'cmt_estoque_entidades',id));
+    const itens = (window._estoqueItens||[]).filter(i=>i.entidadeId===id);
+    for(const it of itens) await deleteDoc(doc(db,'cmt_estoque_itens',it.id));
+    window._estoqueEntidades = window._estoqueEntidades.filter(e=>e.id!==id);
+    window._estoqueItens     = window._estoqueItens.filter(i=>i.entidadeId!==id);
+    renderEstoque();
+    showToast('Removido.');
+  } catch(e){}
+};
+
+window.abrirModalEstoqueItem = function(entidadeId) {
+  const ent = (window._estoqueEntidades||[]).find(e=>e.id===entidadeId);
+  document.getElementById('modal-est-item-title').textContent = 'Lançar material — '+(ent?.nome||'');
+  document.getElementById('est-item-entidade-id').value = entidadeId;
+  document.getElementById('est-item-edit-id').value = '';
+  document.getElementById('est-item-nome').value = '';
+  document.getElementById('est-item-valor').value = '';
+  document.getElementById('est-item-qtd').value = '1';
+  document.getElementById('est-item-obs').value = '';
+  document.getElementById('est-item-cliente').value = '';
+  document.getElementById('est-item-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('est-item-btn-salvar').textContent = '+ Lançar';
+  document.getElementById('modal-est-item').classList.add('open');
+};
+
+window.editarEstoqueItem = function(id) {
+  const it = (window._estoqueItens||[]).find(x=>x.id===id);
+  if(!it) return;
+  const ent = (window._estoqueEntidades||[]).find(e=>e.id===it.entidadeId);
+  document.getElementById('modal-est-item-title').textContent = 'Editar material — '+(ent?.nome||'');
+  document.getElementById('est-item-entidade-id').value = it.entidadeId;
+  document.getElementById('est-item-edit-id').value = id;
+  document.getElementById('est-item-nome').value = it.nome||'';
+  document.getElementById('est-item-cat').value = it.cat||'ACM';
+  document.getElementById('est-item-qtd').value = it.qtd||1;
+  document.getElementById('est-item-valor').value = it.valorUnit||0;
+  document.getElementById('est-item-data').value = it.data||new Date().toISOString().split('T')[0];
+  document.getElementById('est-item-obs').value = it.obs||'';
+  document.getElementById('est-item-cliente').value = it.cliente||'';
+  document.getElementById('est-item-btn-salvar').textContent = '💾 Salvar alterações';
+  document.getElementById('modal-est-item').classList.add('open');
+};
+
+window.salvarEstoqueItem = async function() {
+  const editId     = document.getElementById('est-item-edit-id').value;
+  const entidadeId = document.getElementById('est-item-entidade-id').value;
+  const nome    = document.getElementById('est-item-nome').value.trim();
+  const cat     = document.getElementById('est-item-cat').value;
+  const qtd     = parseFloat(document.getElementById('est-item-qtd').value)||1;
+  const valor   = parseFloat(document.getElementById('est-item-valor').value)||0;
+  const data    = document.getElementById('est-item-data').value;
+  const obs     = document.getElementById('est-item-obs').value.trim();
+  const cliente = document.getElementById('est-item-cliente').value.trim();
+  if(!nome) { showToast('Preencha o nome do material!'); return; }
   const total = Math.round(qtd*valor*100)/100;
-  const item = {
-    tipo:'sistema', orcId, orcNum: orc?.numero||orc?.num||'', cliente: orc?.cliente||'',
-    desc, cat, qtd, valorUnit: valor, total, obs,
-    data: data||new Date().toISOString().split('T')[0],
-    criadoEm: new Date().toISOString(),
-    lancadoPor: _usuarioLogado?.nome||'Sistema',
-    concluido: false
-  };
-  try {
-    const ref = await addDoc(collection(db,'cmt_lista_material'), item);
-    item.id = ref.id;
-    window._listaMaterial.unshift(item);
-    document.getElementById('lm-desc').value='';
-    document.getElementById('lm-valor').value='';
-    document.getElementById('lm-qtd').value='1';
-    document.getElementById('lm-obs').value='';
-    document.getElementById('lm-total-preview').textContent='R$ 0,00';
-    popularFiltroMesLM();
-    window.renderListaMaterial();
-    showToast('Material lançado para '+item.cliente+'!');
-  } catch(e){ showToast('Erro ao salvar: '+e.message); }
+  if(editId) {
+    const updates = { nome, cat, qtd, valorUnit: valor, total, data, obs, cliente };
+    try {
+      await updateDoc(doc(db,'cmt_estoque_itens',editId), updates);
+      const it = (window._estoqueItens||[]).find(x=>x.id===editId);
+      if(it) Object.assign(it, updates);
+      document.getElementById('modal-est-item').classList.remove('open');
+      renderEstoque();
+      showToast('Item atualizado!');
+    } catch(e){ showToast('Erro ao salvar: '+e.message); }
+  } else {
+    const item = { entidadeId, nome, cat, qtd, valorUnit: valor, total, data, obs, cliente,
+      criadoEm: new Date().toISOString(), lancadoPor: _usuarioLogado?.nome||'Sistema', usado: false };
+    try {
+      const ref = await addDoc(collection(db,'cmt_estoque_itens'), item);
+      item.id = ref.id;
+      window._estoqueItens.unshift(item);
+      document.getElementById('modal-est-item').classList.remove('open');
+      renderEstoque();
+      showToast('Material lançado no estoque!');
+    } catch(e){ showToast('Erro: '+e.message); }
+  }
 };
 
-window.lancarItemLMManual = async function() {
-  const cliente = document.getElementById('lm-m-cliente').value.trim();
-  const desc    = document.getElementById('lm-m-desc').value.trim();
-  const cat     = document.getElementById('lm-m-cat').value;
-  const qtd     = parseFloat(document.getElementById('lm-m-qtd').value)||1;
-  const valor   = parseFloat(document.getElementById('lm-m-valor').value)||0;
-  const obs     = document.getElementById('lm-m-obs').value.trim();
-  const data    = document.getElementById('lm-m-data').value;
-  if(!cliente||!desc||!valor) { showToast('Preencha cliente, descrição e valor!'); return; }
-  const total = Math.round(qtd*valor*100)/100;
-  const item = {
-    tipo:'manual', orcId:'', orcNum:'', cliente,
-    desc, cat, qtd, valorUnit: valor, total, obs,
-    data: data||new Date().toISOString().split('T')[0],
-    criadoEm: new Date().toISOString(),
-    lancadoPor: _usuarioLogado?.nome||'Sistema',
-    concluido: false
-  };
+window.toggleEstoqueUsado = async function(id, val) {
   try {
-    const ref = await addDoc(collection(db,'cmt_lista_material'), item);
-    item.id = ref.id;
-    window._listaMaterial.unshift(item);
-    document.getElementById('lm-m-cliente').value='';
-    document.getElementById('lm-m-desc').value='';
-    document.getElementById('lm-m-valor').value='';
-    document.getElementById('lm-m-qtd').value='1';
-    document.getElementById('lm-m-obs').value='';
-    document.getElementById('lm-m-total-preview').textContent='R$ 0,00';
-    popularFiltroMesLM();
-    window.renderListaMaterial();
-    showToast('Material lançado para '+cliente+'!');
-  } catch(e){ showToast('Erro ao salvar: '+e.message); }
-};
-
-window.toggleConcluido = async function(id, val) {
-  try {
-    await updateDoc(doc(db,'cmt_lista_material',id),{concluido:val});
-    const item = (window._listaMaterial||[]).find(x=>x.id===id);
-    if(item) item.concluido = val;
-    window.renderListaMaterial();
+    await updateDoc(doc(db,'cmt_estoque_itens',id), {usado: !!val});
+    const it = (window._estoqueItens||[]).find(x=>x.id===id);
+    if(it) it.usado = !!val;
+    renderEstoque();
   } catch(e){ showToast('Erro ao atualizar.'); }
 };
 
-window.deletarItemLM = async function(id) {
-  if(!confirm('Remover este item da lista?')) return;
+window.deletarEstoqueItem = async function(id) {
+  if(!confirm('Remover este item do estoque?')) return;
   try {
-    await deleteDoc(doc(db,'cmt_lista_material',id));
-    window._listaMaterial = (window._listaMaterial||[]).filter(x=>x.id!==id);
-    window.renderListaMaterial();
+    await deleteDoc(doc(db,'cmt_estoque_itens',id));
+    window._estoqueItens = (window._estoqueItens||[]).filter(x=>x.id!==id);
+    renderEstoque();
     showToast('Item removido.');
   } catch(e){}
 };
 
-// ── Estado de cards abertos ──
-window._lmOpen = {};
-
-window.toggleCardLM = function(cliente) {
-  window._lmOpen[cliente] = !window._lmOpen[cliente];
-  window.renderListaMaterial();
-
-  // Pré-seleciona o cliente no formulário de lançamento
-  if(window._lmOpen[cliente]) {
-    // Descobre se existe orçamento APROVADO para este cliente
-    const orcAprov = (window._orcamentos||[]).find(o=>o.cliente===cliente && o.status==='Aprovado');
-
-    if(orcAprov) {
-      // Ativa aba "Orçamento do sistema"
-      window.toggleTipoLM('sistema');
-      const sel = document.getElementById('lm-orc');
-      if(sel) {
-        // Tenta selecionar o orçamento do cliente
-        const opt = [...sel.options].find(o=>o.value===orcAprov.id);
-        if(opt) sel.value = orcAprov.id;
-      }
-    } else {
-      // Cliente manual — ativa aba manual e preenche o nome
-      window.toggleTipoLM('manual');
-      const inp = document.getElementById('lm-m-cliente');
-      if(inp) inp.value = cliente;
-    }
-
-    // Scroll suave até o formulário de lançamento
-    setTimeout(()=>{
-      const form = document.getElementById('lm-bloco-sistema').closest('.card') ||
-                   document.querySelector('#screen-lista-material .card');
-      if(form) form.scrollIntoView({behavior:'smooth', block:'nearest'});
-    }, 80);
-  }
+window.toggleEstoqueCard = function(id) {
+  window._estOpen[id] = !window._estOpen[id];
+  renderEstoque();
 };
 
-window.renderListaMaterial = function() {
-  // Filtros
-  const mesFiltro     = document.getElementById('lm-filtro-mes')?.value||'';
-  const statusFiltro  = document.getElementById('lm-filtro-status')?.value||'';
+function renderEstoque() {
+  const entidades  = window._estoqueEntidades||[];
+  const todosItens = window._estoqueItens||[];
+  const totalVal   = todosItens.reduce((a,i)=>a+i.total,0);
+  const totalUsado = todosItens.filter(i=>i.usado).reduce((a,i)=>a+i.total,0);
+  const nUsado     = todosItens.filter(i=>i.usado).length;
+  const nDisp      = todosItens.filter(i=>!i.usado).length;
 
-  let lista = (window._listaMaterial||[]);
-
-  if(mesFiltro) {
-    lista = lista.filter(i=>{
-      const ref = i.data || i.criadoEm;
-      if(!ref) return false;
-      const d = new Date(ref);
-      const chave = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      return chave === mesFiltro;
-    });
-  }
-
-  // Agrupar por cliente
-  const porCliente = {};
-  lista.forEach(i=>{
-    const cli = i.cliente||'Sem cliente';
-    if(!porCliente[cli]) porCliente[cli]=[];
-    porCliente[cli].push(i);
-  });
-
-  // Filtro de status
-  let clientes = Object.entries(porCliente);
-  if(statusFiltro==='pendente')  clientes = clientes.filter(([,items])=>items.some(i=>!i.concluido));
-  if(statusFiltro==='concluido') clientes = clientes.filter(([,items])=>items.every(i=>i.concluido));
-
-  // KPIs
-  const allItems = clientes.flatMap(([,items])=>items);
-  const totalGeral   = allItems.reduce((a,i)=>a+i.total,0);
-  const totalPendente= allItems.filter(i=>!i.concluido).reduce((a,i)=>a+i.total,0);
-  const totalConcl   = allItems.filter(i=>i.concluido).length;
-  const pctGeral     = allItems.length?Math.round(totalConcl/allItems.length*100):0;
-  const cliConcl     = clientes.filter(([,items])=>items.every(i=>i.concluido)).length;
-
-  const kpiEl = document.getElementById('lm-kpis');
-  if(kpiEl) kpiEl.innerHTML=`
+  const kpiEl = document.getElementById('est-kpis');
+  if(kpiEl) kpiEl.innerHTML = `
     <div class="card" style="padding:16px;border-left:4px solid var(--accent)">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">A comprar (pendente)</div>
-      <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--accent)">${fmt(totalPendente)}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px">de ${fmt(totalGeral)} total</div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Valor em estoque</div>
+      <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--accent)">${fmt(totalVal-totalUsado)}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">de ${fmt(totalVal)} total</div>
     </div>
     <div class="card" style="padding:16px;border-left:4px solid var(--green)">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Itens concluídos</div>
-      <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--green)">${totalConcl} / ${allItems.length}</div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Itens disponíveis</div>
+      <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--green)">${nDisp}</div>
     </div>
-    <div class="card" style="padding:16px;border-left:4px solid var(--blue)">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">% geral completo</div>
-      <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--blue)">${pctGeral}%</div>
+    <div class="card" style="padding:16px;border-left:4px solid var(--muted)">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Itens utilizados</div>
+      <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--muted)">${nUsado}</div>
     </div>
     <div class="card" style="padding:16px;border-left:4px solid var(--purple)">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Clientes finalizados</div>
-      <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--purple)">${cliConcl} / ${clientes.length}</div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Locais / Prestadores</div>
+      <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--purple)">${entidades.length}</div>
     </div>`;
 
-  const listEl = document.getElementById('lm-clientes-lista');
-  if(!listEl) return;
+  const cardsEl = document.getElementById('est-cards');
+  if(!cardsEl) return;
 
-  if(!clientes.length) {
-    listEl.innerHTML='<div class="card" style="text-align:center;padding:40px;color:var(--muted)">Nenhum material lançado neste filtro.</div>';
+  if(!entidades.length) {
+    cardsEl.innerHTML = `<div class="card" style="text-align:center;padding:48px;color:var(--muted)">
+      <div style="font-size:32px;margin-bottom:12px">📦</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px">Nenhum local ou prestador cadastrado</div>
+      <div style="font-size:13px">Clique em "+ Adicionar Local" ou "+ Adicionar Prestador" para começar.</div>
+    </div>`;
     return;
   }
 
-  const CORES=['#e8520a','#0a8a4a','#1a5fa8','#e9b94e','#6b46c1','#c0392b','#2980b9','#27ae60'];
+  const CORES_LOC  = ['#1a5fa8','#0a8a4a','#6b46c1','#2980b9','#27ae60'];
+  const CORES_PRES = ['#e8520a','#c0392b','#e9b94e','#8e44ad','#16a085'];
+  const catColors  = {ACM:'#1a2332',PVC:'#2980b9','Acrílico':'#e9b94e',Lona:'#27ae60',Fixação:'#7b5fc9',Elétrico:'#f39c12',Metalon:'#636e72',Impressão:'#0984e3',Terceirizado:'#c0392b',Outros:'#888'};
 
-  listEl.innerHTML = clientes.map(([cli, items], ci)=>{
-    const total  = items.reduce((a,i)=>a+i.total,0);
-    const concl  = items.filter(i=>i.concluido).length;
-    const pct    = items.length?Math.round(concl/items.length*100):0;
-    const isDone = pct===100;
-    const isOpen = !!window._lmOpen[cli];
-    const cor    = CORES[ci%CORES.length];
-    const ini    = cli.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
+  const locais      = entidades.filter(e=>e.tipo==='local');
+  const prestadores = entidades.filter(e=>e.tipo==='prestador');
 
-    const itemsHtml = isOpen ? `
-      <div style="border-top:1px solid var(--border);padding:0 20px 16px">
-        <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:13px">
-          <thead>
-            <tr>
-              <th style="text-align:left;font-size:11px;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;width:32px">Ok</th>
-              <th style="text-align:left;font-size:11px;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Material / Descrição</th>
-              <th style="text-align:left;font-size:11px;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Categoria</th>
-              <th style="text-align:right;font-size:11px;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Qtd</th>
-              <th style="text-align:right;font-size:11px;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Unit.</th>
-              <th style="text-align:right;font-size:11px;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Total</th>
-              <th style="text-align:left;font-size:11px;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Obs.</th>
-              <th style="text-align:left;font-size:11px;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Data</th>
-              <th style="width:30px;border-bottom:1px solid var(--border)"></th>
-            </tr>
-          </thead>
-          <tbody>
-            ${items.map(it=>`
-              <tr style="${it.concluido?'opacity:0.55':''}">
-                <td style="padding:9px 8px;border-bottom:1px solid var(--border)">
-                  <input type="checkbox" ${it.concluido?'checked':''} onchange="window.toggleConcluido('${it.id}',this.checked)"
-                    style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer">
-                </td>
-                <td style="padding:9px 8px;border-bottom:1px solid var(--border);font-weight:600;${it.concluido?'text-decoration:line-through':''}">${it.desc}</td>
-                <td style="padding:9px 8px;border-bottom:1px solid var(--border)"><span class="badge badge-blue" style="font-size:10px">${it.cat||'—'}</span></td>
-                <td style="padding:9px 8px;border-bottom:1px solid var(--border);text-align:right;color:var(--muted)">${(it.qtd||1).toLocaleString('pt-BR',{maximumFractionDigits:2})}</td>
-                <td style="padding:9px 8px;border-bottom:1px solid var(--border);text-align:right;color:var(--muted)">${fmt(it.valorUnit||0)}</td>
-                <td style="padding:9px 8px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:var(--accent);white-space:nowrap">${fmt(it.total)}</td>
-                <td style="padding:9px 8px;border-bottom:1px solid var(--border);color:var(--muted);font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.obs||'—'}</td>
-                <td style="padding:9px 8px;border-bottom:1px solid var(--border);color:var(--muted);white-space:nowrap;font-size:12px">${fmtData(it.data||it.criadoEm)}</td>
-                <td style="padding:9px 8px;border-bottom:1px solid var(--border)">
-                  <span style="cursor:pointer;color:var(--muted2);font-size:16px" onclick="window.deletarItemLM('${it.id}')" title="Remover">×</span>
-                </td>
-              </tr>`).join('')}
-            <tr>
-              <td colspan="5" style="padding:10px 8px;text-align:right;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">A comprar</td>
-              <td style="padding:10px 8px;text-align:right">
-                <div style="font-size:15px;font-weight:800;color:var(--accent)">${fmt(items.filter(i=>!i.concluido).reduce((a,i)=>a+i.total,0))}</div>
-                ${items.some(i=>i.concluido)?`<div style="font-size:11px;color:var(--muted);text-decoration:line-through;margin-top:2px">Total: ${fmt(total)}</div>`:''}
-              </td>
-              <td colspan="3"></td>
-            </tr>
-          </tbody>
-        </table>
-        </div>
-        <div style="display:flex;justify-content:flex-end;margin-top:12px">
-          <button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="window.gerarPDFListaMaterialCliente('${encodeURIComponent(cli)}')">📄 PDF deste cliente</button>
-        </div>
-      </div>` : '';
-
+  function renderGrupo(lista, titulo, emojiTitle, coresArr) {
+    if(!lista.length) return '';
     return `
-      <div class="card" style="padding:0;margin-bottom:12px;overflow:hidden;${isDone?'border-color:var(--green)':''}" id="lm-card-${ci}">
-        <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;transition:background .15s" onclick="window.toggleCardLM('${cli.replace(/'/g,"\\'")}')">
-          <div style="width:38px;height:38px;border-radius:50%;background:${cor}22;color:${cor};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">${ini}</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:600;color:var(--text)">${cli}</div>
-            <div style="font-size:12px;color:var(--muted);margin-top:2px">${items.length} iten${items.length!==1?'s':''} lançado${items.length!==1?'s':''}</div>
-          </div>
-          <div style="flex:1;max-width:180px">
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px">
-              <span>${pct}% completo</span><span>${concl}/${items.length}</span>
-            </div>
-            <div style="height:6px;background:var(--bg4);border-radius:3px;overflow:hidden">
-              <div style="height:100%;border-radius:3px;background:${isDone?'var(--green)':'var(--accent)'};width:${pct}%;transition:width .4s"></div>
-            </div>
-          </div>
-          <div style="text-align:right;min-width:90px">
-            <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:var(--accent)">${fmt(items.filter(i=>!i.concluido).reduce((a,i)=>a+i.total,0))}</div>
-            ${concl>0?`<div style="font-size:10px;color:var(--muted);margin-top:1px">de ${fmt(total)}</div>`:''}
-          </div>
-          ${isDone?`<span class="badge badge-green">Concluído</span>`:''}
-          <span style="font-size:13px;color:var(--muted);transition:transform .2s;${isOpen?'transform:rotate(180deg)':''}">▾</span>
+      <div style="margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+          <span>${emojiTitle}</span><span>${titulo}</span>
         </div>
-        ${itemsHtml}
+        ${lista.map((ent,ei)=>{
+          const itens  = todosItens.filter(i=>i.entidadeId===ent.id);
+          const total  = itens.reduce((a,i)=>a+i.total,0);
+          const disp   = itens.filter(i=>!i.usado).reduce((a,i)=>a+i.total,0);
+          const nIt    = itens.length;
+          const nDispIt= itens.filter(i=>!i.usado).length;
+          const isOpen = !!window._estOpen[ent.id];
+          const cor    = coresArr[ei%coresArr.length];
+          const ini    = ent.nome.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
+
+          const tabelaHtml = isOpen ? `
+            <div style="border-top:1px solid var(--border);padding:0 20px 16px">
+              ${ent.obs?`<div style="font-size:12px;color:var(--muted);padding:10px 0 4px">📍 ${ent.obs}</div>`:''}
+              <div style="display:flex;justify-content:flex-end;margin:10px 0 6px;gap:8px">
+                <button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="window.gerarPDFEstoqueEntidade('${ent.id}')">📄 PDF</button>
+                <button class="btn btn-primary" style="margin:0;padding:6px 14px;font-size:12px;width:auto" onclick="window.abrirModalEstoqueItem('${ent.id}')">+ Lançar material</button>
+              </div>
+              ${nIt===0 ? `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhum material lançado ainda.</div>` : `
+              <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead><tr>
+                  <th style="text-align:left;font-size:10px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:.06em;width:32px">Ok</th>
+                  <th style="text-align:left;font-size:10px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Material</th>
+                  <th style="text-align:left;font-size:10px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Cat.</th>
+                  <th style="text-align:right;font-size:10px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Qtd</th>
+                  <th style="text-align:right;font-size:10px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Unit.</th>
+                  <th style="text-align:right;font-size:10px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Total</th>
+                  <th style="text-align:left;font-size:10px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Observação</th>
+                  <th style="text-align:left;font-size:10px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Cliente destino</th>
+                  <th style="text-align:left;font-size:10px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Data</th>
+                  <th style="width:60px;border-bottom:1px solid var(--border)"></th>
+                </tr></thead>
+                <tbody>
+                  ${itens.map(it=>`
+                    <tr style="${it.usado?'opacity:.5;':''}">
+                      <td style="padding:8px;border-bottom:1px solid var(--border);text-align:center">
+                        <input type="checkbox" ${it.usado?'checked':''} onchange="window.toggleEstoqueUsado('${it.id}',this.checked)"
+                          style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer">
+                      </td>
+                      <td style="padding:8px;border-bottom:1px solid var(--border);font-weight:600;${it.usado?'text-decoration:line-through':''}">${it.nome}</td>
+                      <td style="padding:8px;border-bottom:1px solid var(--border)"><span style="background:${catColors[it.cat]||'#888'};color:#fff;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600">${it.cat||'—'}</span></td>
+                      <td style="padding:8px;border-bottom:1px solid var(--border);text-align:right;color:var(--muted)">${(it.qtd||1).toLocaleString('pt-BR',{maximumFractionDigits:2})}</td>
+                      <td style="padding:8px;border-bottom:1px solid var(--border);text-align:right;color:var(--muted)">${fmt(it.valorUnit||0)}</td>
+                      <td style="padding:8px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:${it.usado?'var(--muted)':'var(--accent)'};${it.usado?'text-decoration:line-through':''}">${fmt(it.total)}</td>
+                      <td style="padding:8px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.obs||'—'}</td>
+                      <td style="padding:8px;border-bottom:1px solid var(--border);font-size:12px;font-weight:${it.cliente?'600':'400'};color:${it.cliente?'var(--blue)':'var(--muted2)'};white-space:nowrap">${it.cliente||'—'}</td>
+                      <td style="padding:8px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);white-space:nowrap">${fmtData(it.data||it.criadoEm)}</td>
+                      <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center">
+                        <span style="cursor:pointer;color:var(--blue);font-size:13px;padding:2px 4px" onclick="window.editarEstoqueItem('${it.id}')" title="Editar">✏️</span>
+                        <span style="cursor:pointer;color:var(--muted2);font-size:16px" onclick="window.deletarEstoqueItem('${it.id}')" title="Remover">×</span>
+                      </td>
+                    </tr>`).join('')}
+                  <tr>
+                    <td colspan="5" style="padding:9px 8px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Disponível</td>
+                    <td style="padding:9px 8px;text-align:right;font-size:14px;font-weight:800;color:var(--green)">${fmt(disp)}</td>
+                    <td colspan="4"></td>
+                  </tr>
+                </tbody>
+              </table>
+              </div>`}
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+                <button class="btn-ghost" style="font-size:11px;padding:5px 12px;color:var(--red);border-color:var(--red)" onclick="window.deletarEstoqueEntidade('${ent.id}')">🗑 Remover ${ent.tipo==='local'?'local':'prestador'}</button>
+              </div>
+            </div>` : '';
+
+          return `
+            <div class="card" style="padding:0;margin-bottom:10px;overflow:hidden" id="est-card-${ent.id}">
+              <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;transition:background .15s" onclick="window.toggleEstoqueCard('${ent.id}')">
+                <div style="width:38px;height:38px;border-radius:${ent.tipo==='local'?'8px':'50%'};background:${cor}22;color:${cor};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">${ini}</div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:14px;font-weight:600;color:var(--text)">${ent.nome}</span>
+                    <span style="font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;background:${cor}22;color:${cor}">${ent.tipo==='local'?'📍 Local':'👷 Prestador'}</span>
+                  </div>
+                  <div style="font-size:12px;color:var(--muted);margin-top:2px">${nIt} iten${nIt!==1?'s':''} · ${nDispIt} disponíve${nDispIt!==1?'is':'l'}</div>
+                </div>
+                <div style="text-align:right;min-width:100px">
+                  <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:var(--green)">${fmt(disp)}</div>
+                  ${nIt>0&&disp<total?`<div style="font-size:10px;color:var(--muted);margin-top:1px">de ${fmt(total)} total</div>`:''}
+                </div>
+                <span style="font-size:13px;color:var(--muted);transition:transform .2s;${isOpen?'transform:rotate(180deg)':''}">▾</span>
+              </div>
+              ${tabelaHtml}
+            </div>`;
+        }).join('')}
       </div>`;
-  }).join('');
-};
-
-window.gerarPDFListaMaterialCliente = function(clienteEnc) {
-  const cliente = decodeURIComponent(clienteEnc);
-  const items   = (window._listaMaterial||[]).filter(i=>i.cliente===cliente);
-  _gerarPDFListaMaterial(items, cliente, '');
-};
-
-window.gerarPDFListaMaterialMes = function() {
-  const mesFiltro = document.getElementById('lm-filtro-mes')?.value||'';
-  const nomes=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  let items = window._listaMaterial||[];
-  let titulo = 'Todos os meses';
-  if(mesFiltro) {
-    items = items.filter(i=>{
-      const ref = i.data || i.criadoEm;
-      if(!ref) return false;
-      const d = new Date(ref);
-      const chave = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      return chave === mesFiltro;
-    });
-    const [ano,mes] = mesFiltro.split('-');
-    titulo = nomes[parseInt(mes)]+' '+ano;
   }
-  _gerarPDFListaMaterial(items, '', titulo);
+
+  cardsEl.innerHTML =
+    renderGrupo(locais,      'Locais de Armazenamento', '📦', CORES_LOC) +
+    renderGrupo(prestadores, 'Prestadores / Terceirizados', '👷', CORES_PRES);
+}
+
+window.gerarPDFEstoqueEntidade = function(entidadeId) {
+  const ent   = (window._estoqueEntidades||[]).find(e=>e.id===entidadeId);
+  const itens = (window._estoqueItens||[]).filter(i=>i.entidadeId===entidadeId);
+  _gerarPDFEstoque(itens, ent);
 };
 
-function _gerarPDFListaMaterial(items, cliente, periodoLabel) {
-  const hoje = new Date().toLocaleDateString('pt-BR');
-  const total = items.reduce((a,i)=>a+i.total,0);
-  const concl = items.filter(i=>i.concluido).length;
-  const pct   = items.length?Math.round(concl/items.length*100):0;
+window.gerarPDFEstoque = function() {
+  _gerarPDFEstoque(window._estoqueItens||[], null);
+};
 
-  // Agrupar por cliente para PDF do mês
-  const porCli = {};
-  items.forEach(i=>{ const c=i.cliente||'Sem cliente'; if(!porCli[c])porCli[c]=[]; porCli[c].push(i); });
+function _gerarPDFEstoque(itens, entidade) {
+  const hoje   = new Date().toLocaleDateString('pt-BR');
+  const titulo = entidade ? entidade.nome : 'Estoque Geral';
+  const total  = itens.reduce((a,i)=>a+i.total,0);
+  const disp   = itens.filter(i=>!i.usado).reduce((a,i)=>a+i.total,0);
+  const catColors = {ACM:'#1a2332',PVC:'#2980b9','Acrílico':'#e9b94e',Lona:'#27ae60',Fixação:'#7b5fc9',Elétrico:'#f39c12',Metalon:'#636e72',Impressão:'#0984e3',Terceirizado:'#c0392b',Outros:'#888'};
+  const entidades = entidade
+    ? [{ent: entidade, items: itens}]
+    : (window._estoqueEntidades||[]).map(e=>({ ent:e, items:(window._estoqueItens||[]).filter(i=>i.entidadeId===e.id) }));
 
-  const catColors = {'ACM':'#1a2332','PVC':'#2980b9','Acrílico':'#e9b94e','Lona':'#27ae60','Fixação':'#7b5fc9','Mão de obra':'#0a8a4a','Elétrico':'#f39c12','Logística':'#1a5fa8','Terceirizado':'#c0392b','Outros':'#888'};
-
-  const blocosCliente = Object.entries(porCli).map(([cli,citems])=>{
-    const ctot = citems.reduce((a,i)=>a+i.total,0);
-    const cconcl = citems.filter(i=>i.concluido).length;
-    const cpct = citems.length?Math.round(cconcl/citems.length*100):0;
+  const blocosHTML = entidades.map(({ent:e, items:its})=>{
+    if(!its.length) return '';
+    const etot  = its.reduce((a,i)=>a+i.total,0);
+    const edisp = its.filter(i=>!i.usado).reduce((a,i)=>a+i.total,0);
     return `
       <div style="margin-bottom:22px">
-        <div style="display:flex;justify-content:space-between;align-items:center;background:#1a2332;color:#fff;padding:8px 14px;border-radius:6px;margin-bottom:8px">
-          <span style="font-weight:700;font-size:13px">${cli}</span>
-          <span style="font-size:11px;color:rgba(255,255,255,0.7)">${citems.length} itens · ${cpct}% concluído · <strong style="color:#e8520a">R$ ${ctot.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></span>
+        <div style="background:#1a2332;color:#fff;padding:8px 14px;border-radius:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:700;font-size:13px">${e.nome} <span style="font-size:10px;opacity:.6">${e.tipo==='local'?'📍 Local':'👷 Prestador'}</span></span>
+          <span style="font-size:11px;color:rgba(255,255,255,.7)">${its.length} itens · Disponível: <strong style="color:#2ecc71">R$ ${edisp.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></span>
         </div>
+        ${e.obs?`<div style="font-size:11px;color:#888;margin-bottom:6px">📍 ${e.obs}</div>`:''}
         <table style="width:100%;border-collapse:collapse;font-size:11px">
-          <thead>
-            <tr style="background:#f8f7f4">
-              <th style="padding:5px 8px;text-align:left;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0ddd6">Status</th>
-              <th style="padding:5px 8px;text-align:left;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0ddd6">Material / Descrição</th>
-              <th style="padding:5px 8px;text-align:left;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0ddd6">Categoria</th>
-              <th style="padding:5px 8px;text-align:right;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0ddd6">Qtd</th>
-              <th style="padding:5px 8px;text-align:right;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0ddd6">Unit.</th>
-              <th style="padding:5px 8px;text-align:right;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0ddd6">Total</th>
-              <th style="padding:5px 8px;text-align:left;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0ddd6">Obs.</th>
-              <th style="padding:5px 8px;text-align:left;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0ddd6">Data</th>
-            </tr>
-          </thead>
+          <thead><tr style="background:#f8f7f4">
+            <th style="padding:5px 8px;text-align:center;width:28px;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e0ddd6">Ok</th>
+            <th style="padding:5px 8px;text-align:left;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e0ddd6">Material</th>
+            <th style="padding:5px 8px;text-align:left;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e0ddd6">Categoria</th>
+            <th style="padding:5px 8px;text-align:right;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e0ddd6">Qtd</th>
+            <th style="padding:5px 8px;text-align:right;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e0ddd6">Unit.</th>
+            <th style="padding:5px 8px;text-align:right;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e0ddd6">Total</th>
+            <th style="padding:5px 8px;text-align:left;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e0ddd6">Observação</th>
+            <th style="padding:5px 8px;text-align:left;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e0ddd6">Cliente destino</th>
+            <th style="padding:5px 8px;text-align:left;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e0ddd6">Data</th>
+          </tr></thead>
           <tbody>
-            ${citems.map((it,idx)=>`
-              <tr style="background:${idx%2===1?'#fafaf8':'#fff'}">
-                <td style="padding:6px 8px;border-bottom:1px solid #f0ede8">
-                  <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${it.concluido?'#0a8a4a':'#e8e4de'};border:1px solid ${it.concluido?'#0a8a4a':'#ccc'};text-align:center;line-height:14px;font-size:9px;color:#fff;font-weight:700">${it.concluido?'✓':''}</span>
+            ${its.map((it,idx)=>`
+              <tr style="background:${idx%2===1?'#fafaf8':'#fff'};${it.usado?'opacity:.45;text-decoration:line-through;':''}">
+                <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;text-align:center">
+                  <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${it.usado?'#0a8a4a':'#e8e4de'};border:1px solid ${it.usado?'#0a8a4a':'#ccc'};text-align:center;line-height:14px;font-size:9px;color:#fff;font-weight:700">${it.usado?'✓':''}</span>
                 </td>
-                <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;font-weight:${it.concluido?'400':'600'};${it.concluido?'text-decoration:line-through;color:#aaa':''}">${it.desc}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;font-weight:600">${it.nome}</td>
                 <td style="padding:6px 8px;border-bottom:1px solid #f0ede8"><span style="background:${catColors[it.cat]||'#888'};color:#fff;font-size:9px;padding:2px 6px;border-radius:10px;font-weight:700">${it.cat||'—'}</span></td>
                 <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;text-align:right;color:#888">${(it.qtd||1).toLocaleString('pt-BR',{maximumFractionDigits:2})}</td>
                 <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;text-align:right;color:#888">R$ ${(it.valorUnit||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
                 <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;text-align:right;font-weight:700;color:#e8520a">R$ ${(it.total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
                 <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;color:#aaa;font-size:10px">${it.obs||'—'}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;font-weight:${it.cliente?'700':'400'};color:${it.cliente?'#1a5fa8':'#aaa'};font-size:10px">${it.cliente||'—'}</td>
                 <td style="padding:6px 8px;border-bottom:1px solid #f0ede8;color:#aaa;white-space:nowrap">${fmtData(it.data||it.criadoEm)}</td>
               </tr>`).join('')}
             <tr style="background:#1a2332">
-              <td colspan="5" style="padding:7px 8px;text-align:right;color:rgba(255,255,255,0.7);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em">Total ${cli}</td>
-              <td style="padding:7px 8px;text-align:right;font-weight:800;color:#e8520a;font-size:13px">R$ ${ctot.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-              <td colspan="2"></td>
+              <td colspan="5" style="padding:7px 8px;text-align:right;color:rgba(255,255,255,.7);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Disponível</td>
+              <td style="padding:7px 8px;text-align:right;font-weight:800;color:#2ecc71;font-size:13px">R$ ${edisp.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+              <td colspan="3"></td>
             </tr>
           </tbody>
         </table>
       </div>`;
   }).join('');
 
-  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-  <title>Lista de Material — CMT</title>
-  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:12px;color:#222;background:#f0ede8;padding:0}.page{background:#fff;max-width:960px;margin:0 auto;padding:28px 32px}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid #e8520a}.logo{font-size:24px;font-weight:900;color:#1a2332}.logo span{color:#e8520a}.kpis{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:22px}.kpi{background:#f8f7f4;border-left:4px solid #e8520a;padding:12px 14px;border-radius:6px}.kpi-l{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;font-weight:700}.kpi-v{font-size:18px;font-weight:800}.footer{margin-top:20px;padding-top:10px;border-top:1px solid #e0ddd6;font-size:10px;color:#aaa;display:flex;justify-content:space-between}@media print{body{background:#fff}.page{padding:16px;max-width:100%}}</style>
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Estoque — CMT</title>
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:12px;color:#222;background:#f0ede8}.page{background:#fff;max-width:960px;margin:0 auto;padding:28px 32px}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid #e8520a}.logo{font-size:24px;font-weight:900;color:#1a2332}.logo span{color:#e8520a}.kpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:22px}.kpi{background:#f8f7f4;border-left:4px solid #e8520a;padding:12px 14px;border-radius:6px}.kpi-l{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-weight:700}.kpi-v{font-size:18px;font-weight:800}.footer{margin-top:20px;padding-top:10px;border-top:1px solid #e0ddd6;font-size:10px;color:#aaa;display:flex;justify-content:space-between}@media print{body{background:#fff}.page{padding:16px;max-width:100%}}</style>
   </head><body><div class="page">
   <div class="header">
-    <div>
-      <div class="logo">CMT <span>Projetos e Fachadas</span></div>
-      <div style="font-size:14px;font-weight:700;color:#1a2332;margin-top:4px">Lista de Material${cliente?' — '+cliente:' — '+periodoLabel}</div>
-      <div style="font-size:11px;color:#888;margin-top:2px">Gerado em ${hoje}</div>
-    </div>
+    <div><div class="logo">CMT <span>Projetos e Fachadas</span></div>
+    <div style="font-size:14px;font-weight:700;color:#1a2332;margin-top:4px">Controle de Estoque — ${titulo}</div>
+    <div style="font-size:11px;color:#888;margin-top:2px">Gerado em ${hoje}</div></div>
     <div style="text-align:right">
-      <div style="font-size:11px;color:#888">Total geral</div>
-      <div style="font-size:26px;font-weight:900;color:#e8520a">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
-      <div style="font-size:11px;color:#888">${items.length} itens · ${pct}% concluído</div>
+      <div style="font-size:11px;color:#888">Valor disponível</div>
+      <div style="font-size:26px;font-weight:900;color:#0a8a4a">R$ ${disp.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+      <div style="font-size:11px;color:#888">de R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})} total</div>
     </div>
   </div>
   <div class="kpis">
-    <div class="kpi" style="border-left-color:#e8520a"><div class="kpi-l">Total lançado</div><div class="kpi-v" style="color:#e8520a">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
-    <div class="kpi" style="border-left-color:#0a8a4a"><div class="kpi-l">Itens concluídos</div><div class="kpi-v" style="color:#0a8a4a">${concl} / ${items.length}</div></div>
-    <div class="kpi" style="border-left-color:#1a5fa8"><div class="kpi-l">% completo</div><div class="kpi-v" style="color:#1a5fa8">${pct}%</div></div>
-    <div class="kpi" style="border-left-color:#6b46c1"><div class="kpi-l">Clientes / obras</div><div class="kpi-v" style="color:#6b46c1">${Object.keys(porCli).length}</div></div>
+    <div class="kpi" style="border-left-color:#0a8a4a"><div class="kpi-l">Valor disponível</div><div class="kpi-v" style="color:#0a8a4a">R$ ${disp.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
+    <div class="kpi" style="border-left-color:#e8520a"><div class="kpi-l">Total em estoque</div><div class="kpi-v" style="color:#e8520a">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
+    <div class="kpi" style="border-left-color:#888"><div class="kpi-l">Itens</div><div class="kpi-v">${itens.length} (${itens.filter(i=>!i.usado).length} disponíveis)</div></div>
   </div>
-  ${blocosCliente}
-  <div class="footer"><span>CMT Projetos e Fachadas — Lista de Material</span><span>Gerado em ${hoje} · ${items.length} itens</span></div>
+  ${blocosHTML}
+  <div class="footer"><span>CMT Projetos e Fachadas — Controle de Estoque</span><span>Gerado em ${hoje}</span></div>
   </div></body></html>`;
 
-  const w=window.open('','_blank');
+  const w = window.open('','_blank');
   w.document.write(html);
   w.document.close();
-  setTimeout(()=>w.print(),600);
+  setTimeout(()=>w.print(), 600);
 }
 
 // ── PWA INSTALL BANNER (iOS Safari) ──
