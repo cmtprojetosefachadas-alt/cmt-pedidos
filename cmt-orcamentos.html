@@ -3590,9 +3590,9 @@ function renderDespesas() {
         </td>
         <td style="padding-left:16px;font-size:12px;color:var(--muted);white-space:nowrap">
           <div>${fmtData(d.data||d.criadoEm)}</div>
-          ${d.obs ? `<div onclick="window.toggleNotaDespesa('${d.id}',event);event.stopPropagation()" style="cursor:pointer;margin-top:3px;display:inline-flex;align-items:center;gap:3px;color:var(--accent);font-size:12px;font-weight:700;padding:1px 6px;border-radius:4px;background:rgba(232,82,10,0.10)">
+          ${d.nota ? `<div onclick="window.toggleNotaDespesa('${d.id}',event);event.stopPropagation()" style="cursor:pointer;margin-top:3px;display:inline-flex;align-items:center;gap:3px;color:var(--accent);font-size:12px;font-weight:700;padding:1px 6px;border-radius:4px;background:rgba(232,82,10,0.10)">
             <span style="font-size:14px;line-height:1;display:inline-block;transition:transform .15s;transform:${notaAberta?'rotate(180deg)':'rotate(0deg)'}">▾</span>
-            <span>obs</span>
+            <span>nota</span>
           </div>` : ''}
         </td>
         <td style="font-size:12px;color:var(--muted)">#${d.orcNum}</td>
@@ -3653,9 +3653,9 @@ function renderDespesas() {
       </td>
       <td style="font-size:12px;color:var(--muted);white-space:nowrap">
         <div>${fmtData(d.data||d.criadoEm)}</div>
-        ${d.obs ? `<div onclick="window.toggleNotaDespesa('${d.id}',event);event.stopPropagation()" style="cursor:pointer;margin-top:3px;display:inline-flex;align-items:center;gap:3px;color:var(--accent);font-size:12px;font-weight:700;padding:1px 6px;border-radius:4px;background:rgba(232,82,10,0.10)">
+        ${d.nota ? `<div onclick="window.toggleNotaDespesa('${d.id}',event);event.stopPropagation()" style="cursor:pointer;margin-top:3px;display:inline-flex;align-items:center;gap:3px;color:var(--accent);font-size:12px;font-weight:700;padding:1px 6px;border-radius:4px;background:rgba(232,82,10,0.10)">
           <span style="font-size:14px;line-height:1;display:inline-block;transition:transform .15s;transform:${notaAberta?'rotate(180deg)':'rotate(0deg)'}">▾</span>
-          <span>obs</span>
+          <span>nota</span>
         </div>` : ''}
       </td>
       <td><span style="font-weight:600">#${d.orcNum}</span> <span style="font-size:12px;color:var(--muted)">${d.orcCliente}</span></td>
