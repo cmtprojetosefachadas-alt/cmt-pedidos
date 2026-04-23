@@ -3579,8 +3579,11 @@ function renderDespesas() {
       const detalheRows = expanded ? items.map(d=>{
         const ck = window._despChecked?.[d.id];
         const riscado = ck ? 'opacity:0.45;text-decoration:line-through;' : 'opacity:0.88;';
-        return `<tr id="row_${cliKey}" style="${riscado}">
-        <td style="padding-left:12px;text-align:center">
+        const notaAberta = !!window._despNotaAberta?.[d.id];
+        const notaVal = d.nota||'';
+        const temNota = !!notaVal;
+        return `<tr id="row_${cliKey}" style="${riscado}cursor:pointer;transition:background .15s" onclick="window.toggleNotaDespesa('${d.id}',event)">
+        <td style="padding-left:12px;text-align:center" onclick="event.stopPropagation()">
           <input type="checkbox" ${ck?'checked':''} onchange="window.toggleDespCheck('${d.id}',this.checked)"
             style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer">
         </td>
@@ -3589,10 +3592,28 @@ function renderDespesas() {
         <td style="font-weight:500">${d.desc}</td>
         <td><span style="background:${catColors[d.cat]||'#888'};color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px">${d.cat}</span></td>
         <td style="font-weight:700;color:var(--accent)">${fmt(d.valor)}</td>
-        <td style="font-size:12px;color:var(--muted)">${d.obs||'—'}</td>
-        <td style="font-size:12px;color:var(--muted)">${d.lancadoPor||'—'}</td>
-        <td><button onclick="window.excluirDespesa('${d.id}')" style="background:none;border:none;color:var(--muted2);cursor:pointer;font-size:16px;padding:2px 6px">🗑</button></td>
-      </tr>`;}).join('') : '';
+        <td style="font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.obs||'—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${d.lancadoPor||'—'}${temNota?` <span style="color:var(--blue);font-size:10px" title="${notaVal.replace(/"/g,"'")}">📝</span>`:''}</td>
+        <td onclick="event.stopPropagation()"><button onclick="window.excluirDespesa('${d.id}')" style="background:none;border:none;color:var(--muted2);cursor:pointer;font-size:16px;padding:2px 6px">🗑</button></td>
+      </tr>
+      ${notaAberta?`<tr style="background:#fff8e7;border-left:3px solid #e9b94e">
+        <td colspan="9" style="padding:8px 12px 10px 44px" onclick="event.stopPropagation()">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:#8a6d00;font-weight:700;white-space:nowrap">📝 Nota rápida:</span>
+            <input id="nota_${d.id}" type="text" value="${(notaVal).replace(/"/g,'&quot;')}"
+              placeholder="Ex: entregue ao João, recebido por Maria, usado na obra X..."
+              style="flex:1;font-size:12px;padding:5px 10px;border:1.5px solid #e9b94e;border-radius:6px;background:#fffdf5;color:#333;outline:none;font-family:'Inter',sans-serif"
+              onkeydown="if(event.key==='Enter')window.salvarNotaDespesa('${d.id}')"
+              onfocus="this.style.borderColor='#c8960a'"
+              onblur="this.style.borderColor='#e9b94e'">
+            <button onclick="window.salvarNotaDespesa('${d.id}')"
+              style="padding:5px 14px;background:#c8960a;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap">Salvar</button>
+            ${temNota?`<button onclick="window.limparNotaDespesa('${d.id}')"
+              style="padding:5px 10px;background:none;color:#8a6d00;border:1px solid #e9b94e;border-radius:6px;font-size:11px;cursor:pointer;white-space:nowrap">Limpar</button>`:''}
+          </div>
+          ${temNota?`<div style="font-size:11px;color:#5a8a00;margin-top:5px;padding-left:2px">✓ Salvo: <em>${notaVal}</em></div>`:''}
+        </td>
+      </tr>`:''}`;}).join('') : '';
 
       return headerRow + detalheRows;
     }).join('');
@@ -3615,8 +3636,11 @@ function renderDespesas() {
     tbody.innerHTML = lista.map(d=>{
       const ck = window._despChecked?.[d.id];
       const riscado = ck ? 'opacity:0.45;text-decoration:line-through;' : '';
-      return `<tr style="${riscado}">
-      <td style="text-align:center">
+      const notaAberta = !!window._despNotaAberta?.[d.id];
+      const notaVal = d.nota||'';
+      const temNota = !!notaVal;
+      return `<tr style="${riscado}cursor:pointer;transition:background .15s" onclick="window.toggleNotaDespesa('${d.id}',event)">
+      <td style="text-align:center" onclick="event.stopPropagation()">
         <input type="checkbox" ${ck?'checked':''} onchange="window.toggleDespCheck('${d.id}',this.checked)"
           style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer">
       </td>
@@ -3625,12 +3649,68 @@ function renderDespesas() {
       <td style="font-weight:500">${d.desc}</td>
       <td><span style="background:${catColors[d.cat]||'#888'};color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px">${d.cat}</span></td>
       <td style="font-weight:700;color:var(--accent)">${fmt(d.valor)}</td>
-      <td style="font-size:12px;color:var(--muted)">${d.obs||'—'}</td>
-      <td style="font-size:12px;color:var(--muted)">${d.lancadoPor||'—'}</td>
-      <td><button onclick="window.excluirDespesa('${d.id}')" style="background:none;border:none;color:var(--muted2);cursor:pointer;font-size:16px;padding:2px 6px">🗑</button></td>
-    </tr>`;}).join('');
+      <td style="font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.obs||'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${d.lancadoPor||'—'}${temNota?` <span style="color:var(--blue);font-size:10px" title="${notaVal.replace(/"/g,"'")}">📝</span>`:''}</td>
+      <td onclick="event.stopPropagation()"><button onclick="window.excluirDespesa('${d.id}')" style="background:none;border:none;color:var(--muted2);cursor:pointer;font-size:16px;padding:2px 6px">🗑</button></td>
+    </tr>
+    ${notaAberta?`<tr style="background:#fff8e7;border-left:3px solid #e9b94e">
+      <td colspan="9" style="padding:8px 12px 10px 36px" onclick="event.stopPropagation()">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:#8a6d00;font-weight:700;white-space:nowrap">📝 Nota rápida:</span>
+          <input id="nota_${d.id}" type="text" value="${(notaVal).replace(/"/g,'&quot;')}"
+            placeholder="Ex: entregue ao João, recebido por Maria, usado na obra X..."
+            style="flex:1;font-size:12px;padding:5px 10px;border:1.5px solid #e9b94e;border-radius:6px;background:#fffdf5;color:#333;outline:none;font-family:'Inter',sans-serif"
+            onkeydown="if(event.key==='Enter')window.salvarNotaDespesa('${d.id}')"
+            onfocus="this.style.borderColor='#c8960a'"
+            onblur="this.style.borderColor='#e9b94e'">
+          <button onclick="window.salvarNotaDespesa('${d.id}')"
+            style="padding:5px 14px;background:#c8960a;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap">Salvar</button>
+          ${temNota?`<button onclick="window.limparNotaDespesa('${d.id}')"
+            style="padding:5px 10px;background:none;color:#8a6d00;border:1px solid #e9b94e;border-radius:6px;font-size:11px;cursor:pointer;white-space:nowrap">Limpar</button>`:''}
+        </div>
+        ${temNota?`<div style="font-size:11px;color:#5a8a00;margin-top:5px;padding-left:2px">✓ Salvo: <em>${notaVal}</em></div>`:''}
+      </td>
+    </tr>`:''}`;}).join('');
   }
 }
+
+
+window._despNotaAberta = {};
+
+window.toggleNotaDespesa = function(id, event) {
+  if(['INPUT','BUTTON','A'].includes(event?.target?.tagName)) return;
+  if(!window._despNotaAberta) window._despNotaAberta = {};
+  window._despNotaAberta[id] = !window._despNotaAberta[id];
+  renderDespesas();
+  if(window._despNotaAberta[id]) {
+    setTimeout(()=>{ const el=document.getElementById('nota_'+id); if(el){el.focus();el.select();} }, 60);
+  }
+};
+
+window.salvarNotaDespesa = async function(id) {
+  const el = document.getElementById('nota_'+id);
+  if(!el) return;
+  const nota = el.value.trim();
+  try {
+    await updateDoc(doc(db,'cmt_despesas',id), {nota});
+    const d = (_despesas||[]).find(x=>x.id===id);
+    if(d) d.nota = nota;
+    window._despNotaAberta[id] = false;
+    renderDespesas();
+    showToast(nota?'Nota salva! ✅':'Nota removida.');
+  } catch(e){ showToast('Erro ao salvar nota.'); }
+};
+
+window.limparNotaDespesa = async function(id) {
+  try {
+    await updateDoc(doc(db,'cmt_despesas',id), {nota:''});
+    const d = (_despesas||[]).find(x=>x.id===id);
+    if(d) d.nota = '';
+    window._despNotaAberta[id] = false;
+    renderDespesas();
+    showToast('Nota removida.');
+  } catch(e){ showToast('Erro.'); }
+};
 
 window.toggleCliExpandido = function(key) {
   if(!window._cliExpandido) window._cliExpandido = {};
