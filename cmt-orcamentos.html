@@ -918,8 +918,8 @@ body {
           <input class="field" id="desp-obs" placeholder="Ex: NF 1234, fornecedor...">
         </div>
         <div>
-          <label class="field-label">Data <span style="font-size:10px;color:var(--muted);font-weight:400">(automática)</span></label>
-          <input class="field" id="desp-data" type="date" readonly style="background:var(--bg3);color:var(--muted);cursor:not-allowed;opacity:.8">
+          <label class="field-label">Data</label>
+          <input class="field" id="desp-data" type="date">
         </div>
         <button class="btn btn-primary" style="margin-bottom:1px" onclick="window.lancarDespesa()">+ Lançar</button>
       </div>
@@ -983,8 +983,8 @@ body {
           <input class="field" id="desp-m-obs" placeholder="Ex: NF 1234">
         </div>
         <div>
-          <label class="field-label">Data <span style="font-size:10px;color:var(--muted);font-weight:400">(automática)</span></label>
-          <input class="field" id="desp-m-data" type="date" readonly style="background:var(--bg3);color:var(--muted);cursor:not-allowed;opacity:.8">
+          <label class="field-label">Data</label>
+          <input class="field" id="desp-m-data" type="date">
         </div>
         <button class="btn btn-primary" style="margin-bottom:1px" onclick="window.lancarDespesaManual()">+ Lançar</button>
       </div>
@@ -3247,6 +3247,7 @@ async function lancarDespesa() {
   document.getElementById('desp-valor').value='';
   document.getElementById('desp-obs').value='';
 
+
   showToast('Despesa lançada! ✅');
   await carregarDespesas();
   await carregarSaldos();
@@ -3703,14 +3704,19 @@ window.toggleNotaDespesa = function(id, event) {
 window.salvarNotaDespesa = async function(id) {
   const el = document.getElementById('nota_'+id);
   if(!el) return;
-  const nota = el.value.trim();
+  const texto = el.value.trim();
+  if(!texto) { showToast('Digite algo na nota!'); return; }
+  // Adiciona data/hora automática no início da nota
+  const agora = new Date();
+  const dataHora = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const nota = '[' + dataHora + '] ' + texto;
   try {
     await updateDoc(doc(db,'cmt_despesas',id), {nota});
     const d = (_despesas||[]).find(x=>x.id===id);
     if(d) d.nota = nota;
     window._despNotaAberta[id] = false;
     renderDespesas();
-    showToast(nota?'Nota salva! ✅':'Nota removida.');
+    showToast('Nota salva! ✅');
   } catch(e){ showToast('Erro ao salvar nota.'); }
 };
 
@@ -3902,6 +3908,7 @@ window.lancarDespesaManual = async function() {
   document.getElementById('desp-m-valor').value='';
   document.getElementById('desp-m-venda').value='';
   document.getElementById('desp-m-obs').value='';
+
 
   showToast('Lançamento salvo! ✅');
   await carregarDespesas();
