@@ -298,7 +298,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="stat"><div class="stat-val dark" id="stat-andamento">0</div><div class="stat-label">Em andamento</div></div>
       <div class="stat"><div class="stat-val dark" id="stat-fin">0</div><div class="stat-label">Finalizados <span class="stat-link" id="link-fin">— clique para ver →</span></div></div>
     </div>
-    <div class="cards-grid" id="clientes-grid"><div class="loading">Carregando...</div></div>
+    <!-- Barra de busca -->
+    <div style="margin-bottom:16px;display:flex;gap:10px;align-items:center;">
+      <input id="clientes-busca" type="text" placeholder="🔍 Buscar cliente por nome..." oninput="renderClientesBD()" style="flex:1;padding:9px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;"/>
+    </div>
+    <!-- Lista banco de dados -->
+    <div id="clientes-bd-lista"></div>
   </div>
 
   <div id="panel-pedidos" class="panel">
@@ -1063,8 +1068,120 @@ function clienteCard(p){
 }
 
 function renderClientes(){
-  const ativos=pedidos.filter(p=>!p.cancelado&&Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
-  document.getElementById('clientes-grid').innerHTML=ativos.map(clienteCard).join('')||'<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum cliente ativo.</div>';
+  renderClientesBD();
+}
+
+window.renderClientesBD = function() {
+  const el = document.getElementById('clientes-bd-lista');
+  if(!el) return;
+  const busca = (document.getElementById('clientes-busca')?.value||'').toLowerCase().trim();
+
+  // Agrupa todos os pedidos por nome do cliente (único por nome)
+  const mapa = {};
+  pedidos.forEach(p => {
+    if(!p.nome || p.cancelado) return;
+    const key = p.nome.trim().toLowerCase();
+    if(!mapa[key]) mapa[key] = { nome: p.nome, pedidos: [] };
+    mapa[key].pedidos.push(p);
+  });
+
+  // Ordena alfabeticamente, filtra busca
+  let clientes = Object.values(mapa)
+    .filter(c => !busca || c.nome.toLowerCase().includes(busca))
+    .sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+  if(!clientes.length){
+    el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;font-size:14px;">Nenhum cliente encontrado.</div>';
+    return;
+  }
+
+  el.innerHTML = clientes.map(c => {
+    const ativos = c.pedidos.filter(p => !p.finalizado && !p.cancelado);
+    const fins   = c.pedidos.filter(p => p.finalizado && !p.cancelado);
+    const total  = c.pedidos.reduce((s,p)=>s+(p.valor||0),0);
+    const tels   = [...new Set(c.pedidos.map(p=>p.tel).filter(Boolean))].join(' / ');
+    const ends   = c.pedidos.map(p=>p.enderecoEntrega).find(e=>e&&(e.rua||e.cidade));
+    const endStr = ends ? [ends.rua,ends.num,ends.bairro,ends.cidade,ends.uf?'—'+ends.uf:'',ends.cep?'CEP:'+ends.cep:''].filter(Boolean).join(', ') : '';
+    const id = 'cbd-' + c.nome.replace(/[^a-z0-9]/gi,'_');
+
+    const pedidosRows = c.pedidos
+      .filter(p=>!p.cancelado)
+      .sort((a,b)=>(b.dataConversao||'').localeCompare(a.dataConversao||''))
+      .map(p => {
+        const etapaLabel = p.finalizado ? '✅ Finalizado' : (p.etapa !== undefined ? ETAPAS[p.etapa]||'—' : '—');
+        const corEtapa = p.finalizado ? 'var(--green)' : 'var(--brand)';
+        return `<tr style="border-bottom:1px solid var(--border);font-size:13px;">
+          <td style="padding:8px 12px;color:var(--muted);">${p.dataConversao||'—'}</td>
+          <td style="padding:8px 12px;color:var(--text);font-weight:500;">${p.codigo||'—'}</td>
+          <td style="padding:8px 12px;color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.desc||'—'}</td>
+          <td style="padding:8px 12px;"><span style="font-size:11px;color:${corEtapa};font-weight:600;">${etapaLabel}</span></td>
+          <td style="padding:8px 12px;text-align:right;color:var(--green);font-weight:600;">${fmtMoney(p.valor||0)}</td>
+          <td style="padding:8px 12px;text-align:center;">
+            <button onclick="event.stopPropagation();openModal('${p.id}')" style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--brand);cursor:pointer;">Abrir</button>
+          </td>
+        </tr>`;
+      }).join('');
+
+    return `
+    <div style="border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden;box-shadow:var(--shadow);">
+      <!-- Linha do cliente (clicável) -->
+      <div onclick="toggleClienteBD('${id}')" style="display:flex;align-items:center;gap:14px;padding:13px 18px;background:var(--surface);cursor:pointer;user-select:none;">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--navy);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${ini(c.nome)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:600;color:var(--text);">${c.nome}</div>
+          <div style="font-size:12px;color:var(--muted);">${tels||'Sem telefone'} ${endStr?'· '+endStr:''}</div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:center;flex-shrink:0;">
+          ${ativos.length ? `<span style="font-size:11px;background:#fff3ec;color:var(--brand);padding:3px 10px;border-radius:12px;font-weight:600;">${ativos.length} ativo${ativos.length>1?'s':''}</span>` : ''}
+          ${fins.length ? `<span style="font-size:11px;background:#f0fdf4;color:var(--green);padding:3px 10px;border-radius:12px;font-weight:600;">${fins.length} finalizado${fins.length>1?'s':''}</span>` : ''}
+          <span style="font-size:13px;font-weight:700;color:var(--green);min-width:90px;text-align:right;">${fmtMoney(total)}</span>
+          <span id="${id}-arr" style="color:var(--muted);font-size:12px;transition:transform 0.2s;">▼</span>
+        </div>
+      </div>
+      <!-- Painel expansível -->
+      <div id="${id}" style="display:none;border-top:1px solid var(--border);background:var(--surface2);">
+        <div style="padding:14px 18px;">
+          <!-- Dados cadastrais -->
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
+            <div style="background:var(--surface);border-radius:8px;padding:10px 14px;">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">TELEFONE</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text);">${tels||'—'}</div>
+            </div>
+            <div style="background:var(--surface);border-radius:8px;padding:10px 14px;">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">ENDEREÇO</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text);">${endStr||'—'}</div>
+            </div>
+            <div style="background:var(--surface);border-radius:8px;padding:10px 14px;">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">TOTAL GERAL</div>
+              <div style="font-size:15px;font-weight:700;color:var(--green);">${fmtMoney(total)}</div>
+            </div>
+          </div>
+          <!-- Histórico de pedidos -->
+          <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px;">HISTÓRICO DE PEDIDOS</div>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr style="border-bottom:2px solid var(--border);font-size:11px;color:var(--muted);">
+              <th style="padding:6px 12px;text-align:left;font-weight:500;">Data</th>
+              <th style="padding:6px 12px;text-align:left;font-weight:500;">Código</th>
+              <th style="padding:6px 12px;text-align:left;font-weight:500;">Descrição</th>
+              <th style="padding:6px 12px;text-align:left;font-weight:500;">Status</th>
+              <th style="padding:6px 12px;text-align:right;font-weight:500;">Valor</th>
+              <th style="padding:6px 12px;text-align:center;font-weight:500;"></th>
+            </tr></thead>
+            <tbody>${pedidosRows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.toggleClienteBD = function(id) {
+  const painel = document.getElementById(id);
+  const arr = document.getElementById(id+'-arr');
+  if(!painel) return;
+  const aberto = painel.style.display !== 'none';
+  painel.style.display = aberto ? 'none' : 'block';
+  if(arr) arr.style.transform = aberto ? '' : 'rotate(180deg)';
 }
 async function renderFinalizados(){
   const fins=pedidos.filter(p=>!p.cancelado&&(Number(p.etapa||0)>=ETAPAS.length-1||p.finalizado===true));
@@ -3864,8 +3981,8 @@ window.renderFluxo = function renderFluxo() {
   // REGRA ÚNICA: só conta o que foi realizado (baixa dada)
   // Entradas: só recebido===true
   // Saídas: só as que não são futuras e data <= hoje
-  const entRealizadas = entMes.filter(e => e.recebido===true).sort((a,b)=>(a.data||'').localeCompare(b.data||''));
-  const saiRealizadas = saiMes.filter(s => !s.futura && (!s.data || s.data<=hoje)).sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  const entRealizadas = entMes.filter(e => e.recebido===true);
+  const saiRealizadas = saiMes.filter(s => !s.futura && (!s.data || s.data<=hoje));
 
   const entParaExibir = entRealizadas.reduce((s,e)=>s+(e.valor||0),0);
   const saiParaExibir = saiRealizadas.reduce((s,e)=>s+(e.valor||0),0);
@@ -3991,12 +4108,8 @@ window.renderEntradasLista = function renderEntradasLista(lista) {
     ${futuras.length ? `<table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowsEnt(futuras)}</tbody></table>` : '<div style="text-align:center;color:var(--muted);padding:12px;font-size:13px;">Nenhuma entrada futura neste mês.</div>'}
   </div>` : '<div style="text-align:center;color:var(--muted);padding:12px;font-size:13px;">Nenhuma entrada futura.</div>';
 
-  const totalRecebidas = lista.reduce((s,e)=>s+(e.valor||0),0);
   const recebidasHTML = lista.length ? `<div class="form-card" style="margin-bottom:12px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <div style="font-size:12px;font-weight:600;color:var(--muted);">✅ ENTRADAS RECEBIDAS</div>
-      <span style="background:var(--green-bg);color:var(--green-text);padding:3px 12px;border-radius:6px;font-size:12px;font-weight:700;">${fmtMoney(totalRecebidas)}</span>
-    </div>
+    <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;">ENTRADAS RECEBIDAS</div>
     <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowsEnt(lista)}</tbody></table>
   </div>` : '';
 
@@ -4028,7 +4141,7 @@ function renderSaidasLista(lista) {
   const el = document.getElementById('fx-saidas-lista');
   if(!el)return;
   const hoje = new Date().toISOString().split('T')[0];
-  const passadas = lista.filter(s=>!s.futura&&(!s.data||s.data<=hoje)).sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  const passadas = lista.filter(s=>!s.futura&&(!s.data||s.data<=hoje));
   const mesFiltro = (document.getElementById('sai-fut-mes-sel')||{}).value || '';
   popularSaiFutMesSel();
   // Restaura o valor após popular
@@ -4042,7 +4155,6 @@ function renderSaidasLista(lista) {
       return (m+'/'+y) === mesFiltro;
     });
   }
-  futuras.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
   const totalFutGlobal = fluxoSaidas.filter(s=>s.futura||(s.data&&s.data>hoje)).reduce((s,e)=>s+(e.valor||0),0);
   const totalFutFiltro = futuras.reduce((s,e)=>s+(e.valor||0),0);
 
@@ -4094,10 +4206,7 @@ function renderSaidasLista(lista) {
 
   el.innerHTML = `
     ${passadas.length ? `<div class="form-card" style="margin-bottom:12px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div style="font-size:12px;font-weight:600;color:var(--muted);">📤 SAÍDAS REALIZADAS</div>
-        <span style="background:var(--red-bg);color:#A32D2D;padding:3px 12px;border-radius:6px;font-size:12px;font-weight:700;">${fmtMoney(passadas.reduce((s,x)=>s+(x.valor||0),0))}</span>
-      </div>
+      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;">SAÍDAS REALIZADAS</div>
       <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${tabelaRows(passadas, false)}</tbody></table>
     </div>` : ''}
     ${futuras.length || mesFiltro ? `<div class="form-card" style="${(mesFiltroEncSai||temAtrasadasSai)?'border-color:#A32D2D;':''}">
