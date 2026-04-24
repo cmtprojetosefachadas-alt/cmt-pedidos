@@ -3864,8 +3864,8 @@ window.renderFluxo = function renderFluxo() {
   // REGRA ÚNICA: só conta o que foi realizado (baixa dada)
   // Entradas: só recebido===true
   // Saídas: só as que não são futuras e data <= hoje
-  const entRealizadas = entMes.filter(e => e.recebido===true);
-  const saiRealizadas = saiMes.filter(s => !s.futura && (!s.data || s.data<=hoje));
+  const entRealizadas = entMes.filter(e => e.recebido===true).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  const saiRealizadas = saiMes.filter(s => !s.futura && (!s.data || s.data<=hoje)).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
 
   const entParaExibir = entRealizadas.reduce((s,e)=>s+(e.valor||0),0);
   const saiParaExibir = saiRealizadas.reduce((s,e)=>s+(e.valor||0),0);
@@ -4028,7 +4028,7 @@ function renderSaidasLista(lista) {
   const el = document.getElementById('fx-saidas-lista');
   if(!el)return;
   const hoje = new Date().toISOString().split('T')[0];
-  const passadas = lista.filter(s=>!s.futura&&(!s.data||s.data<=hoje));
+  const passadas = lista.filter(s=>!s.futura&&(!s.data||s.data<=hoje)).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
   const mesFiltro = (document.getElementById('sai-fut-mes-sel')||{}).value || '';
   popularSaiFutMesSel();
   // Restaura o valor após popular
@@ -4042,6 +4042,7 @@ function renderSaidasLista(lista) {
       return (m+'/'+y) === mesFiltro;
     });
   }
+  futuras.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
   const totalFutGlobal = fluxoSaidas.filter(s=>s.futura||(s.data&&s.data>hoje)).reduce((s,e)=>s+(e.valor||0),0);
   const totalFutFiltro = futuras.reduce((s,e)=>s+(e.valor||0),0);
 
