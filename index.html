@@ -1693,7 +1693,7 @@ function atualizarSelectClientes(){
 }
 
 // MODAL PEDIDO
-async function openModal(id){
+window.openModal = async function openModal(id){
   currentPedidoId=id;
   const p=pedidos.find(x=>x.id===id);
   if(!p)return;
