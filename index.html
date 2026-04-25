@@ -205,17 +205,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 
 <div class="mob-nav" style="display:none;background:#1C2340;padding:8px;gap:5px;flex-wrap:wrap;position:sticky;top:0;z-index:999;width:100%;box-sizing:border-box;">
-  <button onclick="showTab('visao')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">📊 Geral</button>
-  <button onclick="showTab('clientes')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">🏢 Clientes</button>
-  <button onclick="showTab('pedidos')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">📦 Pedidos</button>
-  <button onclick="showTab('orcamentos')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">📋 Orç.</button>
-  <button onclick="showTab('finalizados')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">✅ Final.</button>
-  <button onclick="showTab('faturamento')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">💰 Fat.</button>
-  <button onclick="showTab('fluxo')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">💵 Fluxo</button>
-  <button onclick="showTab('manutencoes')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">🔧 Manut.</button>
-  <button onclick="showTab('cancelados')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">🚫 Canc.</button>
-  <button onclick="showTab('cadastro')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:#E05C1A;color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">+ Cliente</button>
-  <button onclick="showTab('novo-orc')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:#0F6E56;color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">+ Orç.</button>
+  <button onclick="showTab('visao')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">📊 Geral</button>
+  <button onclick="showTab('clientes')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">🏢 Clientes</button>
+  <button onclick="showTab('pedidos')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">📦 Pedidos</button>
+  <button onclick="showTab('orcamentos')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">📋 Orç.</button>
+  <button onclick="showTab('finalizados')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">✅ Final.</button>
+  <button onclick="showTab('faturamento')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">💰 Fat.</button>
+  <button onclick="showTab('fluxo')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">💵 Fluxo</button>
+  <button onclick="showTab('manutencoes')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">🔧 Manut.</button>
+  <button onclick="showTab('cancelados')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">🚫 Canc.</button>
+  <button onclick="showTab('cadastro')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:#E05C1A;color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">+ Cliente</button>
+  <button onclick="showTab('novo-orc')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:#0F6E56;color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">+ Orç.</button>
 </div>
 <div class="app-wrap">
 <!-- SIDEBAR -->
@@ -4629,14 +4629,14 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
 }
 #btn-mob { display:none; }
 
-@media screen and (max-width:900px){
+@media screen and (max-width:1100px){
   .app-wrap{display:block!important}
   .sidebar{display:none!important}
   .content-wrap{width:100%!important}
   .main{padding:10px!important}
   .mob-nav{display:flex!important}
 }
-@media screen and (min-width:901px){
+@media screen and (min-width:1101px){
   .mob-nav{display:none!important}
 }
 </style></head><body>
