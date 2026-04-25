@@ -139,19 +139,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .loading{text-align:center;padding:40px;color:var(--muted);font-size:14px}
 @media print{.topbar,.tabs-wrap,.actions,.section-header,#print-no{display:none!important}#panel-preview{display:block!important}.pdf-wrap{border:none;padding:20px}body{background:#fff}}
 
-/* ── MOBILE RESPONSIVO ── */
-#hamburger-btn { display: none; }
-@media (max-width: 768px) {
-  #hamburger-btn { display: flex !important; }
-  .sidebar { position: fixed; left: -240px; top: 0; height: 100vh; width: 240px; z-index: 9999; transition: left 0.25s ease; }
-  .sidebar.open { left: 0; box-shadow: 4px 0 24px rgba(0,0,0,0.25); }
-  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 9998; }
-  .sidebar-overlay.open { display: block; }
-  .app-wrap { display: block !important; }
-  .content-wrap { width: 100%; overflow-x: hidden; }
-  .main { padding: 14px !important; overflow-x: hidden; }
-  .topbar { position: sticky; top: 0; z-index: 100; }
-}
+
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
@@ -210,7 +198,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
-<div class="topbar"><button id="hamburger-btn" onclick="toggleSidebar()" style="background:none;border:none;cursor:pointer;padding:6px 10px;margin-right:8px;flex-direction:column;gap:5px;align-items:center;justify-content:center;flex-shrink:0;"><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px;"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px;"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px;"></span></button>
+<div class="topbar"><button id="btn-mob" onclick="window._mT()" style="flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:6px 10px;margin-right:8px;flex-shrink:0;"><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span></button>
   <span class="topbar-label">&#128279; Link do sistema:</span>
   <input class="topbar-input" id="sys-link" value="https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/cliente.html"/>
   <button class="topbar-btn" id="btn-savelink">Salvar link</button>
@@ -1032,6 +1020,31 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 >
 
+<script>
+(function(){
+var ov=document.createElement('div');
+ov.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;cursor:pointer;';
+ov.onclick=function(){window._mF();};
+document.body.appendChild(ov);
+window._mT=function(){
+  var s=document.getElementById('sidebar');
+  if(!s)return;
+  var open=s.classList.contains('mab');
+  s.classList[open?'remove':'add']('mab');
+  ov.style.display=open?'none':'block';
+};
+window._mF=function(){
+  var s=document.getElementById('sidebar');
+  if(s)s.classList.remove('mab');
+  ov.style.display='none';
+};
+document.addEventListener('click',function(e){
+  if(e.target.closest&&e.target.closest('#sidebar .side-btn')&&window.innerWidth<=768)window._mF();
+});
+function chk(){var b=document.getElementById('btn-mob');if(b)b.style.display=window.innerWidth<=768?'flex':'none';}
+chk();window.addEventListener('resize',chk);
+})();
+</script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc, setDoc, onSnapshot, serverTimestamp, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -4607,7 +4620,9 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
     tfoot td{font-weight:700;border-top:2px solid #ddd;font-size:13px;}
     .footer{margin-top:30px;font-size:11px;color:#aaa;display:flex;justify-content:space-between;border-top:1px solid #eee;padding-top:12px;}
     @media print{body{padding:16px;}}
-  </style></head><body>
+  
+@media screen and (max-width:768px){#btn-mob{display:flex!important}#sidebar{position:fixed!important;left:-260px!important;top:0!important;height:100vh!important;width:240px!important;z-index:9999!important;transition:left 0.3s!important;overflow-y:auto!important}#sidebar.mab{left:0!important;box-shadow:6px 0 30px rgba(0,0,0,.3)!important}.app-wrap{display:block!important}.content-wrap{width:100%!important;overflow-x:hidden!important}.main{padding:14px!important}}#btn-mob{display:none}
+</style></head><body>
   <h1>CMT Projetos e Fachadas — Fluxo de Caixa</h1>
   <div class="sub">${mesNome} · Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
 
