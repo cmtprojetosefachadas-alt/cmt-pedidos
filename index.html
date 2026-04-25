@@ -1022,7 +1022,7 @@ const prog = e => Math.round((e/(ETAPAS.length-1))*100);
 function showToast(msg,id='toast'){const t=document.getElementById(id);if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
 
 // TABS (sidebar)
-async function showTab(tab){
+window.showTab = async function showTab(tab){
   document.querySelectorAll('.side-btn').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   const tabEl=document.getElementById('tab-'+tab);
