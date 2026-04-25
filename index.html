@@ -198,12 +198,25 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
-<div class="topbar"><button id="btn-mob" onclick="window._mT(event)" style="flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:6px 10px;margin-right:8px;flex-shrink:0;position:relative;z-index:99999;"><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span></button>
+<div class="topbar">
   <span class="topbar-label">&#128279; Link do sistema:</span>
   <input class="topbar-input" id="sys-link" value="https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/cliente.html"/>
   <button class="topbar-btn" id="btn-savelink">Salvar link</button>
 </div>
 
+<div class="mob-nav" style="display:none;background:#1C2340;padding:8px;gap:6px;flex-wrap:wrap;position:sticky;top:0;z-index:999;">
+  <button onclick="showTab('visao')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">📊 Geral</button>
+  <button onclick="showTab('clientes')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">🏢 Clientes</button>
+  <button onclick="showTab('pedidos')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">📦 Pedidos</button>
+  <button onclick="showTab('orcamentos')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">📋 Orç.</button>
+  <button onclick="showTab('finalizados')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">✅ Final.</button>
+  <button onclick="showTab('faturamento')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">💰 Fat.</button>
+  <button onclick="showTab('fluxo')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">💵 Fluxo</button>
+  <button onclick="showTab('manutencoes')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">🔧 Manut.</button>
+  <button onclick="showTab('cancelados')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">🚫 Canc.</button>
+  <button onclick="showTab('cadastro')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:#E05C1A;color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">+ Cliente</button>
+  <button onclick="showTab('novo-orc')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:#0F6E56;color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">+ Orç.</button>
+</div>
 <div class="app-wrap">
 <!-- SIDEBAR -->
 <nav class="sidebar" id="sidebar">
@@ -1020,52 +1033,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 >
 
-<script>
-(function(){
-  var menuAberto = false;
-
-  window._mT = function(e){
-    if(e) e.stopPropagation();
-    var s = document.getElementById('sidebar');
-    if(!s) return;
-    menuAberto = !menuAberto;
-    s.style.transform = menuAberto ? 'translateX(0)' : 'translateX(-260px)';
-    s.style.boxShadow = menuAberto ? '6px 0 30px rgba(0,0,0,0.3)' : 'none';
-  };
-
-  // Fechar ao clicar fora da sidebar
-  document.addEventListener('click', function(e){
-    if(!menuAberto) return;
-    var s = document.getElementById('sidebar');
-    if(s && !s.contains(e.target)){
-      menuAberto = false;
-      s.style.transform = 'translateX(-260px)';
-      s.style.boxShadow = 'none';
-    }
-  });
-
-  // Fechar ao clicar em item
-  document.addEventListener('click', function(e){
-    if(!menuAberto) return;
-    if(e.target.closest && e.target.closest('.side-btn')){
-      setTimeout(function(){
-        menuAberto = false;
-        var s = document.getElementById('sidebar');
-        if(s){ s.style.transform='translateX(-260px)'; s.style.boxShadow='none'; }
-      }, 250);
-    }
-  });
-
-  // Mostrar/esconder botão
-  function chk(){
-    var b = document.getElementById('btn-mob');
-    if(!b) return;
-    b.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
-  }
-  chk();
-  window.addEventListener('resize', chk);
-})();
-</script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc, setDoc, onSnapshot, serverTimestamp, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -4661,6 +4628,17 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
   .topbar { position:sticky !important; top:0 !important; z-index:9999 !important; }
 }
 #btn-mob { display:none; }
+
+@media screen and (max-width:900px){
+  .app-wrap { display:block !important; }
+  .sidebar { display:none !important; }
+  .content-wrap { width:100% !important; }
+  .main { padding:10px !important; }
+  .mob-nav { display:flex !important; }
+}
+@media screen and (min-width:901px){
+  .mob-nav { display:none !important; }
+}
 </style></head><body>
   <h1>CMT Projetos e Fachadas — Fluxo de Caixa</h1>
   <div class="sub">${mesNome} · Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
