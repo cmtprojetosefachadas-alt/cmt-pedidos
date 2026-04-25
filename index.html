@@ -139,27 +139,41 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .loading{text-align:center;padding:40px;color:var(--muted);font-size:14px}
 @media print{.topbar,.tabs-wrap,.actions,.section-header,#print-no{display:none!important}#panel-preview{display:block!important}.pdf-wrap{border:none;padding:20px}body{background:#fff}}
 
-/* MOBILE */
+/* ── MOBILE RESPONSIVO ── */
 #hamburger-btn { display: none; }
 @media (max-width: 768px) {
-  #hamburger-btn { display: flex !important; flex-direction: column; gap: 5px; align-items: center; justify-content: center; }
-  .app-wrap { display: block !important; }
-  .content-wrap { width: 100% !important; overflow-x: hidden !important; }
-  .main { padding: 14px !important; overflow-x: hidden !important; }
+  #hamburger-btn { display: flex !important; }
   .sidebar {
-    position: fixed !important;
-    left: -260px !important;
-    top: 0 !important;
-    height: 100vh !important;
-    width: 240px !important;
-    z-index: 9999 !important;
-    transition: left 0.25s ease !important;
-    overflow-y: auto !important;
+    position: fixed;
+    left: -240px;
+    top: 0;
+    height: 100vh;
+    width: 240px;
+    z-index: 999;
+    transition: left 0.25s ease;
+    box-shadow: none;
   }
-  .sidebar.open { left: 0 !important; box-shadow: 4px 0 32px rgba(0,0,0,0.3) !important; }
-  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 9998; }
-  .sidebar-overlay.open { display: block !important; }
-  .topbar { position: sticky !important; top: 0 !important; z-index: 100 !important; }
+  .sidebar.open {
+    left: 0;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.18);
+  }
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 998;
+  }
+  .sidebar-overlay.open { display: block; }
+  .content-wrap { width: 100%; overflow-x: hidden; }
+  .app-wrap { display: block; }
+  .main { padding: 14px !important; overflow-x: hidden; }
+  .topbar { position: sticky; top: 0; z-index: 100; }
+}
+
+/* Hamburguer visível só no mobile */
+@media (max-width: 768px) {
+  #hamburger-btn { display: flex !important; }
 }
 </style>
 </head>
@@ -177,7 +191,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
-<div class="topbar"><button id="hamburger-btn" onclick="toggleSidebar()" style="background:none;border:none;cursor:pointer;padding:6px 10px;margin-right:6px;flex-shrink:0;"><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px;"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px;"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px;"></span></button>
+<div class="topbar"><button id="hamburger-btn" onclick="toggleSidebar()" style="background:none;border:none;cursor:pointer;padding:6px 10px;margin-right:8px;flex-direction:column;gap:5px;align-items:center;justify-content:center;flex-shrink:0;"><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px;"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px;"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px;"></span></button>
   <span class="topbar-label">&#128279; Link do sistema:</span>
   <input class="topbar-input" id="sys-link" value="https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/cliente.html"/>
   <button class="topbar-btn" id="btn-savelink">Salvar link</button>
