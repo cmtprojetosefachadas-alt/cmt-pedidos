@@ -204,7 +204,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <button class="topbar-btn" id="btn-savelink">Salvar link</button>
 </div>
 
-<div class="mob-nav" style="display:none;background:#1C2340;padding:8px;gap:6px;flex-wrap:wrap;position:sticky;top:0;z-index:999;">
+<div class="mob-nav" style="display:none;background:#1C2340;padding:8px;gap:5px;flex-wrap:wrap;position:sticky;top:0;z-index:999;width:100%;box-sizing:border-box;">
   <button onclick="showTab('visao')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">📊 Geral</button>
   <button onclick="showTab('clientes')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">🏢 Clientes</button>
   <button onclick="showTab('pedidos')" style="font-size:11px;padding:6px 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">📦 Pedidos</button>
@@ -4630,14 +4630,14 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
 #btn-mob { display:none; }
 
 @media screen and (max-width:900px){
-  .app-wrap { display:block !important; }
-  .sidebar { display:none !important; }
-  .content-wrap { width:100% !important; }
-  .main { padding:10px !important; }
-  .mob-nav { display:flex !important; }
+  .app-wrap{display:block!important}
+  .sidebar{display:none!important}
+  .content-wrap{width:100%!important}
+  .main{padding:10px!important}
+  .mob-nav{display:flex!important}
 }
 @media screen and (min-width:901px){
-  .mob-nav { display:none !important; }
+  .mob-nav{display:none!important}
 }
 </style></head><body>
   <h1>CMT Projetos e Fachadas — Fluxo de Caixa</h1>
