@@ -198,7 +198,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
-<div class="topbar"><button id="btn-mob" onclick="window._mT()" style="flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:6px 10px;margin-right:8px;flex-shrink:0;position:relative;z-index:99999;"><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span></button>
+<div class="topbar"><button id="btn-mob" onclick="window._mT(event)" style="flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:6px 10px;margin-right:8px;flex-shrink:0;position:relative;z-index:99999;"><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span></button>
   <span class="topbar-label">&#128279; Link do sistema:</span>
   <input class="topbar-input" id="sys-link" value="https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/cliente.html"/>
   <button class="topbar-btn" id="btn-savelink">Salvar link</button>
@@ -1022,28 +1022,45 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 <script>
 (function(){
-  window._mT = function(){
+  var menuAberto = false;
+
+  window._mT = function(e){
+    if(e) e.stopPropagation();
     var s = document.getElementById('sidebar');
     if(!s) return;
-    s.classList.toggle('mab');
+    menuAberto = !menuAberto;
+    s.style.transform = menuAberto ? 'translateX(0)' : 'translateX(-260px)';
+    s.style.boxShadow = menuAberto ? '6px 0 30px rgba(0,0,0,0.3)' : 'none';
   };
-  // Fechar ao clicar fora
+
+  // Fechar ao clicar fora da sidebar
   document.addEventListener('click', function(e){
+    if(!menuAberto) return;
     var s = document.getElementById('sidebar');
-    var b = document.getElementById('btn-mob');
-    if(!s || !b) return;
-    if(!s.contains(e.target) && !b.contains(e.target)){
-      s.classList.remove('mab');
-    }
-    // Fechar ao clicar em item do menu
-    if(e.target.closest && e.target.closest('.side-btn') && window.innerWidth<=768){
-      setTimeout(function(){ s.classList.remove('mab'); }, 200);
+    if(s && !s.contains(e.target)){
+      menuAberto = false;
+      s.style.transform = 'translateX(-260px)';
+      s.style.boxShadow = 'none';
     }
   });
-  // Mostrar botão por JS
+
+  // Fechar ao clicar em item
+  document.addEventListener('click', function(e){
+    if(!menuAberto) return;
+    if(e.target.closest && e.target.closest('.side-btn')){
+      setTimeout(function(){
+        menuAberto = false;
+        var s = document.getElementById('sidebar');
+        if(s){ s.style.transform='translateX(-260px)'; s.style.boxShadow='none'; }
+      }, 250);
+    }
+  });
+
+  // Mostrar/esconder botão
   function chk(){
     var b = document.getElementById('btn-mob');
-    if(b) b.style.display = window.innerWidth<=768 ? 'flex' : 'none';
+    if(!b) return;
+    b.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
   }
   chk();
   window.addEventListener('resize', chk);
