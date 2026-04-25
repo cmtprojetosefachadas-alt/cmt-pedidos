@@ -1022,27 +1022,35 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 <script>
 (function(){
-var ov=document.createElement('div');
-ov.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;cursor:pointer;';
-ov.onclick=function(){window._mF();};
-document.body.appendChild(ov);
-window._mT=function(){
-  var s=document.getElementById('sidebar');
-  if(!s)return;
-  var open=s.classList.contains('mab');
-  s.classList[open?'remove':'add']('mab');
-  ov.style.display=open?'none':'block';
-};
-window._mF=function(){
-  var s=document.getElementById('sidebar');
-  if(s)s.classList.remove('mab');
-  ov.style.display='none';
-};
-document.addEventListener('click',function(e){
-  if(e.target.closest&&e.target.closest('#sidebar .side-btn')&&window.innerWidth<=768)window._mF();
-});
-function chk(){var b=document.getElementById('btn-mob');if(b)b.style.display=window.innerWidth<=768?'flex':'none';}
-chk();window.addEventListener('resize',chk);
+  var ov=document.createElement('div');
+  ov.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;cursor:pointer;';
+  ov.onclick=function(){window._mF();};
+  document.body.appendChild(ov);
+  window._mT=function(){
+    var s=document.getElementById('sidebar');
+    if(!s)return;
+    if(s.classList.contains('mab')){
+      s.classList.remove('mab');
+      ov.style.display='none';
+    } else {
+      s.classList.add('mab');
+      ov.style.display='block';
+    }
+  };
+  window._mF=function(){
+    var s=document.getElementById('sidebar');
+    if(s)s.classList.remove('mab');
+    ov.style.display='none';
+  };
+  document.addEventListener('click',function(e){
+    if(e.target.closest&&e.target.closest('.side-btn')&&window.innerWidth<=768) window._mF();
+  });
+  function chk(){
+    var b=document.getElementById('btn-mob');
+    if(b) b.style.display=window.innerWidth<=768?'flex':'none';
+  }
+  chk();
+  window.addEventListener('resize',chk);
 })();
 </script>
 <script type="module">
