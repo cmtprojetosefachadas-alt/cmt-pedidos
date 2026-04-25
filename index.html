@@ -198,7 +198,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
-<div class="topbar"><button id="btn-mob" onclick="window._mT()" style="flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:6px 10px;margin-right:8px;flex-shrink:0;"><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span></button>
+<div class="topbar"><button id="btn-mob" onclick="window._mT()" style="flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:6px 10px;margin-right:8px;flex-shrink:0;position:relative;z-index:99999;"><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span><span style="display:block;width:22px;height:2px;background:#fff;border-radius:2px"></span></button>
   <span class="topbar-label">&#128279; Link do sistema:</span>
   <input class="topbar-input" id="sys-link" value="https://cmtprojetosefachadas-alt.github.io/cmt-pedidos/cliente.html"/>
   <button class="topbar-btn" id="btn-savelink">Salvar link</button>
@@ -1022,35 +1022,31 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 <script>
 (function(){
-  var ov=document.createElement('div');
-  ov.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;cursor:pointer;';
-  ov.onclick=function(){window._mF();};
-  document.body.appendChild(ov);
-  window._mT=function(){
-    var s=document.getElementById('sidebar');
-    if(!s)return;
-    if(s.classList.contains('mab')){
+  window._mT = function(){
+    var s = document.getElementById('sidebar');
+    if(!s) return;
+    s.classList.toggle('mab');
+  };
+  // Fechar ao clicar fora
+  document.addEventListener('click', function(e){
+    var s = document.getElementById('sidebar');
+    var b = document.getElementById('btn-mob');
+    if(!s || !b) return;
+    if(!s.contains(e.target) && !b.contains(e.target)){
       s.classList.remove('mab');
-      ov.style.display='none';
-    } else {
-      s.classList.add('mab');
-      ov.style.display='block';
     }
-  };
-  window._mF=function(){
-    var s=document.getElementById('sidebar');
-    if(s)s.classList.remove('mab');
-    ov.style.display='none';
-  };
-  document.addEventListener('click',function(e){
-    if(e.target.closest&&e.target.closest('.side-btn')&&window.innerWidth<=768) window._mF();
+    // Fechar ao clicar em item do menu
+    if(e.target.closest && e.target.closest('.side-btn') && window.innerWidth<=768){
+      setTimeout(function(){ s.classList.remove('mab'); }, 200);
+    }
   });
+  // Mostrar botão por JS
   function chk(){
-    var b=document.getElementById('btn-mob');
-    if(b) b.style.display=window.innerWidth<=768?'flex':'none';
+    var b = document.getElementById('btn-mob');
+    if(b) b.style.display = window.innerWidth<=768 ? 'flex' : 'none';
   }
   chk();
-  window.addEventListener('resize',chk);
+  window.addEventListener('resize', chk);
 })();
 </script>
 <script type="module">
@@ -4629,7 +4625,25 @@ document.getElementById('btn-pdf-fluxo').addEventListener('click', ()=>{
     .footer{margin-top:30px;font-size:11px;color:#aaa;display:flex;justify-content:space-between;border-top:1px solid #eee;padding-top:12px;}
     @media print{body{padding:16px;}}
   
-@media screen and (max-width:768px){#btn-mob{display:flex!important}#sidebar{position:fixed!important;left:-260px!important;top:0!important;height:100vh!important;width:240px!important;z-index:9999!important;transition:left 0.3s!important;overflow-y:auto!important}#sidebar.mab{left:0!important;box-shadow:6px 0 30px rgba(0,0,0,.3)!important}.app-wrap{display:block!important}.content-wrap{width:100%!important;overflow-x:hidden!important}.main{padding:14px!important}}#btn-mob{display:none}
+@media screen and (max-width:768px){
+  #btn-mob { display:flex !important; }
+  .app-wrap { display:block !important; }
+  .content-wrap { width:100% !important; overflow-x:hidden !important; }
+  .main { padding:14px !important; }
+  #sidebar {
+    position:fixed !important;
+    top:0 !important; left:0 !important;
+    height:100vh !important;
+    width:240px !important;
+    z-index:500 !important;
+    transform:translateX(-260px) !important;
+    transition:transform 0.3s ease !important;
+    overflow-y:auto !important;
+  }
+  #sidebar.mab { transform:translateX(0) !important; }
+  .topbar { position:sticky !important; top:0 !important; z-index:9999 !important; }
+}
+#btn-mob { display:none; }
 </style></head><body>
   <h1>CMT Projetos e Fachadas — Fluxo de Caixa</h1>
   <div class="sub">${mesNome} · Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
