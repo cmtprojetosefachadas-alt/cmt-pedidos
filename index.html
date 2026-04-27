@@ -137,7 +137,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .posvenda-data{font-size:11px;color:var(--muted);margin-bottom:4px}
 .posvenda-msg{color:var(--text)}
 .loading{text-align:center;padding:40px;color:var(--muted);font-size:14px}
-@media print{.topbar,.tabs-wrap,.actions,.section-header,#print-no{display:none!important}#panel-preview{display:block!important}.pdf-wrap{border:none;padding:20px}body{background:#fff}}
+@media print{
+  .topbar,.tabs-wrap,.actions,.section-header,#print-no,
+  .sidebar,.side-btn,.sidebar-section,
+  .login-screen{display:none!important}
+  #panel-preview{display:block!important}
+  .pdf-wrap{border:none;padding:20px}
+  body{background:#fff}
+  .app-wrap{display:block}
+  .content-wrap{width:100%;margin:0;padding:0}
+  .main{padding:0;max-width:100%}
+}
 
 @media screen and (max-width:1200px){
   .app-wrap{display:block!important}
