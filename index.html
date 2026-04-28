@@ -4041,29 +4041,38 @@ window.renderFluxo = function renderFluxo() {
   const sel = document.getElementById('fluxo-mes-sel');
   const mesNum = (sel && sel.value) ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
 
-  // mes pode ser "03/26" ou "03/2026" - normaliza para comparar
-  // Normaliza mes para formato MM/YYYY
+  // Normaliza mes para formato MM/YYYY (aceita 03/26, 03/2026, 2026-03)
   const normMes = m => {
     if(!m) return '';
-    if(m.length===5) return m.substring(0,3)+'20'+m.substring(3);
-    if(m.length===7) return m;
+    m = String(m).trim();
+    // formato YYYY-MM (ISO)
+    if(/^\d{4}-\d{2}$/.test(m)) return m.substring(5)+'/'+m.substring(0,4);
+    // formato MM/YY
+    if(/^\d{2}\/\d{2}$/.test(m)) return m.substring(0,3)+'20'+m.substring(3);
+    // formato MM/YYYY
+    if(/^\d{2}\/\d{4}$/.test(m)) return m;
     return m;
   };
-  const getMesFromData = d => d ? d.substring(5,7)+'/'+d.substring(0,4) : '';
+  const getMesFromData = d => {
+    if(!d) return '';
+    // YYYY-MM-DD
+    if(d.length>=7 && d[4]==='-') return d.substring(5,7)+'/'+d.substring(0,4);
+    return '';
+  };
+  const mesMatch = (item) => {
+    const candidates = [
+      normMes(item.mes),
+      getMesFromData(item.data)
+    ].filter(Boolean);
+    return candidates.some(c => c === mesNum);
+  };
   const hoje = new Date().toISOString().split('T')[0];
 
   // Entradas do mês selecionado
-  const entMes = fluxoEntradas.filter(e=>{
-    const fromMes = normMes(e.mes);
-    const fromData = getMesFromData(e.data);
-    return fromMes === mesNum || fromData === mesNum;
-  });
+  const entMes = fluxoEntradas.filter(mesMatch);
 
   // Saídas do mês selecionado
-  const saiMes = fluxoSaidas.filter(s=>{
-    const sm = normMes(s.mes) || getMesFromData(s.data);
-    return sm === mesNum;
-  });
+  const saiMes = fluxoSaidas.filter(mesMatch);
 
   // REGRA ÚNICA: só conta o que foi realizado (baixa dada)
   // Entradas: só recebido===true
