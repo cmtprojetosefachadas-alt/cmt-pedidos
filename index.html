@@ -4040,31 +4040,32 @@ window.renderFluxo = function renderFluxo() {
   popularFluxoMeses();
   const sel = document.getElementById('fluxo-mes-sel');
   const mesNum = (sel && sel.value) ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
-
-  // Normaliza mes para formato MM/YYYY (aceita 03/26, 03/2026, 2026-03)
-  const normMes = m => {
+  // DEBUG - remover depois
+  // Normaliza qualquer formato de mes para MM/YYYY
+  const toMMYYYY = m => {
     if(!m) return '';
     m = String(m).trim();
-    // formato YYYY-MM (ISO)
-    if(/^\d{4}-\d{2}$/.test(m)) return m.substring(5)+'/'+m.substring(0,4);
-    // formato MM/YY
-    if(/^\d{2}\/\d{2}$/.test(m)) return m.substring(0,3)+'20'+m.substring(3);
-    // formato MM/YYYY
-    if(/^\d{2}\/\d{4}$/.test(m)) return m;
+    if(m.length===5 && m[2]==='/') return m.slice(0,3)+'20'+m.slice(3); // 04/26
+    if(m.length===7 && m[2]==='/') return m;                              // 04/2026
+    if(m.length===7 && m[4]==='-') return m.slice(5)+'/'+m.slice(0,4);   // 2026-04
     return m;
   };
   const getMesFromData = d => {
     if(!d) return '';
-    // YYYY-MM-DD
-    if(d.length>=7 && d[4]==='-') return d.substring(5,7)+'/'+d.substring(0,4);
+    if(d.length>=10 && d[4]==='-') return d.slice(5,7)+'/'+d.slice(0,4); // 2026-04-28
     return '';
   };
+  // mesNum vem do select: MM/YYYY (ex: "04/2026")
+  const [mnMM, mnYYYY] = mesNum.split('/');
   const mesMatch = (item) => {
-    const candidates = [
-      normMes(item.mes),
-      getMesFromData(item.data)
-    ].filter(Boolean);
-    return candidates.some(c => c === mesNum);
+    const candidates = [toMMYYYY(item.mes), getMesFromData(item.data)].filter(Boolean);
+    return candidates.some(c => {
+      const p = c.split('/');
+      if(p.length!==2) return false;
+      const mmOk = p[0]===mnMM;
+      const yyOk = p[1]===mnYYYY || '20'+p[1]===mnYYYY || p[1]==='20'+mnYYYY;
+      return mmOk && yyOk;
+    });
   };
   const hoje = new Date().toISOString().split('T')[0];
 
