@@ -546,6 +546,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             <option value="">Todos os meses</option>
           </select>
         </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <span style="font-size:13px;font-weight:600;color:#7C5CBF;">🔍 Buscar por cliente / nome:</span>
+          <input type="text" id="ent-busca-cliente" placeholder="Digite nome do cliente..." oninput="renderEntradasLista(window._entRealizadas||[])" style="padding:6px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;min-width:220px;"/>
+          <button onclick="document.getElementById('ent-busca-cliente').value='';renderEntradasLista(window._entRealizadas||[])" style="padding:5px 10px;border:1px solid var(--border2);border-radius:8px;font-size:12px;cursor:pointer;background:var(--surface2);">✕ Limpar</button>
+        </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span style="font-size:13px;color:var(--muted);flex:1;">Excluir todas as entradas de um cliente:</span>
           <select id="fx-del-cliente-sel" style="padding:6px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;min-width:200px;">
@@ -592,13 +597,25 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <!-- SAIDAS -->
     <div id="fxpanel-saidas" style="display:none;">
       <div class="form-card" style="margin-bottom:8px;padding:12px 18px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
           <span style="font-size:13px;font-weight:600;color:#A32D2D;">Filtrar saidas futuras por mes:</span>
           <div style="display:flex;align-items:center;gap:8px;">
             <select id="sai-fut-mes-sel" style="padding:6px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;" onchange="renderFluxo()">
               <option value="">Todos os meses</option>
             </select>
           </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <span style="font-size:13px;font-weight:600;color:#A32D2D;">🔍 Buscar por descrição / referência:</span>
+          <input type="text" id="sai-busca-desc" placeholder="Digite descrição ou fornecedor..." oninput="renderFluxo()" style="padding:6px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;min-width:220px;"/>
+          <button onclick="document.getElementById('sai-busca-desc').value='';renderFluxo()" style="padding:5px 10px;border:1px solid var(--border2);border-radius:8px;font-size:12px;cursor:pointer;background:var(--surface2);">✕</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:13px;font-weight:600;color:#A32D2D;">📂 Filtrar por categoria:</span>
+          <select id="sai-filtro-cat" onchange="renderFluxo()" style="padding:6px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;min-width:180px;">
+            <option value="">Todas as categorias</option>
+          </select>
+          <button onclick="document.getElementById('sai-filtro-cat').value='';document.getElementById('sai-busca-desc').value='';renderFluxo()" style="padding:5px 12px;border:1px solid var(--border2);border-radius:8px;font-size:12px;cursor:pointer;background:var(--surface2);">✕ Limpar filtros</button>
         </div>
       </div>
       <div class="form-card" style="margin-bottom:16px;">
@@ -4093,10 +4110,19 @@ window.renderEntradasLista = function renderEntradasLista(lista) {
     if(mesFiltro) selEnt.value = mesFiltro;
   }
 
-  // Aplica filtro nas futuras
+  // Aplica filtro de busca por cliente nas recebidas
+  const buscaCliente = (document.getElementById('ent-busca-cliente')||{}).value?.trim().toLowerCase() || '';
+  const listaFiltrada = buscaCliente
+    ? lista.filter(e => (e.clienteNome||'').toLowerCase().includes(buscaCliente) || (e.obs||'').toLowerCase().includes(buscaCliente))
+    : lista;
+
+  // Aplica filtro de busca por cliente nas futuras
   let futuras = (fluxoEntradas||[]).filter(e=>e.recebido!==true);
   if(mesFiltro) {
     futuras = futuras.filter(e=>{ if(!e.data)return false; const[y,m]=e.data.split('-'); return(m+'/'+y)===mesFiltro; });
+  }
+  if(buscaCliente) {
+    futuras = futuras.filter(e=>(e.clienteNome||'').toLowerCase().includes(buscaCliente)||(e.obs||'').toLowerCase().includes(buscaCliente));
   }
   futuras.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
 
@@ -4162,10 +4188,13 @@ window.renderEntradasLista = function renderEntradasLista(lista) {
     ${futuras.length ? `<table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowsEnt(futuras)}</tbody></table>` : '<div style="text-align:center;color:var(--muted);padding:12px;font-size:13px;">Nenhuma entrada futura neste mês.</div>'}
   </div>` : '<div style="text-align:center;color:var(--muted);padding:12px;font-size:13px;">Nenhuma entrada futura.</div>';
 
-  const recebidasHTML = lista.length ? `<div class="form-card" style="margin-bottom:12px;">
-    <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;">ENTRADAS RECEBIDAS</div>
-    <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowsEnt(lista)}</tbody></table>
-  </div>` : '';
+  const recebidasHTML = listaFiltrada.length ? `<div class="form-card" style="margin-bottom:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:600;color:var(--muted);">ENTRADAS RECEBIDAS${buscaCliente?` — filtro: "${buscaCliente}"`:''}</div>
+      ${buscaCliente?`<span style="font-size:12px;color:var(--muted);">${listaFiltrada.length} resultado(s)</span>`:''}
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowsEnt(listaFiltrada)}</tbody></table>
+  </div>` : (lista.length && buscaCliente ? `<div class="form-card" style="margin-bottom:12px;"><div style="text-align:center;color:var(--muted);padding:12px;font-size:13px;">Nenhuma entrada recebida com "<b>${buscaCliente}</b>".</div></div>` : '');
 
   el.innerHTML = recebidasHTML + futurasHTML;
 }
@@ -4195,7 +4224,16 @@ function renderSaidasLista(lista) {
   const el = document.getElementById('fx-saidas-lista');
   if(!el)return;
   const hoje = new Date().toISOString().split('T')[0];
-  const passadas = lista.filter(s=>!s.futura&&(!s.data||s.data<=hoje));
+  const buscaDescSai = (document.getElementById('sai-busca-desc')||{}).value?.trim().toLowerCase() || '';
+  const filtroCatSai = (document.getElementById('sai-filtro-cat')||{}).value || '';
+
+  const filtrarSaida = s => {
+    const matchDesc = !buscaDescSai || (s.desc||'').toLowerCase().includes(buscaDescSai) || (s.ref||'').toLowerCase().includes(buscaDescSai) || (s.obs||'').toLowerCase().includes(buscaDescSai);
+    const matchCat = !filtroCatSai || (s.cat||'') === filtroCatSai;
+    return matchDesc && matchCat;
+  };
+
+  let passadas = lista.filter(s=>!s.futura&&(!s.data||s.data<=hoje)).filter(filtrarSaida);
   const mesFiltro = (document.getElementById('sai-fut-mes-sel')||{}).value || '';
   popularSaiFutMesSel();
   // Restaura o valor após popular
@@ -4209,6 +4247,7 @@ function renderSaidasLista(lista) {
       return (m+'/'+y) === mesFiltro;
     });
   }
+  futuras = futuras.filter(filtrarSaida);
   const totalFutGlobal = fluxoSaidas.filter(s=>s.futura||(s.data&&s.data>hoje)).reduce((s,e)=>s+(e.valor||0),0);
   const totalFutFiltro = futuras.reduce((s,e)=>s+(e.valor||0),0);
 
@@ -4260,9 +4299,12 @@ function renderSaidasLista(lista) {
 
   el.innerHTML = `
     ${passadas.length ? `<div class="form-card" style="margin-bottom:12px;">
-      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;">SAÍDAS REALIZADAS</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);">SAÍDAS REALIZADAS${buscaDescSai||filtroCatSai?' — filtradas':''}</div>
+        ${buscaDescSai||filtroCatSai?`<span style="font-size:12px;color:var(--muted);">${passadas.length} resultado(s)</span>`:''}
+      </div>
       <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${tabelaRows(passadas, false)}</tbody></table>
-    </div>` : ''}
+    </div>` : (buscaDescSai||filtroCatSai ? `<div class="form-card" style="margin-bottom:12px;"><div style="text-align:center;color:var(--muted);padding:12px;font-size:13px;">Nenhuma saída realizada com esses filtros.</div></div>` : '')}
     ${futuras.length || mesFiltro ? `<div class="form-card" style="${(mesFiltroEncSai||temAtrasadasSai)?'border-color:#A32D2D;':''}">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
         <div style="font-size:12px;font-weight:600;color:#A32D2D;">📤 SAÍDAS FUTURAS${mesFiltro?' — MÊS FILTRADO':''}</div>
@@ -4273,7 +4315,7 @@ function renderSaidasLista(lista) {
       </div>
       ${futuras.length ? `<table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${tabelaRows(futuras, true)}</tbody></table>` : '<div style="text-align:center;color:var(--muted);padding:12px;font-size:13px;">Nenhuma saída futura neste mês.</div>'}
     </div>` : ''}
-    ${!passadas.length && !futuras.length && !mesFiltro ? '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhuma saída registrada.</div>' : ''}
+    ${!passadas.length && !futuras.length && !mesFiltro && !buscaDescSai && !filtroCatSai ? '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhuma saída registrada.</div>' : ''}
   `;
 }
 
@@ -4403,8 +4445,13 @@ function popularPedidoSelect() {
 
 function popularCatSelect() {
   const sel = document.getElementById('fx-sai-cat');
-  if(!sel)return;
-  sel.innerHTML=fluxoCategorias.map(c=>`<option>${c}</option>`).join('');
+  if(sel) sel.innerHTML=fluxoCategorias.map(c=>`<option>${c}</option>`).join('');
+  // Também popula o filtro de categoria das saídas
+  const filtroSel = document.getElementById('sai-filtro-cat');
+  if(filtroSel) {
+    const currentVal = filtroSel.value;
+    filtroSel.innerHTML = `<option value="">Todas as categorias</option>` + fluxoCategorias.map(c=>`<option ${c===currentVal?'selected':''}>${c}</option>`).join('');
+  }
 }
 
 // LISTENERS FLUXO
