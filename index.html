@@ -1349,7 +1349,9 @@ async function renderFinalizados(){
 function renderFaturamento(){
   const el=document.getElementById('fat-content');
   if(!el)return;
-  
+
+  const MESES=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
   // Agrupar pedidos por mês
   const grupos={};
   pedidos.forEach(p=>{
@@ -1359,11 +1361,10 @@ function renderFaturamento(){
     grupos[mes].total+=(p.valor||0);
   });
 
-  // Ordenar meses do mais recente para o mais antigo
   const mesesOrdenados=Object.keys(grupos).sort((a,b)=>{
-    const [ma,ya]=a.split('/').reverse();
-    const [mb,yb]=b.split('/').reverse();
-    return (yb+mb)-(ya+ma);
+    if(a==='Sem data')return 1;if(b==='Sem data')return -1;
+    const[ma,ya]=a.split('/');const[mb,yb]=b.split('/');
+    return(yb+mb)-(ya+ma);
   });
 
   if(!mesesOrdenados.length){
@@ -1371,16 +1372,57 @@ function renderFaturamento(){
     return;
   }
 
-  el.innerHTML=mesesOrdenados.map(mes=>{
+  el.innerHTML = `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+      <button id="btn-pdf-fat-geral" class="btn btn-primary" style="font-size:12px;padding:7px 16px;">🖨️ PDF Relatório Completo</button>
+    </div>
+  ` + mesesOrdenados.map(mes=>{
     const g=grupos[mes];
-    const [mm,yy]=mes.split('/');
-    const nomeMes=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||mes;
-    return`<div style="background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:16px;overflow:hidden;">
-      <div style="background:var(--navy);padding:14px 20px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-        <div style="color:#fff;font-size:15px;font-weight:600;">📅 ${nomeMes} ${yy||''}</div>
-        <div style="color:#fff;font-size:13px;">${g.pedidos.length} pedido${g.pedidos.length>1?'s':''} · <strong>${fmtMoney(g.total)}</strong></div>
+    const[mm,yy]=mes!=='Sem data'?mes.split('/'):['-','-'];
+    const nomeMes=MESES[parseInt(mm)]||mes;
+    const mesNorm=normalizaMes(mes);
+    const metaRaw=window._metaCache&&window._metaCache[mesNorm]?parseFloat(String(window._metaCache[mesNorm]).replace(/\./g,'').replace(',','.'))||0:0;
+    const pct=metaRaw>0?Math.min(Math.round((g.total/metaRaw)*100),999):0;
+    const atingiu=metaRaw>0&&g.total>=metaRaw;
+    const corPct=atingiu?'#0F6E56':pct>=70?'#E05C1A':'#A32D2D';
+    const corBarra=atingiu?'#0F6E56':pct>=70?'var(--brand)':'#A32D2D';
+    const finalizados=g.pedidos.filter(p=>p.finalizado===true||Number(p.etapa||0)>=ETAPAS.length-1).length;
+    const emAnd=g.pedidos.length-finalizados;
+
+    const metaHTML = metaRaw>0 ? `
+      <div style="margin:0 20px 14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:12px;color:var(--muted);">Meta: <strong>${fmtMoney(metaRaw)}</strong></span>
+          <span style="font-size:13px;font-weight:700;color:${corPct};">${atingiu?'🎉 Meta atingida!':pct+'% da meta'}</span>
+        </div>
+        <div style="background:var(--border);border-radius:6px;height:8px;overflow:hidden;">
+          <div style="height:100%;border-radius:6px;background:${corBarra};width:${Math.min(pct,100)}%;transition:width 0.5s;"></div>
+        </div>
+        ${!atingiu?`<div style="font-size:11px;color:var(--muted);margin-top:4px;">Faltam ${fmtMoney(Math.max(metaRaw-g.total,0))} para a meta</div>`:''}
+      </div>` : `
+      <div style="margin:0 20px 14px;">
+        <span style="font-size:11px;color:var(--muted);font-style:italic;">Meta não definida para este mês</span>
+      </div>`;
+
+    return`<div style="background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:16px;overflow:hidden;box-shadow:var(--shadow);">
+      <div style="background:var(--navy);padding:14px 20px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:12px;" onclick="const b=this.parentElement.querySelector('.fat-body');const arr=this.querySelector('.fat-arr');b.style.display=b.style.display==='none'?'block':'none';arr.textContent=b.style.display==='none'?'▶':'▼';">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <span style="color:#fff;font-size:15px;font-weight:700;">📅 ${nomeMes} ${yy||''}</span>
+          <span style="color:rgba(255,255,255,0.6);font-size:12px;">${g.pedidos.length} pedido${g.pedidos.length>1?'s':''} · ${finalizados} finalizado${finalizados!==1?'s':''}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;flex-shrink:0;">
+          <div style="text-align:right;">
+            <div style="color:#fff;font-size:16px;font-weight:700;">${fmtMoney(g.total)}</div>
+            ${metaRaw>0?`<div style="font-size:11px;font-weight:600;color:${atingiu?'#6EE7B7':pct>=70?'#FCD34D':'#FCA5A5'};">${atingiu?'🎉 Meta atingida':pct+'% da meta'}</div>`:`<div style="font-size:11px;color:rgba(255,255,255,0.4);">sem meta</div>`}
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button onclick="event.stopPropagation();gerarPDFFaturamentoMes('${mes}')" style="padding:5px 10px;border:1px solid rgba(255,255,255,0.3);border-radius:6px;font-size:11px;font-weight:600;background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;white-space:nowrap;">🖨️ PDF</button>
+            <span class="fat-arr" style="color:#fff;font-size:12px;">▶</span>
+          </div>
+        </div>
       </div>
-      <div style="display:none;">
+      <div class="fat-body" style="display:none;">
+        ${metaHTML}
         ${g.pedidos.map(p=>`
           <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);">
             <div style="display:flex;align-items:center;gap:12px;">
@@ -1392,15 +1434,190 @@ function renderFaturamento(){
             </div>
             <div style="text-align:right;">
               <div style="font-size:14px;font-weight:600;color:var(--brand);">${fmtMoney(p.valor||0)}</div>
-              <div style="font-size:11px;color:var(--muted);">${p.dataConversao||''}</div>
+              <div style="font-size:11px;color:var(--muted);">${p.dataConversao||''} · ${p.finalizado||Number(p.etapa||0)>=ETAPAS.length-1?'✅ Finalizado':'⚙️ Em andamento'}</div>
             </div>
           </div>`).join('')}
-        <div style="padding:12px 20px;background:var(--surface2);display:flex;justify-content:flex-end;">
-          <span style="font-size:14px;font-weight:600;">Total: ${fmtMoney(g.total)}</span>
+        <div style="padding:14px 20px;background:var(--surface2);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <span style="font-size:12px;color:var(--muted);">${finalizados} finalizado${finalizados!==1?'s':''} · ${emAnd} em andamento</span>
+          <span style="font-size:15px;font-weight:700;">Total: ${fmtMoney(g.total)}</span>
         </div>
       </div>
     </div>`;
   }).join('');
+
+  // PDF de um mês específico
+  window.gerarPDFFaturamentoMes = function(mes) {
+    const g = grupos[mes];
+    if(!g) return;
+    const[mm,yy]=mes!=='Sem data'?mes.split('/'):['-','-'];
+    const nomeMes=MESES[parseInt(mm)]||mes;
+    const mesNorm=normalizaMes(mes);
+    const metaRaw=window._metaCache&&window._metaCache[mesNorm]?parseFloat(String(window._metaCache[mesNorm]).replace(/\./g,'').replace(',','.'))||0:0;
+    const pct=metaRaw>0?Math.min(Math.round((g.total/metaRaw)*100),999):0;
+    const atingiu=metaRaw>0&&g.total>=metaRaw;
+    const finalizados=g.pedidos.filter(p=>p.finalizado===true||Number(p.etapa||0)>=ETAPAS.length-1);
+    const emAnd=g.pedidos.filter(p=>!p.finalizado&&Number(p.etapa||0)<ETAPAS.length-1);
+    const win=window.open('','_blank');
+    if(!win){alert('Permita pop-ups para gerar o PDF!');return;}
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+    <title>Faturamento ${nomeMes} ${yy}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0;}
+      body{font-family:'Segoe UI',Arial,sans-serif;padding:32px;color:#111;background:#fff;font-size:13px;}
+      h1{font-size:22px;color:#1C2340;margin-bottom:2px;}
+      h2{font-size:14px;color:#1C2340;margin:22px 0 10px;border-bottom:2px solid #1C2340;padding-bottom:5px;}
+      .sub{font-size:12px;color:#666;margin-bottom:22px;}
+      .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px;}
+      .card{border:1px solid #ddd;border-radius:8px;padding:14px 18px;}
+      .card-label{font-size:10px;color:#888;text-transform:uppercase;font-weight:700;margin-bottom:4px;}
+      .card-val{font-size:22px;font-weight:700;}
+      .green{color:#0F6E56;}.red{color:#A32D2D;}.brand{color:#E05C1A;}.navy{color:#1C2340;}
+      .meta-box{border:2px solid ${atingiu?'#0F6E56':'#E05C1A'};border-radius:8px;padding:16px 20px;margin-bottom:22px;background:${atingiu?'#F0FDF4':'#FFF7ED'};}
+      .meta-title{font-size:13px;font-weight:700;color:${atingiu?'#0F6E56':'#E05C1A'};margin-bottom:10px;}
+      .meta-bar-bg{background:#e5e7eb;border-radius:6px;height:10px;overflow:hidden;margin:8px 0;}
+      .meta-bar-fill{height:100%;border-radius:6px;background:${atingiu?'#0F6E56':'#E05C1A'};width:${Math.min(pct,100)}%;}
+      table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px;}
+      thead th{background:#1C2340;color:#fff;padding:8px 12px;text-align:left;font-size:11px;}
+      tbody td{padding:8px 12px;border-bottom:1px solid #eee;}
+      tbody tr:nth-child(even) td{background:#f9f9f9;}
+      tfoot td{font-weight:700;border-top:2px solid #ccc;font-size:13px;padding:10px 12px;}
+      .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;}
+      .badge-fin{background:#D1FAE5;color:#065F46;}
+      .badge-and{background:#FEF3C7;color:#92400E;}
+      .footer{margin-top:30px;font-size:10px;color:#aaa;display:flex;justify-content:space-between;border-top:1px solid #eee;padding-top:12px;}
+      @media print{body{padding:16px;}}
+    </style></head><body>
+    <h1>CMT Projetos e Fachadas</h1>
+    <div class="sub">Faturamento — ${nomeMes} ${yy} · Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+
+    <div class="cards">
+      <div class="card"><div class="card-label">Total faturado</div><div class="card-val brand">${fmtMoney(g.total)}</div></div>
+      <div class="card"><div class="card-label">Pedidos</div><div class="card-val navy">${g.pedidos.length}</div></div>
+      <div class="card"><div class="card-label">Finalizados</div><div class="card-val green">${finalizados.length}</div></div>
+    </div>
+
+    ${metaRaw>0?`<div class="meta-box">
+      <div class="meta-title">${atingiu?'🎉 META ATINGIDA!':'📊 Progresso da Meta'}</div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+        <span>Faturado: <strong>${fmtMoney(g.total)}</strong></span>
+        <span>Meta: <strong>${fmtMoney(metaRaw)}</strong></span>
+        <span style="font-weight:700;color:${atingiu?'#0F6E56':'#E05C1A'};">${pct}% atingido</span>
+      </div>
+      <div class="meta-bar-bg"><div class="meta-bar-fill"></div></div>
+      ${!atingiu?`<div style="font-size:12px;color:#666;margin-top:4px;">Faltaram ${fmtMoney(Math.max(metaRaw-g.total,0))} para atingir a meta</div>`:''}
+    </div>`:''}
+
+    <h2>📋 Todos os pedidos do mês</h2>
+    <table>
+      <thead><tr><th>Cliente</th><th>Código</th><th>Descrição</th><th>Data</th><th>Status</th><th style="text-align:right;">Valor</th></tr></thead>
+      <tbody>${g.pedidos.map(p=>`<tr>
+        <td style="font-weight:600;">${p.nome||'—'}</td>
+        <td style="font-family:monospace;font-size:11px;">${p.codigo||'—'}</td>
+        <td>${p.desc||'—'}</td>
+        <td>${p.dataConversao||p.mes||'—'}</td>
+        <td><span class="badge ${p.finalizado||Number(p.etapa||0)>=ETAPAS.length-1?'badge-fin':'badge-and'}">${p.finalizado||Number(p.etapa||0)>=ETAPAS.length-1?'✅ Finalizado':'⚙️ Em andamento'}</span></td>
+        <td style="text-align:right;font-weight:600;color:#E05C1A;">${fmtMoney(p.valor||0)}</td>
+      </tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="5">TOTAL DO MÊS</td><td style="text-align:right;color:#E05C1A;">${fmtMoney(g.total)}</td></tr></tfoot>
+    </table>
+
+    ${finalizados.length?`<h2>✅ Finalizados (${finalizados.length})</h2>
+    <table>
+      <thead><tr><th>Cliente</th><th>Código</th><th>Descrição</th><th style="text-align:right;">Valor</th></tr></thead>
+      <tbody>${finalizados.map(p=>`<tr><td>${p.nome}</td><td style="font-family:monospace;font-size:11px;">${p.codigo}</td><td>${p.desc||'—'}</td><td style="text-align:right;color:#0F6E56;font-weight:600;">${fmtMoney(p.valor||0)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="3">Subtotal finalizados</td><td style="text-align:right;color:#0F6E56;">${fmtMoney(finalizados.reduce((s,p)=>s+(p.valor||0),0))}</td></tr></tfoot>
+    </table>`:''}
+
+    ${emAnd.length?`<h2>⚙️ Em andamento (${emAnd.length})</h2>
+    <table>
+      <thead><tr><th>Cliente</th><th>Código</th><th>Descrição</th><th style="text-align:right;">Valor</th></tr></thead>
+      <tbody>${emAnd.map(p=>`<tr><td>${p.nome}</td><td style="font-family:monospace;font-size:11px;">${p.codigo}</td><td>${p.desc||'—'}</td><td style="text-align:right;color:#92400E;font-weight:600;">${fmtMoney(p.valor||0)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="3">Subtotal em andamento</td><td style="text-align:right;color:#92400E;">${fmtMoney(emAnd.reduce((s,p)=>s+(p.valor||0),0))}</td></tr></tfoot>
+    </table>`:''}
+
+    <div class="footer">
+      <span>CMT Projetos e Fachadas · CNPJ: 53.466.209/0001-01 · Comercial: (16) 99649-2182</span>
+      <span>Franca, SP · ${new Date().toLocaleDateString('pt-BR')}</span>
+    </div>
+    </body></html>`);
+    win.document.close();
+    setTimeout(()=>win.print(),500);
+  };
+
+  // PDF relatório completo (todos os meses)
+  document.getElementById('btn-pdf-fat-geral').onclick = function() {
+    const win=window.open('','_blank');
+    if(!win){alert('Permita pop-ups!');return;}
+    const totalGeral=mesesOrdenados.reduce((s,m)=>s+(grupos[m]?.total||0),0);
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+    <title>Relatório Faturamento Geral — CMT</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0;}
+      body{font-family:'Segoe UI',Arial,sans-serif;padding:32px;color:#111;background:#fff;font-size:13px;}
+      h1{font-size:22px;color:#1C2340;margin-bottom:2px;}
+      h2{font-size:14px;color:#1C2340;margin:22px 0 10px;border-bottom:2px solid #1C2340;padding-bottom:5px;}
+      .sub{font-size:12px;color:#666;margin-bottom:22px;}
+      .card-top{border:1px solid #ddd;border-radius:8px;padding:14px 18px;display:inline-block;margin-bottom:22px;min-width:200px;}
+      .card-label{font-size:10px;color:#888;text-transform:uppercase;font-weight:700;margin-bottom:4px;}
+      .card-val{font-size:26px;font-weight:700;color:#E05C1A;}
+      .mes-block{border:1px solid #ddd;border-radius:8px;margin-bottom:18px;overflow:hidden;}
+      .mes-header{background:#1C2340;color:#fff;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;}
+      .mes-header h3{font-size:14px;font-weight:700;}
+      .mes-meta{font-size:12px;}
+      .meta-bar-bg{background:#e5e7eb;border-radius:4px;height:6px;overflow:hidden;margin:6px 0 2px;}
+      table{width:100%;border-collapse:collapse;font-size:12px;}
+      thead th{background:#f3f4f6;color:#374151;padding:7px 12px;text-align:left;font-size:11px;font-weight:700;}
+      tbody td{padding:7px 12px;border-bottom:1px solid #f0f0f0;}
+      tfoot td{font-weight:700;border-top:2px solid #ddd;padding:8px 12px;font-size:13px;}
+      .footer{margin-top:30px;font-size:10px;color:#aaa;display:flex;justify-content:space-between;border-top:1px solid #eee;padding-top:12px;}
+      @media print{body{padding:16px;},.mes-block{page-break-inside:avoid;}}
+    </style></head><body>
+    <h1>CMT Projetos e Fachadas — Relatório de Faturamento</h1>
+    <div class="sub">Todos os meses · Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+    <div class="card-top"><div class="card-label">Faturamento total acumulado</div><div class="card-val">${fmtMoney(totalGeral)}</div><div style="font-size:11px;color:#888;margin-top:4px;">${pedidos.length} pedidos · ${mesesOrdenados.length} meses</div></div>
+
+    ${mesesOrdenados.map(mes=>{
+      const g=grupos[mes];
+      const[mm,yy]=mes!=='Sem data'?mes.split('/'):['-','-'];
+      const nomeMes=MESES[parseInt(mm)]||mes;
+      const mesNorm=normalizaMes(mes);
+      const metaRaw=window._metaCache&&window._metaCache[mesNorm]?parseFloat(String(window._metaCache[mesNorm]).replace(/\./g,'').replace(',','.'))||0:0;
+      const pct=metaRaw>0?Math.min(Math.round((g.total/metaRaw)*100),999):0;
+      const atingiu=metaRaw>0&&g.total>=metaRaw;
+      const fins=g.pedidos.filter(p=>p.finalizado===true||Number(p.etapa||0)>=ETAPAS.length-1).length;
+      return `<div class="mes-block">
+        <div class="mes-header">
+          <h3>📅 ${nomeMes} ${yy} · ${g.pedidos.length} pedido${g.pedidos.length>1?'s':''}</h3>
+          <div style="text-align:right;">
+            <div style="font-size:16px;font-weight:700;">${fmtMoney(g.total)}</div>
+            ${metaRaw>0?`<div class="mes-meta" style="color:${atingiu?'#6EE7B7':'#FCD34D'};">${atingiu?'🎉 Meta atingida':pct+'% da meta ('+fmtMoney(metaRaw)+')'}</div>`:''}
+          </div>
+        </div>
+        ${metaRaw>0?`<div style="padding:8px 18px 4px;background:#f9fafb;">
+          <div class="meta-bar-bg"><div style="height:100%;border-radius:4px;background:${atingiu?'#0F6E56':'#E05C1A'};width:${Math.min(pct,100)}%;"></div></div>
+          <div style="font-size:10px;color:#888;">${atingiu?'Meta superada!':'Faltaram '+fmtMoney(Math.max(metaRaw-g.total,0))}</div>
+        </div>`:''}
+        <table>
+          <thead><tr><th>Cliente</th><th>Código</th><th>Descrição</th><th>Status</th><th style="text-align:right;">Valor</th></tr></thead>
+          <tbody>${g.pedidos.map(p=>`<tr>
+            <td style="font-weight:600;">${p.nome||'—'}</td>
+            <td style="font-family:monospace;font-size:11px;">${p.codigo||'—'}</td>
+            <td style="color:#555;">${p.desc||'—'}</td>
+            <td style="font-size:11px;">${p.finalizado||Number(p.etapa||0)>=ETAPAS.length-1?'✅ Finalizado':'⚙️ Em andamento'}</td>
+            <td style="text-align:right;font-weight:600;color:#E05C1A;">${fmtMoney(p.valor||0)}</td>
+          </tr>`).join('')}</tbody>
+          <tfoot><tr><td colspan="4" style="color:#1C2340;">Total ${nomeMes} ${yy}</td><td style="text-align:right;color:#E05C1A;">${fmtMoney(g.total)}</td></tr></tfoot>
+        </table>
+      </div>`;
+    }).join('')}
+    <div class="footer">
+      <span>CMT Projetos e Fachadas · CNPJ: 53.466.209/0001-01 · Comercial: (16) 99649-2182</span>
+      <span>Franca, SP</span>
+    </div>
+    </body></html>`);
+    win.document.close();
+    setTimeout(()=>win.print(),500);
+  };
 }
 
 function renderPedidos(){
@@ -2183,14 +2400,20 @@ document.addEventListener('click',async e=>{
     renderFuturos();
     return;
   }
-  // Dar baixa saida futura - move data to today
+  // Dar baixa saida - marca como paga, mantém data original
   if(e.target.dataset.type==='baixa-saida'){
     const id = e.target.dataset.id;
-    const hoje = new Date().toISOString().split('T')[0];
-    const mes = hoje.substring(5,7)+'/'+hoje.substring(0,4);
-    await updateDoc(doc(db,'fluxo_saidas',id),{data:hoje, mes, futura:false});
+    await updateDoc(doc(db,'fluxo_saidas',id),{futura:false, paga:true});
     await carregarFluxoData();
     showToast('✅ Saída baixada!','toast-fluxo');
+    return;
+  }
+  // Desfazer baixa saida - volta para não paga/futura
+  if(e.target.dataset.type==='desfazer-baixa-saida'){
+    if(!confirm('Desfazer baixa? A saída voltará para "A pagar".'))return;
+    await updateDoc(doc(db,'fluxo_saidas',e.target.dataset.id),{futura:true, paga:false});
+    await carregarFluxoData();
+    showToast('↩ Baixa desfeita — saída voltou para A pagar','toast-fluxo');
     return;
   }
   // Del saida fluxo
@@ -4314,7 +4537,6 @@ function renderSaidasLista(lista) {
   const selHist = document.getElementById('sai-hist-mes-sel');
   const mesSelecionado = selHist ? selHist.value : 'todos'; // MM/YYYY ou 'todos'
 
-  const hoje = new Date().toISOString().split('T')[0];
   const buscaDescSai = (document.getElementById('sai-busca-desc')||{}).value?.trim().toLowerCase() || '';
   const filtroCatSai = (document.getElementById('sai-filtro-cat')||{}).value || '';
 
@@ -4344,17 +4566,20 @@ function renderSaidasLista(lista) {
     return false;
   };
 
-  // SAÍDAS REALIZADAS do mês selecionado (não futuras)
-  let realizadas = fluxoSaidas.filter(s => !s.futura && saidaMesMatch(s, mesSelecionado)).filter(filtrarSaida).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  // REGRA: uma saída é REALIZADA se paga===true
+  // Retrocompatibilidade: registros antigos sem campo paga e futura===false → considerar paga
+  const isPaga = s => s.paga === true || (s.paga === undefined && s.futura === false);
 
-  // SAÍDAS FUTURAS (a pagar) do mês selecionado
-  let futuras = fluxoSaidas.filter(s => s.futura && saidaMesMatch(s, mesSelecionado)).filter(filtrarSaida).sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  // SAÍDAS REALIZADAS do mês selecionado
+  let realizadas = fluxoSaidas.filter(s => isPaga(s) && saidaMesMatch(s, mesSelecionado)).filter(filtrarSaida).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
 
-  // VENCIDAS: saídas marcadas como futuras mas com data já passada (não pagas)
-  // Aparecem em vermelho em qualquer mês selecionado se a data delas for anterior
-  const vencidas = fluxoSaidas.filter(s => s.futura && s.data && s.data < hoje && saidaMesMatch(s, mesSelecionado)).filter(filtrarSaida).sort((a,b)=>(a.data||'').localeCompare(b.data||''));
-  // Remove vencidas das futuras normais para não duplicar
-  const futurasNormais = futuras.filter(s => !(s.data && s.data < hoje));
+  // SAÍDAS A PAGAR: paga!==true (pendentes/futuras)
+  let futurasAll = fluxoSaidas.filter(s => !isPaga(s) && saidaMesMatch(s, mesSelecionado)).filter(filtrarSaida).sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+
+  // VENCIDAS: a pagar com data já passada
+  const hoje = new Date().toISOString().split('T')[0];
+  const vencidas = futurasAll.filter(s => s.data && s.data < hoje);
+  const futurasNormais = futurasAll.filter(s => !s.data || s.data >= hoje);
 
   const totalRealizadas = realizadas.reduce((s,e)=>s+(e.valor||0),0);
   const totalFuturas = futurasNormais.reduce((s,e)=>s+(e.valor||0),0);
@@ -4377,6 +4602,7 @@ function renderSaidasLista(lista) {
       <td style="padding:9px 8px;color:var(--muted);font-size:12px;">${s.ref||s.obs||''}</td>
       <td style="padding:9px 8px;text-align:right;font-weight:600;color:var(--red);">${fmtMoney(s.valor||0)}</td>
       <td style="padding:9px 8px;display:flex;gap:4px;">
+        <button class="btn" style="font-size:11px;padding:3px 8px;white-space:nowrap;border-color:#7C5CBF;color:#7C5CBF;" data-id="${s.id}" data-type="desfazer-baixa-saida">↩ Desfazer</button>
         <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${s.id}" data-type="edit-saida">✏️</button>
         <button class="del-btn" data-id="${s.id}" data-type="del-saida">×</button>
       </td>
@@ -4640,6 +4866,10 @@ async function salvarSaidaFluxo(futura=false){
   const numParcelas = parseInt(document.getElementById('fx-sai-parcelas').value)||1;
   if(!desc||!valor||!data){ showToast('Preencha descrição, valor e data!','toast-fluxo'); return; }
 
+  // paga=true = já foi paga (botão "Registrar saída")
+  // paga=false = ainda não foi paga (botão "Lançar futuro")
+  const paga = !futura;
+
   if(numParcelas > 1) {
     const valorParcela = Math.round((valor / numParcelas) * 100) / 100;
     const dataBase = new Date(data+'T12:00:00');
@@ -4651,15 +4881,16 @@ async function salvarSaidaFluxo(futura=false){
         desc: `${desc} (${i+1}/${numParcelas})`,
         cat, valor: valorParcela, data: dataStr,
         mes: dataStr.substring(5,7)+'/'+dataStr.substring(0,4),
-        ref: ref2, obs, futura: futura||false, criadoEm: serverTimestamp()
+        ref: ref2, obs, futura: futura||false, paga: i===0 ? paga : false,
+        criadoEm: serverTimestamp()
       };
       await addDoc(collection(db,'fluxo_saidas'), saida);
     }
-    showToast(futura?`📅 ${numParcelas} parcelas lançadas como futuras!`:`📤 ${numParcelas} parcelas de saída registradas!`,'toast-fluxo');
+    showToast(futura?`📅 ${numParcelas} parcelas lançadas como futuras!`:`📤 ${numParcelas} parcelas registradas! Dê baixa nas próximas conforme for pagando.`,'toast-fluxo');
   } else {
-    const novaSaida = { desc, cat, valor, data, mes: data.substring(5,7)+'/'+data.substring(0,4), ref:ref2, obs, futura: futura||false, criadoEm: serverTimestamp() };
+    const novaSaida = { desc, cat, valor, data, mes: data.substring(5,7)+'/'+data.substring(0,4), ref:ref2, obs, futura: futura||false, paga, criadoEm: serverTimestamp() };
     await addDoc(collection(db,'fluxo_saidas'), novaSaida);
-    showToast(futura?'📅 Lançado como saída futura!':'📤 Saída registrada!','toast-fluxo');
+    showToast(futura?'📅 Lançado como saída futura!':'📤 Saída registrada como paga!','toast-fluxo');
   }
 
   document.getElementById('fx-sai-desc').value='';
