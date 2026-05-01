@@ -4010,7 +4010,7 @@ function popularFluxoMeses() {
   const currentVal = sel.value || atual;
   sel.innerHTML = meses.map(m=>{
     const [mm,yy]=m.split('/');
-    const nome=['','Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||m;
+    const nome=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mm)]||m;
     return '<option value="'+m+'" '+(m===currentVal?'selected':'')+'>'+nome+' '+yy+'</option>';
   }).join('');
   if(!sel.value) sel.value = atual;
@@ -4036,9 +4036,11 @@ async function carregarFluxoData() {
 }
 
 window.renderFluxo = function renderFluxo() {
-  popularFluxoMeses();
-  popularFluxoMeses();
   const sel = document.getElementById('fluxo-mes-sel');
+  const mesAntes = sel ? sel.value : '';
+  popularFluxoMeses();
+  // Restaura o mês selecionado após repopular o select
+  if(mesAntes && sel) sel.value = mesAntes;
   const mesNum = (sel && sel.value) ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
   // DEBUG - remover depois
   // Normaliza qualquer formato de mes para MM/YYYY
@@ -4077,9 +4079,9 @@ window.renderFluxo = function renderFluxo() {
 
   // REGRA ÚNICA: só conta o que foi realizado (baixa dada)
   // Entradas: só recebido===true
-  // Saídas: só as que não são futuras e data <= hoje
+  // Saídas: só as que NÃO são futuras (sem restrição de data para meses passados)
   const entRealizadas = entMes.filter(e => e.recebido===true).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
-  const saiRealizadas = saiMes.filter(s => !s.futura && (!s.data || s.data<=hoje));
+  const saiRealizadas = saiMes.filter(s => !s.futura);
 
   const entParaExibir = entRealizadas.reduce((s,e)=>s+(e.valor||0),0);
   const saiParaExibir = saiRealizadas.reduce((s,e)=>s+(e.valor||0),0);
