@@ -4152,6 +4152,20 @@ window.renderEntradasLista = function renderEntradasLista(lista) {
   }
   futuras.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
 
+  // ENTRADAS VENCIDAS de meses anteriores sem baixa → mostrar no mês atual em vermelho
+  const mesSel2 = (document.getElementById('fluxo-mes-sel')||{}).value || '';
+  const [mnMM3, mnYYYY3] = mesSel2.split('/');
+  const inicioPrimeiroDiaMesSel2 = new Date(parseInt(mnYYYY3), parseInt(mnMM3)-1, 1).toISOString().split('T')[0];
+  const ehMesAtual2 = mesSel2 === new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+  let vencidasEnt = [];
+  if(ehMesAtual2 && !mesFiltro && !buscaCliente) {
+    vencidasEnt = (fluxoEntradas||[]).filter(e=>{
+      if(e.recebido===true) return false;
+      if(!e.data) return false;
+      return e.data < inicioPrimeiroDiaMesSel2;
+    });
+  }
+
   const totalFutGlobal = (fluxoEntradas||[]).filter(e=>e.recebido!==true).reduce((s,e)=>s+(e.valor||0),0);
   const totalFutFiltro = futuras.reduce((s,e)=>s+(e.valor||0),0);
 
@@ -4222,7 +4236,17 @@ window.renderEntradasLista = function renderEntradasLista(lista) {
     <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowsEnt(listaFiltrada)}</tbody></table>
   </div>` : (lista.length && buscaCliente ? `<div class="form-card" style="margin-bottom:12px;"><div style="text-align:center;color:var(--muted);padding:12px;font-size:13px;">Nenhuma entrada recebida com "<b>${buscaCliente}</b>".</div></div>` : '');
 
-  el.innerHTML = recebidasHTML + futurasHTML;
+  const totalVencidasEnt = vencidasEnt.reduce((s,e)=>s+(e.valor||0),0);
+  const vencidasEntHTML = vencidasEnt.length ? `<div class="form-card" style="margin-bottom:12px;border:2px solid #A32D2D;background:#fff8f8;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+      <div style="font-size:13px;font-weight:700;color:#A32D2D;">🚨 RECEBIMENTOS VENCIDOS — NÃO BAIXADOS (meses anteriores)</div>
+      <span style="background:var(--red-bg);color:#A32D2D;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;">${vencidasEnt.length} item(s) · ${fmtMoney(totalVencidasEnt)}</span>
+    </div>
+    <div style="font-size:12px;color:#A32D2D;margin-bottom:10px;padding:8px 12px;background:#FCEBEB;border-radius:6px;">⚠️ Esses recebimentos tinham data prevista em meses anteriores e ainda não foram confirmados. Dê a baixa se já recebeu ou exclua se foi cancelado.</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowsEnt(vencidasEnt)}</tbody></table>
+  </div>` : '';
+
+  el.innerHTML = vencidasEntHTML + recebidasHTML + futurasHTML;
 }
 
 function popularSaiFutMesSel() {
@@ -4259,12 +4283,15 @@ function renderSaidasLista(lista) {
     return matchDesc && matchCat;
   };
 
-  let passadas = lista.filter(s=>!s.futura&&(!s.data||s.data<=hoje)).filter(filtrarSaida).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  // Saídas realizadas: inclui qualquer saída da lista que não é futura (mês pode ser passado ou atual)
+  let passadas = lista.filter(s=>!s.futura).filter(filtrarSaida).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
   const mesFiltro = (document.getElementById('sai-fut-mes-sel')||{}).value || '';
   popularSaiFutMesSel();
   // Restaura o valor após popular
   const selSai = document.getElementById('sai-fut-mes-sel');
   if(selSai && mesFiltro) selSai.value = mesFiltro;
+
+  // Saídas futuras = marcadas como futura OU data > hoje, mais as VENCIDAS (futura com data < hoje que ainda não foi paga)
   let futuras = fluxoSaidas.filter(s=>s.futura||(s.data&&s.data>hoje));
   if(mesFiltro) {
     futuras = futuras.filter(s=>{
@@ -4274,6 +4301,26 @@ function renderSaidasLista(lista) {
     });
   }
   futuras = futuras.filter(filtrarSaida).sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+
+  // PENDÊNCIAS VENCIDAS: saídas futuras de meses anteriores que não receberam baixa
+  // Aparecem no mês atual marcadas em vermelho com data original
+  const mesSel = (document.getElementById('fluxo-mes-sel')||{}).value || '';
+  const [mnMM2, mnYYYY2] = mesSel.split('/');
+  const inicioPrimeiroDiaMesSel = new Date(parseInt(mnYYYY2), parseInt(mnMM2)-1, 1).toISOString().split('T')[0];
+  const fimUltimoDiaMesSel = new Date(parseInt(mnYYYY2), parseInt(mnMM2), 0).toISOString().split('T')[0];
+  const ehMesAtual = mesSel === new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+
+  // Atraso de saídas a incluir no mês atual: saídas futuras com data < primeiro dia do mês selecionado e sem baixa
+  let vencidasNaoMostradas = [];
+  if(ehMesAtual && !mesFiltro && !buscaDescSai && !filtroCatSai) {
+    vencidasNaoMostradas = fluxoSaidas.filter(s=>{
+      if(!s.futura && !(s.data && s.data > hoje)) return false; // já foi realizada
+      if(!s.data) return false;
+      // data anterior ao mês selecionado = vencida de mês passado
+      return s.data < inicioPrimeiroDiaMesSel;
+    });
+  }
+
   const totalFutGlobal = fluxoSaidas.filter(s=>s.futura||(s.data&&s.data>hoje)).reduce((s,e)=>s+(e.valor||0),0);
   const totalFutFiltro = futuras.reduce((s,e)=>s+(e.valor||0),0);
 
@@ -4323,7 +4370,20 @@ function renderSaidasLista(lista) {
     ? `<span style="background:var(--red-bg);color:#A32D2D;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;">⚠️ ${mesFiltro}: ${fmtMoney(totalFutFiltro)} — MÊS ENCERRADO</span>`
     : mesFiltro ? `<span style="background:var(--red-bg);color:var(--red);padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;">${mesFiltro}: ${fmtMoney(totalFutFiltro)}</span>` : '';
 
+  // HTML das vencidas (saídas de meses anteriores sem baixa, exibidas no mês atual em vermelho)
+  const totalVencidas = vencidasNaoMostradas.reduce((s,e)=>s+(e.valor||0),0);
+  const vencidasHTML = vencidasNaoMostradas.length ? `
+    <div class="form-card" style="margin-bottom:12px;border:2px solid #A32D2D;background:#fff8f8;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:700;color:#A32D2D;">🚨 SAÍDAS VENCIDAS — NÃO BAIXADAS (meses anteriores)</div>
+        <span style="background:var(--red-bg);color:#A32D2D;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;">${vencidasNaoMostradas.length} item(s) · ${fmtMoney(totalVencidas)}</span>
+      </div>
+      <div style="font-size:12px;color:#A32D2D;margin-bottom:10px;padding:8px 12px;background:#FCEBEB;border-radius:6px;">⚠️ Essas saídas tinham data de vencimento em meses anteriores e ainda não foram baixadas. Dê a baixa ou exclua se já foram pagas.</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${tabelaRows(vencidasNaoMostradas, true)}</tbody></table>
+    </div>` : '';
+
   el.innerHTML = `
+    ${vencidasHTML}
     ${passadas.length ? `<div class="form-card" style="margin-bottom:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
         <div style="font-size:12px;font-weight:600;color:var(--muted);">SAÍDAS REALIZADAS${buscaDescSai||filtroCatSai?' — filtradas':''}</div>
@@ -4341,7 +4401,7 @@ function renderSaidasLista(lista) {
       </div>
       ${futuras.length ? `<table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${tabelaRows(futuras, true)}</tbody></table>` : '<div style="text-align:center;color:var(--muted);padding:12px;font-size:13px;">Nenhuma saída futura neste mês.</div>'}
     </div>` : ''}
-    ${!passadas.length && !futuras.length && !mesFiltro && !buscaDescSai && !filtroCatSai ? '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhuma saída registrada.</div>' : ''}
+    ${!passadas.length && !futuras.length && !vencidasNaoMostradas.length && !mesFiltro && !buscaDescSai && !filtroCatSai ? '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhuma saída registrada.</div>' : ''}
   `;
 }
 
