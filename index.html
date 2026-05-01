@@ -4042,33 +4042,38 @@ window.renderFluxo = function renderFluxo() {
   // Restaura o mês selecionado após repopular o select
   if(mesAntes && sel) sel.value = mesAntes;
   const mesNum = (sel && sel.value) ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
-  // DEBUG - remover depois
-  // Normaliza qualquer formato de mes para MM/YYYY
-  const toMMYYYY = m => {
-    if(!m) return '';
-    m = String(m).trim();
-    if(m.length===5 && m[2]==='/') return m.slice(0,3)+'20'+m.slice(3); // 04/26
-    if(m.length===7 && m[2]==='/') return m;                              // 04/2026
-    if(m.length===7 && m[4]==='-') return m.slice(5)+'/'+m.slice(0,4);   // 2026-04
-    return m;
-  };
-  const getMesFromData = d => {
-    if(!d) return '';
-    if(d.length>=10 && d[4]==='-') return d.slice(5,7)+'/'+d.slice(0,4); // 2026-04-28
-    return '';
-  };
-  // mesNum vem do select: MM/YYYY (ex: "04/2026")
+
+  // mesNum formato: "MM/YYYY" ex: "04/2026"
   const [mnMM, mnYYYY] = mesNum.split('/');
+
+  // Função simples: extrai MM e YYYY de qualquer item e compara
   const mesMatch = (item) => {
-    const candidates = [toMMYYYY(item.mes), getMesFromData(item.data)].filter(Boolean);
-    return candidates.some(c => {
-      const p = c.split('/');
-      if(p.length!==2) return false;
-      const mmOk = p[0]===mnMM;
-      const yyOk = p[1]===mnYYYY || '20'+p[1]===mnYYYY || p[1]==='20'+mnYYYY;
-      return mmOk && yyOk;
-    });
+    // Tenta pelo campo data (YYYY-MM-DD) — mais confiável
+    if(item.data && item.data.length >= 7) {
+      const partes = item.data.split('-');
+      if(partes.length >= 2) {
+        const mm = partes[1]; // "04"
+        const yy = partes[0]; // "2026"
+        if(mm === mnMM && yy === mnYYYY) return true;
+      }
+    }
+    // Tenta pelo campo mes (MM/YYYY ou MM/YY)
+    if(item.mes) {
+      const mesStr = String(item.mes).trim();
+      const p = mesStr.split('/');
+      if(p.length === 2) {
+        const mm = p[0].padStart(2,'0');
+        const yy = p[1].length === 2 ? '20'+p[1] : p[1];
+        if(mm === mnMM && yy === mnYYYY) return true;
+      }
+    }
+    return false;
   };
+
+  console.log('[renderFluxo] mês selecionado:', mesNum, '| entradas total:', fluxoEntradas.length, '| saídas total:', fluxoSaidas.length);
+  console.log('[renderFluxo] amostra entradas:', fluxoEntradas.slice(0,3).map(e=>({mes:e.mes,data:e.data,recebido:e.recebido,valor:e.valor})));
+  console.log('[renderFluxo] amostra saídas:', fluxoSaidas.slice(0,3).map(s=>({mes:s.mes,data:s.data,futura:s.futura,valor:s.valor})));
+
   const hoje = new Date().toISOString().split('T')[0];
 
   // Entradas do mês selecionado
