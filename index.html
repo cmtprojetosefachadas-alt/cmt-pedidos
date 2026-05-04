@@ -829,8 +829,52 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
-<!-- MODAL EDITAR CLIENTE -->
-<div class="modal-bg" id="edit-cliente-bg">
+<!-- MODAL BAIXA PARCIAL -->
+<div class="modal-bg" id="baixa-parcial-bg">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" id="btn-close-baixa-parcial">×</button>
+    <h2 id="baixa-parcial-title">💰 Dar Baixa</h2>
+    <input type="hidden" id="baixa-parcial-id"/>
+    <input type="hidden" id="baixa-parcial-tipo"/><!-- saida | entrada -->
+
+    <!-- Info do lançamento -->
+    <div id="baixa-parcial-info" style="background:var(--surface2);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;" id="baixa-parcial-desc">—</div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:8px;">
+        <div><span style="font-size:11px;color:var(--muted);">Valor original</span><br/><span style="font-size:16px;font-weight:700;" id="baixa-parcial-original">R$ 0,00</span></div>
+        <div><span style="font-size:11px;color:var(--muted);">Já pago</span><br/><span style="font-size:16px;font-weight:700;color:#0F6E56;" id="baixa-parcial-pago">R$ 0,00</span></div>
+        <div><span style="font-size:11px;color:var(--muted);">Saldo restante</span><br/><span style="font-size:16px;font-weight:700;color:#A32D2D;" id="baixa-parcial-restante">R$ 0,00</span></div>
+      </div>
+      <!-- Histórico de pagamentos parciais -->
+      <div id="baixa-parcial-historico" style="margin-top:12px;display:none;">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Pagamentos anteriores</div>
+        <div id="baixa-parcial-historico-lista"></div>
+      </div>
+    </div>
+
+    <!-- Botão valor total -->
+    <button id="btn-baixa-total" class="btn btn-primary" style="width:100%;margin-bottom:12px;padding:12px;font-size:14px;font-weight:700;">✅ Pagar valor total restante (<span id="baixa-total-label">R$ 0,00</span>)</button>
+
+    <div style="position:relative;display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+      <span style="font-size:11px;color:var(--muted);white-space:nowrap;">ou pagamento parcial</span>
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+    </div>
+
+    <div class="field" style="margin-bottom:16px;">
+      <label style="font-size:13px;font-weight:600;">Valor a pagar agora (R$)</label>
+      <input type="number" id="baixa-parcial-valor" step="0.01" min="0.01" placeholder="Ex: 500,00" style="font-size:16px;font-weight:600;padding:12px;border:2px solid var(--border2);border-radius:10px;width:100%;font-family:'DM Sans',sans-serif;outline:none;"/>
+      <div id="baixa-parcial-feedback" style="font-size:12px;color:var(--muted);margin-top:6px;"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" id="btn-cancelar-baixa-parcial">Cancelar</button>
+      <button class="btn btn-primary" id="btn-confirmar-baixa-parcial" style="background:#0F6E56;border-color:#0F6E56;">💾 Confirmar pagamento parcial</button>
+    </div>
+  </div>
+</div>
+
+
   <div class="modal" style="max-width:480px;">
     <button class="modal-close" id="btn-close-edit-cliente">×</button>
     <h2>Editar cliente</h2>
@@ -2336,14 +2380,23 @@ document.addEventListener('click',async e=>{
     return;
   }
   // Toggle recebido
-  if(e.target.dataset.type==='toggle-recebido'){
-    const id=e.target.dataset.id;
-    const jaRecebido=e.target.dataset.recebido==='1';
-    const novoStatus=!jaRecebido;
-    await updateDoc(doc(db,'fluxo_entradas',id),{recebido:novoStatus});
+  // Dar baixa saida - abre modal de baixa parcial
+  if(e.target.dataset.type==='baixa-saida'){
+    abrirModalBaixa(e.target.dataset.id, 'saida');
+    return;
+  }
+  // Dar baixa entrada - abre modal de baixa parcial
+  if(e.target.dataset.type==='toggle-recebido' && e.target.dataset.recebido==='0'){
+    abrirModalBaixa(e.target.dataset.id, 'entrada');
+    return;
+  }
+  // Desfazer recebimento entrada
+  if(e.target.dataset.type==='toggle-recebido' && e.target.dataset.recebido==='1'){
+    if(!confirm('Desfazer recebimento? Voltará para pendente.'))return;
+    await updateDoc(doc(db,'fluxo_entradas',e.target.dataset.id),{recebido:false});
     await carregarFluxoData();
     renderFluxo();
-    showToast(jaRecebido?'↩ Marcado como pendente':'✅ Recebido! Movido para Entradas','toast-fluxo');
+    showToast('↩ Marcado como pendente','toast-fluxo');
     return;
   }
 
@@ -2400,18 +2453,10 @@ document.addEventListener('click',async e=>{
     renderFuturos();
     return;
   }
-  // Dar baixa saida - marca como paga, mantém data original
-  if(e.target.dataset.type==='baixa-saida'){
-    const id = e.target.dataset.id;
-    await updateDoc(doc(db,'fluxo_saidas',id),{futura:false, paga:true});
-    await carregarFluxoData();
-    showToast('✅ Saída baixada!','toast-fluxo');
-    return;
-  }
   // Desfazer baixa saida - volta para não paga/futura
   if(e.target.dataset.type==='desfazer-baixa-saida'){
     if(!confirm('Desfazer baixa? A saída voltará para "A pagar".'))return;
-    await updateDoc(doc(db,'fluxo_saidas',e.target.dataset.id),{futura:true, paga:false});
+    await updateDoc(doc(db,'fluxo_saidas',e.target.dataset.id),{futura:true, paga:false, pagoParcial:0, historicoPagementos:[]});
     await carregarFluxoData();
     showToast('↩ Baixa desfeita — saída voltou para A pagar','toast-fluxo');
     return;
@@ -4423,19 +4468,23 @@ window.renderEntradasLista = function renderEntradasLista() {
     <th style="padding:10px 8px;"></th>
   </tr></thead>`;
 
-  const rowRecebidas = arr => arr.map(e=>`
-    <tr style="border-bottom:1px solid var(--border);">
+  const rowRecebidas = arr => arr.map(e=>{
+    const temHist = (e.historicoPagementos||[]).length > 0;
+    return `
+    <tr data-id-hist="${e.id}" data-tipo-hist="entrada" style="border-bottom:1px solid var(--border);cursor:${temHist?'pointer':'default'};${temHist?'background:#f0fdf4;':''}" title="${temHist?'Clique para ver histórico de pagamentos':''}">
       <td style="padding:9px 8px;font-size:13px;">${fmtDataBr(e.data)}</td>
-      <td style="padding:9px 8px;font-size:13px;font-weight:500;">${e.clienteNome||'—'}</td>
+      <td style="padding:9px 8px;font-size:13px;font-weight:500;">${e.clienteNome||'—'}${temHist?` <span style="font-size:10px;background:#D1FAE5;color:#065F46;padding:1px 6px;border-radius:8px;font-weight:700;">📋 ${(e.historicoPagementos||[]).length} pgto${(e.historicoPagementos||[]).length>1?'s':''}</span>`:''}</td>
       <td style="padding:9px 8px;"><span style="background:var(--green-bg);color:var(--green-text);padding:2px 8px;border-radius:12px;font-size:11px;">${e.tipo||'Entrada'}</span>${e.compensacao?`<br/><span style="font-size:10px;color:var(--muted);">Comp: ${fmtDataBr(e.compensacao)}</span>`:''}</td>
       <td style="padding:9px 8px;color:var(--muted);font-size:12px;">${e.obs||''}</td>
       <td style="padding:9px 8px;text-align:right;font-weight:600;color:var(--green);">${fmtMoney(e.valor||0)}</td>
-      <td style="padding:9px 8px;display:flex;gap:4px;">
-        <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-recebido="1" data-type="toggle-recebido">↩ Desfazer</button>
-        <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-type="edit-entrada">✏️</button>
-        <button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button>
+      <td style="padding:9px 8px;" onclick="event.stopPropagation()">
+        <div style="display:flex;gap:4px;">
+          <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-recebido="1" data-type="toggle-recebido">↩</button>
+          <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-type="edit-entrada">✏️</button>
+          <button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button>
+        </div>
       </td>
-    </tr>`).join('');
+    </tr>`;}).join('');
 
   const rowPendentes = arr => arr.map(e=>`
     <tr style="border-bottom:1px solid var(--border);">
@@ -4594,19 +4643,23 @@ function renderSaidasLista(lista) {
     <th style="padding:10px 8px;"></th>
   </tr></thead>`;
 
-  const rowRealizadas = arr => arr.map(s=>`
-    <tr style="border-bottom:1px solid var(--border);">
+  const rowRealizadas = arr => arr.map(s=>{
+    const temHist = (s.historicoPagementos||[]).length > 0;
+    return `
+    <tr data-id-hist="${s.id}" data-tipo-hist="saida" style="border-bottom:1px solid var(--border);cursor:${temHist?'pointer':'default'};${temHist?'background:#f0fdf4;':''}" title="${temHist?'Clique para ver histórico de pagamentos':''}">
       <td style="padding:9px 8px;font-size:13px;">${fmtDataBr(s.data)}</td>
-      <td style="padding:9px 8px;font-size:13px;font-weight:500;">${s.desc||'—'}</td>
+      <td style="padding:9px 8px;font-size:13px;font-weight:500;">${s.desc||'—'}${temHist?` <span style="font-size:10px;background:#D1FAE5;color:#065F46;padding:1px 6px;border-radius:8px;font-weight:700;">📋 ${(s.historicoPagementos||[]).length} pgto${(s.historicoPagementos||[]).length>1?'s':''}</span>`:''}</td>
       <td style="padding:9px 8px;"><span style="background:var(--red-bg);color:var(--red);padding:2px 8px;border-radius:12px;font-size:11px;">${s.cat||'Outro'}</span></td>
       <td style="padding:9px 8px;color:var(--muted);font-size:12px;">${s.ref||s.obs||''}</td>
       <td style="padding:9px 8px;text-align:right;font-weight:600;color:var(--red);">${fmtMoney(s.valor||0)}</td>
-      <td style="padding:9px 8px;display:flex;gap:4px;">
-        <button class="btn" style="font-size:11px;padding:3px 8px;white-space:nowrap;border-color:#7C5CBF;color:#7C5CBF;" data-id="${s.id}" data-type="desfazer-baixa-saida">↩ Desfazer</button>
-        <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${s.id}" data-type="edit-saida">✏️</button>
-        <button class="del-btn" data-id="${s.id}" data-type="del-saida">×</button>
+      <td style="padding:9px 8px;" onclick="event.stopPropagation()">
+        <div style="display:flex;gap:4px;">
+          <button class="btn" style="font-size:11px;padding:3px 8px;white-space:nowrap;border-color:#7C5CBF;color:#7C5CBF;" data-id="${s.id}" data-type="desfazer-baixa-saida">↩</button>
+          <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${s.id}" data-type="edit-saida">✏️</button>
+          <button class="del-btn" data-id="${s.id}" data-type="del-saida">×</button>
+        </div>
       </td>
-    </tr>`).join('');
+    </tr>`;}).join('');
 
   const rowFuturas = arr => arr.map(s=>`
     <tr style="border-bottom:1px solid var(--border);">
@@ -5049,6 +5102,167 @@ document.getElementById('fx-ent-pedido').addEventListener('change', function() {
     if(m) m.value = '';
   }
 });
+
+// ============================================================
+// MODAL DE BAIXA PARCIAL
+// ============================================================
+window.abrirModalBaixa = function(id, tipo) {
+  const item = tipo === 'saida'
+    ? fluxoSaidas.find(x => x.id === id)
+    : fluxoEntradas.find(x => x.id === id);
+  if(!item) return;
+
+  const valorOriginal = item.valor || 0;
+  const pagoParcial = item.pagoParcial || 0;
+  const restante = Math.max(valorOriginal - pagoParcial, 0);
+  const historico = item.historicoPagementos || [];
+
+  document.getElementById('baixa-parcial-id').value = id;
+  document.getElementById('baixa-parcial-tipo').value = tipo;
+  document.getElementById('baixa-parcial-title').textContent = tipo === 'saida' ? '💰 Dar Baixa — Saída' : '💰 Confirmar Recebimento';
+  document.getElementById('baixa-parcial-desc').textContent = tipo === 'saida' ? (item.desc || '—') : (item.clienteNome || '—');
+  document.getElementById('baixa-parcial-original').textContent = fmtMoney(valorOriginal);
+  document.getElementById('baixa-parcial-pago').textContent = fmtMoney(pagoParcial);
+  document.getElementById('baixa-parcial-restante').textContent = fmtMoney(restante);
+  document.getElementById('baixa-total-label').textContent = fmtMoney(restante);
+  document.getElementById('baixa-parcial-valor').value = '';
+  document.getElementById('baixa-parcial-feedback').textContent = '';
+
+  // Histórico de pagamentos
+  const histDiv = document.getElementById('baixa-parcial-historico');
+  const histLista = document.getElementById('baixa-parcial-historico-lista');
+  if(historico.length > 0) {
+    histDiv.style.display = 'block';
+    histLista.innerHTML = historico.map(h => `
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
+        <span>${h.data ? h.data.split('-').reverse().join('/') : '—'}</span>
+        <span style="color:#0F6E56;font-weight:600;">+ ${fmtMoney(h.valor)}</span>
+      </div>`).join('');
+  } else {
+    histDiv.style.display = 'none';
+  }
+
+  document.getElementById('baixa-parcial-bg').classList.add('open');
+
+  // Feedback ao digitar
+  document.getElementById('baixa-parcial-valor').oninput = function() {
+    const v = parseFloat(this.value) || 0;
+    const fb = document.getElementById('baixa-parcial-feedback');
+    if(v <= 0) { fb.textContent = ''; return; }
+    if(v >= restante) {
+      fb.textContent = '✅ Pagamento total — quitará o saldo restante';
+      fb.style.color = '#0F6E56';
+    } else {
+      const novoRestante = restante - v;
+      fb.textContent = `Pagamento parcial — saldo restante: ${fmtMoney(novoRestante)}`;
+      fb.style.color = '#E05C1A';
+    }
+  };
+};
+
+// Fechar modal baixa parcial
+document.getElementById('btn-close-baixa-parcial').onclick = () => document.getElementById('baixa-parcial-bg').classList.remove('open');
+document.getElementById('btn-cancelar-baixa-parcial').onclick = () => document.getElementById('baixa-parcial-bg').classList.remove('open');
+document.getElementById('baixa-parcial-bg').addEventListener('click', e => { if(e.target === e.currentTarget) e.currentTarget.classList.remove('open'); });
+
+// Pagar valor total
+document.getElementById('btn-baixa-total').onclick = async function() {
+  const id = document.getElementById('baixa-parcial-id').value;
+  const tipo = document.getElementById('baixa-parcial-tipo').value;
+  const hoje = new Date().toISOString().split('T')[0];
+
+  if(tipo === 'saida') {
+    const item = fluxoSaidas.find(x => x.id === id);
+    const hist = item?.historicoPagementos || [];
+    const pagoParcial = item?.pagoParcial || 0;
+    const restante = Math.max((item?.valor||0) - pagoParcial, 0);
+    hist.push({ data: hoje, valor: restante });
+    await updateDoc(doc(db,'fluxo_saidas',id), { futura: false, paga: true, pagoParcial: item?.valor || 0, historicoPagementos: hist });
+  } else {
+    const item = fluxoEntradas.find(x => x.id === id);
+    const hist = item?.historicoPagementos || [];
+    const pagoParcial = item?.pagoParcial || 0;
+    const restante = Math.max((item?.valor||0) - pagoParcial, 0);
+    hist.push({ data: hoje, valor: restante });
+    await updateDoc(doc(db,'fluxo_entradas',id), { recebido: true, pagoParcial: item?.valor || 0, historicoPagementos: hist });
+  }
+
+  document.getElementById('baixa-parcial-bg').classList.remove('open');
+  await carregarFluxoData();
+  showToast('✅ Baixa total confirmada!', 'toast-fluxo');
+};
+
+// Confirmar pagamento parcial
+document.getElementById('btn-confirmar-baixa-parcial').onclick = async function() {
+  const id = document.getElementById('baixa-parcial-id').value;
+  const tipo = document.getElementById('baixa-parcial-tipo').value;
+  const valorPago = parseFloat(document.getElementById('baixa-parcial-valor').value) || 0;
+  if(valorPago <= 0) { showToast('Digite um valor válido!', 'toast-fluxo'); return; }
+
+  const hoje = new Date().toISOString().split('T')[0];
+
+  if(tipo === 'saida') {
+    const item = fluxoSaidas.find(x => x.id === id);
+    if(!item) return;
+    const hist = item.historicoPagementos || [];
+    const pagoParcialAnt = item.pagoParcial || 0;
+    const novoPago = pagoParcialAnt + valorPago;
+    const total = item.valor || 0;
+    hist.push({ data: hoje, valor: valorPago });
+
+    if(novoPago >= total) {
+      // Quitado totalmente
+      await updateDoc(doc(db,'fluxo_saidas',id), { futura: false, paga: true, pagoParcial: total, historicoPagementos: hist });
+      showToast('✅ Saída quitada totalmente!', 'toast-fluxo');
+    } else {
+      // Ainda tem saldo — debita e mantém como a pagar com novo valor
+      const novoValorRestante = total - novoPago;
+      await updateDoc(doc(db,'fluxo_saidas',id), {
+        futura: true, paga: false,
+        valor: novoValorRestante,
+        pagoParcial: novoPago,
+        historicoPagementos: hist
+      });
+      showToast(`💳 R$ ${valorPago.toFixed(2).replace('.',',')} registrado. Saldo restante: ${fmtMoney(novoValorRestante)}`, 'toast-fluxo');
+    }
+  } else {
+    // Entrada
+    const item = fluxoEntradas.find(x => x.id === id);
+    if(!item) return;
+    const hist = item.historicoPagementos || [];
+    const pagoParcialAnt = item.pagoParcial || 0;
+    const novoPago = pagoParcialAnt + valorPago;
+    const total = item.valor || 0;
+    hist.push({ data: hoje, valor: valorPago });
+
+    if(novoPago >= total) {
+      await updateDoc(doc(db,'fluxo_entradas',id), { recebido: true, pagoParcial: total, historicoPagementos: hist });
+      showToast('✅ Recebimento quitado totalmente!', 'toast-fluxo');
+    } else {
+      const novoValorRestante = total - novoPago;
+      await updateDoc(doc(db,'fluxo_entradas',id), {
+        recebido: false,
+        valor: novoValorRestante,
+        pagoParcial: novoPago,
+        historicoPagementos: hist
+      });
+      showToast(`💳 R$ ${valorPago.toFixed(2).replace('.',',')} registrado. Saldo restante: ${fmtMoney(novoValorRestante)}`, 'toast-fluxo');
+    }
+  }
+
+  document.getElementById('baixa-parcial-bg').classList.remove('open');
+  await carregarFluxoData();
+};
+
+// Abrir histórico ao clicar na linha (saidas realizadas)
+document.addEventListener('click', function(e) {
+  const row = e.target.closest('tr[data-id-hist]');
+  if(!row) return;
+  const id = row.dataset.idHist;
+  const tipo = row.dataset.tipoHist;
+  abrirModalBaixa(id, tipo);
+});
+
 
 // Show/hide parcelas field based on tipo
 document.getElementById('fx-ent-tipo').addEventListener('change', function() {
