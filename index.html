@@ -2357,6 +2357,15 @@ setupFotoInput('foto2-input', 'foto2-preview');
 // DELEGAR CLICKS
 document.addEventListener('click',async e=>{
 
+  // Clique em linha de histórico (realizadas/recebidas) - apenas se não clicou em botão
+  if(!e.target.closest('button') && !e.target.closest('.del-btn') && !e.target.closest('[data-type]')) {
+    const row = e.target.closest('tr[data-id-hist]');
+    if(row) {
+      abrirModalBaixa(row.dataset.idHist, row.dataset.tipoHist);
+      return;
+    }
+  }
+
   // Del item orçamento
   if(e.target.dataset.type==='delitem'){
     editingItens.splice(parseInt(e.target.dataset.idx),1);renderItens();return;
@@ -5278,14 +5287,7 @@ document.getElementById('btn-confirmar-baixa-parcial').onclick = async function(
   await carregarFluxoData();
 };
 
-// Abrir histórico ao clicar na linha (saidas realizadas)
-document.addEventListener('click', function(e) {
-  const row = e.target.closest('tr[data-id-hist]');
-  if(!row) return;
-  const id = row.dataset.idHist;
-  const tipo = row.dataset.tipoHist;
-  abrirModalBaixa(id, tipo);
-});
+// Abrir histórico ao clicar na linha (realizadas/recebidas) - integrado no handler principal
 
 
 // Show/hide parcelas field based on tipo
