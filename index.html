@@ -842,12 +842,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div style="font-size:13px;font-weight:700;" id="baixa-parcial-desc">—</div>
       <div style="display:flex;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:8px;">
         <div><span style="font-size:11px;color:var(--muted);">Valor original</span><br/><span style="font-size:16px;font-weight:700;" id="baixa-parcial-original">R$ 0,00</span></div>
-        <div><span style="font-size:11px;color:var(--muted);">Já pago</span><br/><span style="font-size:16px;font-weight:700;color:#0F6E56;" id="baixa-parcial-pago">R$ 0,00</span></div>
-        <div><span style="font-size:11px;color:var(--muted);">Saldo restante</span><br/><span style="font-size:16px;font-weight:700;color:#A32D2D;" id="baixa-parcial-restante">R$ 0,00</span></div>
+        <div><span style="font-size:11px;color:var(--muted);" id="baixa-parcial-pago-label">Já pago</span><br/><span style="font-size:16px;font-weight:700;color:#0F6E56;" id="baixa-parcial-pago">R$ 0,00</span></div>
+        <div><span style="font-size:11px;color:var(--muted);" id="baixa-parcial-restante-label">Saldo restante</span><br/><span style="font-size:16px;font-weight:700;color:#A32D2D;" id="baixa-parcial-restante">R$ 0,00</span></div>
       </div>
       <!-- Histórico de pagamentos parciais -->
       <div id="baixa-parcial-historico" style="margin-top:12px;display:none;">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Pagamentos anteriores</div>
         <div id="baixa-parcial-historico-lista"></div>
       </div>
     </div>
@@ -862,7 +861,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
 
     <div class="field" style="margin-bottom:16px;">
-      <label style="font-size:13px;font-weight:600;">Valor a pagar agora (R$)</label>
+      <label style="font-size:13px;font-weight:600;" id="baixa-parcial-valor-label">Valor a pagar agora (R$)</label>
       <input type="number" id="baixa-parcial-valor" step="0.01" min="0.01" placeholder="Ex: 500,00" style="font-size:16px;font-weight:600;padding:12px;border:2px solid var(--border2);border-radius:10px;width:100%;font-family:'DM Sans',sans-serif;outline:none;"/>
       <div id="baixa-parcial-feedback" style="font-size:12px;color:var(--muted);margin-top:6px;"></div>
     </div>
@@ -5122,21 +5121,44 @@ window.abrirModalBaixa = function(id, tipo) {
   document.getElementById('baixa-parcial-title').textContent = tipo === 'saida' ? '💰 Dar Baixa — Saída' : '💰 Confirmar Recebimento';
   document.getElementById('baixa-parcial-desc').textContent = tipo === 'saida' ? (item.desc || '—') : (item.clienteNome || '—');
   document.getElementById('baixa-parcial-original').textContent = fmtMoney(valorOriginal);
+
+  // Textos diferentes para saída (pago) e entrada (recebido)
+  document.getElementById('baixa-parcial-pago-label').textContent = tipo === 'saida' ? 'Já pago' : 'Já recebido';
+  document.getElementById('baixa-parcial-restante-label').textContent = tipo === 'saida' ? 'Saldo restante' : 'A receber';
+  document.getElementById('baixa-parcial-valor-label').textContent = tipo === 'saida' ? 'Valor a pagar agora (R$)' : 'Valor recebido agora (R$)';
+  document.getElementById('btn-baixa-total').innerHTML = tipo === 'saida'
+    ? `✅ Pagar valor total restante ( <span id="baixa-total-label">${fmtMoney(restante)}</span> )`
+    : `✅ Confirmar recebimento total ( <span id="baixa-total-label">${fmtMoney(restante)}</span> )`;
+  document.getElementById('btn-confirmar-baixa-parcial').textContent = tipo === 'saida' ? '💾 Confirmar pagamento parcial' : '💾 Confirmar recebimento parcial';
+  document.getElementById('baixa-parcial-valor').value = '';
   document.getElementById('baixa-parcial-pago').textContent = fmtMoney(pagoParcial);
   document.getElementById('baixa-parcial-restante').textContent = fmtMoney(restante);
-  document.getElementById('baixa-total-label').textContent = fmtMoney(restante);
-  document.getElementById('baixa-parcial-valor').value = '';
-  document.getElementById('baixa-parcial-feedback').textContent = '';
 
-  // Histórico de pagamentos
+  // Feedback ao digitar
+  document.getElementById('baixa-parcial-valor').oninput = function() {
+    const v = parseFloat(this.value) || 0;
+    const fb = document.getElementById('baixa-parcial-feedback');
+    if(v <= 0) { fb.textContent = ''; return; }
+    if(v >= restante) {
+      fb.textContent = tipo === 'saida' ? '✅ Pagamento total — quitará o saldo restante' : '✅ Recebimento total — quitará o saldo';
+      fb.style.color = '#0F6E56';
+    } else {
+      const novoRestante = restante - v;
+      fb.textContent = tipo === 'saida'
+        ? `Pagamento parcial — saldo restante: ${fmtMoney(novoRestante)}`
+        : `Recebimento parcial — ainda a receber: ${fmtMoney(novoRestante)}`;
+      fb.style.color = '#E05C1A';
+    }
+  };
   const histDiv = document.getElementById('baixa-parcial-historico');
   const histLista = document.getElementById('baixa-parcial-historico-lista');
   if(historico.length > 0) {
     histDiv.style.display = 'block';
-    histLista.innerHTML = historico.map(h => `
+    histLista.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">${tipo==='saida'?'Pagamentos anteriores':'Recebimentos anteriores'}</div>` +
+      historico.map(h => `
       <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
         <span>${h.data ? h.data.split('-').reverse().join('/') : '—'}</span>
-        <span style="color:#0F6E56;font-weight:600;">+ ${fmtMoney(h.valor)}</span>
+        <span style="color:#0F6E56;font-weight:600;">${tipo==='saida'?'Pago':'Recebido'}: ${fmtMoney(h.valor)}</span>
       </div>`).join('');
   } else {
     histDiv.style.display = 'none';
@@ -5150,11 +5172,13 @@ window.abrirModalBaixa = function(id, tipo) {
     const fb = document.getElementById('baixa-parcial-feedback');
     if(v <= 0) { fb.textContent = ''; return; }
     if(v >= restante) {
-      fb.textContent = '✅ Pagamento total — quitará o saldo restante';
+      fb.textContent = tipo==='saida' ? '✅ Pagamento total — quitará o saldo restante' : '✅ Recebimento total — quitará o saldo';
       fb.style.color = '#0F6E56';
     } else {
       const novoRestante = restante - v;
-      fb.textContent = `Pagamento parcial — saldo restante: ${fmtMoney(novoRestante)}`;
+      fb.textContent = tipo==='saida'
+        ? `Pagamento parcial — saldo restante: ${fmtMoney(novoRestante)}`
+        : `Recebimento parcial — ainda a receber: ${fmtMoney(novoRestante)}`;
       fb.style.color = '#E05C1A';
     }
   };
