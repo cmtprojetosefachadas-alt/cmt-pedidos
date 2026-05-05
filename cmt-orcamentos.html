@@ -3338,11 +3338,13 @@ async function lancarDespesa() {
 }
 
 let _despesas = [];
+window._despesas = _despesas; // expõe para funções window.*
 
 async function carregarDespesas() {
   try {
     const snap = await getDocs(collection(db,'cmt_despesas'));
     _despesas = snap.docs.map(d=>({id:d.id,...d.data()}));
+    window._despesas = _despesas; // manter referência global sincronizada
     _despesas.sort((a,b)=>new Date(b.criadoEm)-new Date(a.criadoEm));
     // Restaura estado de comprado do Firestore
     if(!window._despChecked) window._despChecked = {};
@@ -4860,7 +4862,7 @@ function _abrirModalPeriodo(tipoPDF) {
 }
 
 function _getDespesasMes(mesAno) {
-  return (_despesas||[]).filter(d=>{
+  return (window._despesas||_despesas||[]).filter(d=>{
     const dt = new Date(d.data||d.criadoEm);
     const m = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
     return m === mesAno;
@@ -5123,7 +5125,7 @@ window._editandoDespesaId = null;
 
 window.abrirEdicaoValor = function(id) {
   // Busca desc e valor direto do array — evita problemas de escape no onclick
-  const desp = (_despesas||[]).find(d=>d.id===id);
+  const desp = (window._despesas||_despesas||[]).find(d=>d.id===id);
   if(!desp) return;
   window._editandoDespesaId = id;
   const modal = document.getElementById('modal-editar-valor');
@@ -5151,7 +5153,7 @@ window.confirmarEdicaoValor = async function() {
   try {
     await updateDoc(doc(db,'cmt_despesas',id), { valor: novoValor });
     // Atualiza local imediatamente
-    const desp = (_despesas||[]).find(d=>d.id===id);
+    const desp = (window._despesas||_despesas||[]).find(d=>d.id===id);
     if(desp) desp.valor = novoValor;
     document.getElementById('modal-editar-valor').style.display = 'none';
     renderDespesas();
