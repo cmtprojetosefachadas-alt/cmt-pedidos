@@ -1932,46 +1932,6 @@ window.gerarPDFOrcamentos = function() {
   </table>
   <div class="footer"><span>CMT Projetos e Fachadas — Relatório de Orçamentos</span><span>Gerado em ${hoje} · ${lista.length} registros</span></div>
   </div><script>window.onload=()=>window.print()<\/script>
-<!-- MODAL PERÍODO PDF KPI -->
-<div id="modal-periodo-pdf" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center">
-  <div style="background:#fff;border-radius:12px;padding:28px 32px;width:340px;box-shadow:0 8px 40px rgba(0,0,0,0.22);font-family:'Inter',sans-serif">
-    <div style="font-size:15px;font-weight:700;color:#1a2332;margin-bottom:4px">📅 Selecionar período</div>
-    <div style="font-size:12px;color:#9a9690;margin-bottom:20px">O PDF será gerado mês a mês no intervalo escolhido</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-      <div>
-        <label style="font-size:11px;font-weight:600;color:#6b6860;display:block;margin-bottom:5px">Mês inicial</label>
-        <select id="pdf-mes-ini" style="width:100%;padding:9px 12px;border:1px solid rgba(0,0,0,0.14);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;outline:none;background:#fff"></select>
-      </div>
-      <div>
-        <label style="font-size:11px;font-weight:600;color:#6b6860;display:block;margin-bottom:5px">Mês final</label>
-        <select id="pdf-mes-fim" style="width:100%;padding:9px 12px;border:1px solid rgba(0,0,0,0.14);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;outline:none;background:#fff"></select>
-      </div>
-    </div>
-    <div style="display:flex;gap:10px">
-      <button onclick="document.getElementById('modal-periodo-pdf').style.display='none'" style="flex:1;padding:10px;border:1px solid rgba(0,0,0,0.14);border-radius:8px;background:#fff;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;color:#6b6860">Cancelar</button>
-      <button id="btn-confirmar-pdf-periodo" style="flex:2;padding:10px;border:none;border-radius:8px;background:#e8520a;color:#fff;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer">📄 Gerar PDF</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL EDITAR VALOR DESPESA -->
-<div id="modal-editar-valor" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center">
-  <div style="background:#fff;border-radius:12px;padding:28px 32px;width:340px;box-shadow:0 8px 40px rgba(0,0,0,0.22);font-family:'Inter',sans-serif">
-    <div style="font-size:15px;font-weight:700;color:#1a2332;margin-bottom:2px">✏️ Editar valor</div>
-    <div id="modal-editar-valor-desc" style="font-size:12px;color:#9a9690;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-    <div id="modal-editar-valor-info" style="font-size:11px;color:#c94208;margin-bottom:18px"></div>
-    <label style="font-size:11px;font-weight:600;color:#6b6860;display:block;margin-bottom:6px">Novo valor (R$)</label>
-    <input id="modal-editar-valor-input" type="number" min="0" step="0.01"
-      style="width:100%;padding:11px 14px;border:2px solid #e8520a;border-radius:8px;font-size:20px;font-weight:700;color:#e8520a;font-family:'Inter',sans-serif;outline:none;text-align:right"
-      onkeydown="if(event.key==='Enter')window.confirmarEdicaoValor()">
-    <div style="display:flex;gap:10px;margin-top:18px">
-      <button onclick="document.getElementById('modal-editar-valor').style.display='none'"
-        style="flex:1;padding:10px;border:1px solid rgba(0,0,0,0.14);border-radius:8px;background:#fff;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;color:#6b6860">Cancelar</button>
-      <button onclick="window.confirmarEdicaoValor()"
-        style="flex:2;padding:10px;border:none;border-radius:8px;background:#e8520a;color:#fff;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer">💾 Salvar valor</button>
-    </div>
-  </div>
-</div>
 </body></html>`;
 
   const w = window.open('','_blank');
@@ -5228,5 +5188,46 @@ document.querySelectorAll('.side-btn').forEach(btn=>{
   });
 });
 </script>
+
+<!-- MODAL PERÍODO PDF KPI -->
+<div id="modal-periodo-pdf" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:28px 32px;width:340px;box-shadow:0 8px 40px rgba(0,0,0,0.22);font-family:'Inter',sans-serif">
+    <div style="font-size:15px;font-weight:700;color:#1a2332;margin-bottom:4px">📅 Selecionar período</div>
+    <div style="font-size:12px;color:#9a9690;margin-bottom:20px">O PDF será gerado mês a mês no intervalo escolhido</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#6b6860;display:block;margin-bottom:5px">Mês inicial</label>
+        <select id="pdf-mes-ini" style="width:100%;padding:9px 12px;border:1px solid rgba(0,0,0,0.14);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;outline:none;background:#fff"></select>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#6b6860;display:block;margin-bottom:5px">Mês final</label>
+        <select id="pdf-mes-fim" style="width:100%;padding:9px 12px;border:1px solid rgba(0,0,0,0.14);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;outline:none;background:#fff"></select>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button onclick="document.getElementById('modal-periodo-pdf').style.display='none'" style="flex:1;padding:10px;border:1px solid rgba(0,0,0,0.14);border-radius:8px;background:#fff;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;color:#6b6860">Cancelar</button>
+      <button id="btn-confirmar-pdf-periodo" style="flex:2;padding:10px;border:none;border-radius:8px;background:#e8520a;color:#fff;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer">📄 Gerar PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR VALOR DESPESA -->
+<div id="modal-editar-valor" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:28px 32px;width:340px;box-shadow:0 8px 40px rgba(0,0,0,0.22);font-family:'Inter',sans-serif">
+    <div style="font-size:15px;font-weight:700;color:#1a2332;margin-bottom:2px">✏️ Editar valor</div>
+    <div id="modal-editar-valor-desc" style="font-size:12px;color:#9a9690;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+    <div id="modal-editar-valor-info" style="font-size:11px;color:#c94208;margin-bottom:18px"></div>
+    <label style="font-size:11px;font-weight:600;color:#6b6860;display:block;margin-bottom:6px">Novo valor (R$)</label>
+    <input id="modal-editar-valor-input" type="number" min="0" step="0.01"
+      style="width:100%;padding:11px 14px;border:2px solid #e8520a;border-radius:8px;font-size:20px;font-weight:700;color:#e8520a;font-family:'Inter',sans-serif;outline:none;text-align:right"
+      onkeydown="if(event.key==='Enter')window.confirmarEdicaoValor()">
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button onclick="document.getElementById('modal-editar-valor').style.display='none'"
+        style="flex:1;padding:10px;border:1px solid rgba(0,0,0,0.14);border-radius:8px;background:#fff;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;color:#6b6860">Cancelar</button>
+      <button onclick="window.confirmarEdicaoValor()"
+        style="flex:2;padding:10px;border:none;border-radius:8px;background:#e8520a;color:#fff;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer">💾 Salvar valor</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
