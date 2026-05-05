@@ -3726,7 +3726,7 @@ function renderDespesas() {
         <td style="font-weight:500">${d.desc}</td>
         <td><span style="background:${catColors[d.cat]||'#888'};color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px">${d.cat}</span></td>
         <td style="font-weight:700;color:var(--accent);cursor:pointer;white-space:nowrap" title="Clique para editar o valor"
-          onclick="event.stopPropagation();window.abrirEdicaoValor('${d.id}','${d.desc.replace(/'/g,\"\\'\")}',${d.valor})">
+          onclick="event.stopPropagation();window.abrirEdicaoValor('${d.id}')">
           <span style="border-bottom:1.5px dashed var(--accent)">${fmt(d.valor)}</span> <span style="font-size:10px;opacity:.6">✏️</span>
         </td>
         <td style="font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.obs||'—'}</td>
@@ -3792,7 +3792,7 @@ function renderDespesas() {
       <td style="font-weight:500">${d.desc}</td>
       <td><span style="background:${catColors[d.cat]||'#888'};color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px">${d.cat}</span></td>
       <td style="font-weight:700;color:var(--accent);cursor:pointer;white-space:nowrap" title="Clique para editar o valor"
-        onclick="event.stopPropagation();window.abrirEdicaoValor('${d.id}','${d.desc.replace(/'/g,\"\\'\")}',${d.valor})">
+        onclick="event.stopPropagation();window.abrirEdicaoValor('${d.id}')">
         <span style="border-bottom:1.5px dashed var(--accent)">${fmt(d.valor)}</span> <span style="font-size:10px;opacity:.6">✏️</span>
       </td>
       <td style="font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.obs||'—'}</td>
@@ -5161,16 +5161,24 @@ window.gerarPDFKpiCategorias = function() { _abrirModalPeriodo('categorias'); };
 // ── EDITAR VALOR DE DESPESA ──
 window._editandoDespesaId = null;
 
-window.abrirEdicaoValor = function(id, desc, valorAtual) {
+window.abrirEdicaoValor = function(id) {
+  // Busca desc e valor direto do array — evita problemas de escape no onclick
+  const desp = (_despesas||[]).find(d=>d.id===id);
+  if(!desp) return;
   window._editandoDespesaId = id;
   const modal = document.getElementById('modal-editar-valor');
   const input = document.getElementById('modal-editar-valor-input');
   const descEl = document.getElementById('modal-editar-valor-desc');
   const infoEl = document.getElementById('modal-editar-valor-info');
-  descEl.textContent = desc || 'Lançamento';
-  infoEl.textContent = 'Valor atual: ' + new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(valorAtual);
-  input.value = valorAtual;
+  descEl.textContent = desp.desc || 'Lançamento';
+  infoEl.textContent = 'Valor atual: ' + new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(desp.valor);
+  input.value = desp.valor;
   modal.style.display = 'flex';
+  // Fechar ao clicar fora — registra uma única vez
+  if(!modal._clickOutSet) {
+    modal._clickOutSet = true;
+    modal.addEventListener('click', function(e){ if(e.target===this) this.style.display='none'; });
+  }
   setTimeout(() => { input.focus(); input.select(); }, 80);
 };
 
@@ -5194,10 +5202,8 @@ window.confirmarEdicaoValor = async function() {
   }
 };
 
-// Fechar modal clicando fora
-document.getElementById('modal-editar-valor').addEventListener('click', function(e) {
-  if(e.target === this) this.style.display = 'none';
-});
+// Fechar modal clicando fora — usando onclick no próprio elemento para evitar erro de timing
+// (o addEventListener foi movido para dentro da função de abertura do modal)
 
 // ── PWA INSTALL BANNER (iOS Safari) ──
 (function() {
