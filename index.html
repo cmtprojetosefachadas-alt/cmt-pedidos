@@ -4554,12 +4554,7 @@ window.renderEntradasLista = function renderEntradasLista() {
     </div>` : ''}
 
     ${!atrasadasOutrosMesesEnt.length && !vencidas.length && !recebidas.length && !pendentes.length ? '<div style="text-align:center;color:var(--muted);padding:30px;font-size:13px;">Nenhuma entrada registrada para este período.</div>' : ''}
-    <div class="form-card" style="margin-bottom:12px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div style="font-size:13px;font-weight:700;color:var(--green);">✅ ENTRADAS RECEBIDAS (${recebidas.length})</div>
-        <span style="background:var(--green-bg);color:var(--green-text);padding:4px 14px;border-radius:6px;font-size:13px;font-weight:700;">${fmtMoney(totalRecebidas)}</span>
-      </div>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowRecebidas(recebidas)}</tbody></table>
+
     ${recebidas.length ? `
     <div class="form-card" style="margin-bottom:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -5211,7 +5206,7 @@ window.abrirModalBaixa = function(id, tipo) {
     histLista.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">${tipo==='saida'?'Pagamentos anteriores':'Recebimentos anteriores'}</div>` +
       historico.map(h => `
       <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
-        <span>${h.data ? h.data.split('-').reverse().join('/') : '—'}</span>
+        <span>${h.data ? h.data.split('-').reverse().join('/') : '—'}${h.dataOriginal && h.dataOriginal!==h.data ? ` <span style="color:var(--muted);font-size:10px;">(venc. ${h.dataOriginal.split('-').reverse().join('/')})</span>` : ''}</span>
         <span style="color:#0F6E56;font-weight:600;">${tipo==='saida'?'Pago':'Recebido'}: ${fmtMoney(h.valor)}</span>
       </div>`).join('');
   } else {
@@ -5248,21 +5243,22 @@ document.getElementById('btn-baixa-total').onclick = async function() {
   const id = document.getElementById('baixa-parcial-id').value;
   const tipo = document.getElementById('baixa-parcial-tipo').value;
   const hoje = new Date().toISOString().split('T')[0];
+  const mesHoje = hoje.substring(5,7)+'/'+hoje.substring(0,4);
 
   if(tipo === 'saida') {
     const item = fluxoSaidas.find(x => x.id === id);
     const hist = item?.historicoPagementos || [];
     const pagoParcial = item?.pagoParcial || 0;
     const restante = Math.max((item?.valor||0) - pagoParcial, 0);
-    hist.push({ data: hoje, valor: restante });
-    await updateDoc(doc(db,'fluxo_saidas',id), { futura: false, paga: true, pagoParcial: item?.valor || 0, historicoPagementos: hist });
+    hist.push({ data: hoje, valor: restante, dataOriginal: item?.data });
+    await updateDoc(doc(db,'fluxo_saidas',id), { futura: false, paga: true, data: hoje, mes: mesHoje, pagoParcial: item?.valor || 0, historicoPagementos: hist });
   } else {
     const item = fluxoEntradas.find(x => x.id === id);
     const hist = item?.historicoPagementos || [];
     const pagoParcial = item?.pagoParcial || 0;
     const restante = Math.max((item?.valor||0) - pagoParcial, 0);
-    hist.push({ data: hoje, valor: restante });
-    await updateDoc(doc(db,'fluxo_entradas',id), { recebido: true, pagoParcial: item?.valor || 0, historicoPagementos: hist });
+    hist.push({ data: hoje, valor: restante, dataOriginal: item?.data });
+    await updateDoc(doc(db,'fluxo_entradas',id), { recebido: true, data: hoje, mes: mesHoje, pagoParcial: item?.valor || 0, historicoPagementos: hist });
   }
 
   document.getElementById('baixa-parcial-bg').classList.remove('open');
@@ -5278,6 +5274,7 @@ document.getElementById('btn-confirmar-baixa-parcial').onclick = async function(
   if(valorPago <= 0) { showToast('Digite um valor válido!', 'toast-fluxo'); return; }
 
   const hoje = new Date().toISOString().split('T')[0];
+  const mesHoje = hoje.substring(5,7)+'/'+hoje.substring(0,4);
 
   if(tipo === 'saida') {
     const item = fluxoSaidas.find(x => x.id === id);
@@ -5286,14 +5283,14 @@ document.getElementById('btn-confirmar-baixa-parcial').onclick = async function(
     const pagoParcialAnt = item.pagoParcial || 0;
     const novoPago = pagoParcialAnt + valorPago;
     const total = item.valor || 0;
-    hist.push({ data: hoje, valor: valorPago });
+    hist.push({ data: hoje, valor: valorPago, dataOriginal: item.data });
 
     if(novoPago >= total) {
-      // Quitado totalmente
-      await updateDoc(doc(db,'fluxo_saidas',id), { futura: false, paga: true, pagoParcial: total, historicoPagementos: hist });
+      // Quitado totalmente — atualiza data e mês para hoje
+      await updateDoc(doc(db,'fluxo_saidas',id), { futura: false, paga: true, data: hoje, mes: mesHoje, pagoParcial: total, historicoPagementos: hist });
       showToast('✅ Saída quitada totalmente!', 'toast-fluxo');
     } else {
-      // Ainda tem saldo — debita e mantém como a pagar com novo valor
+      // Parcial — registra pagamento mas mantém data original (ainda tem saldo a pagar)
       const novoValorRestante = total - novoPago;
       await updateDoc(doc(db,'fluxo_saidas',id), {
         futura: true, paga: false,
@@ -5311,12 +5308,14 @@ document.getElementById('btn-confirmar-baixa-parcial').onclick = async function(
     const pagoParcialAnt = item.pagoParcial || 0;
     const novoPago = pagoParcialAnt + valorPago;
     const total = item.valor || 0;
-    hist.push({ data: hoje, valor: valorPago });
+    hist.push({ data: hoje, valor: valorPago, dataOriginal: item.data });
 
     if(novoPago >= total) {
-      await updateDoc(doc(db,'fluxo_entradas',id), { recebido: true, pagoParcial: total, historicoPagementos: hist });
+      // Quitado totalmente — atualiza data e mês para hoje
+      await updateDoc(doc(db,'fluxo_entradas',id), { recebido: true, data: hoje, mes: mesHoje, pagoParcial: total, historicoPagementos: hist });
       showToast('✅ Recebimento quitado totalmente!', 'toast-fluxo');
     } else {
+      // Parcial — mantém data original, ainda tem saldo a receber
       const novoValorRestante = total - novoPago;
       await updateDoc(doc(db,'fluxo_entradas',id), {
         recebido: false,
