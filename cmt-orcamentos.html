@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -666,7 +666,7 @@ body {
         <thead>
           <tr>
             <th>Nº</th><th>Cliente</th><th>Serviço</th>
-            <th>Custo</th><th>Venda</th><th>Lucro</th><th>Margem</th>
+            <th>Venda</th><th>Custo</th><th>Lucro</th><th>Margem</th>
             <th>Data</th><th>Status</th>
           </tr>
         </thead>
@@ -1612,8 +1612,8 @@ function renderListaOrcamentos() {
       <td><span class="td-num">${o.numero||o.num||'-'}</span></td>
       <td>${o.cliente}</td>
       <td style="color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.desc||''}</td>
-      <td class="td-val">${fmt(o.custoTotal||0)}</td>
       <td class="td-val td-amber">${fmt(o.venda||0)}</td>
+      <td class="td-val">${fmt(o.custoTotal||0)}</td>
       <td class="td-val ${(o.lucro||0)>=0?'td-green':'td-red'}">${fmt(o.lucro||0)}</td>
       <td class="td-val">${o.margemPct||0}%</td>
       <td style="color:var(--muted)">${fmtData(o.dataAprovacao||o.criadoEm)}</td>
@@ -2681,9 +2681,16 @@ window.atualizarStatus = async function(status) {
 };
 
 
-// Retorna o mês relevante do orçamento: usa dataAprovacao se Aprovado e tiver, senão criadoEm
+// Retorna o mês relevante do orçamento:
+// - Aprovado com dataAprovacao → mês da aprovação (entra no faturamento do mês em que fechou)
+// - Aprovado sem dataAprovacao (registro antigo) → mês atual
+// - Outros status → mês de criação do orçamento
 function mesDoOrcamento(o) {
-  const dataRef = (o.status === 'Aprovado' && o.dataAprovacao) ? o.dataAprovacao : o.criadoEm;
+  if (o.status === 'Aprovado') {
+    if (o.dataAprovacao) return new Date(o.dataAprovacao).getMonth() + 1;
+    return new Date().getMonth() + 1; // aprovado sem registro de data → mês atual
+  }
+  const dataRef = o.criadoEm;
   if(dataRef) return new Date(dataRef).getMonth() + 1;
   return o.mes || new Date().getMonth() + 1;
 }
@@ -3553,7 +3560,10 @@ function renderDespesasKPIs() {
       </div>
     </div>
     <div class="card" style="padding:16px">
-      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;font-weight:700">👥 Gastos por cliente</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:700">👥 Gastos por cliente</div>
+        <button onclick="window.gerarPDFKpiClientes()" style="font-size:10px;padding:3px 9px;background:var(--accent);color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:700">📄 PDF</button>
+      </div>
       ${clientesOrdenados.slice(0,5).map(([nome,val])=>{
         const pct=Math.round(val/maxVal*100);
         const ativo=filtroCliente===nome;
@@ -3570,7 +3580,10 @@ function renderDespesasKPIs() {
       ${filtroCliente?`<button onclick="window.filtrarPorCliente('')" style="margin-top:6px;font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:0">✕ Limpar filtro</button>`:''}
     </div>
     <div class="card" style="padding:16px">
-      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;font-weight:700">🏷️ Por categoria</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:700">🏷️ Por categoria</div>
+        <button onclick="window.gerarPDFKpiCategorias()" style="font-size:10px;padding:3px 9px;background:var(--accent);color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:700">📄 PDF</button>
+      </div>
       ${catOrdenadas.length ? catOrdenadas.map(([cat,val])=>{
         const pct=total>0?Math.round(val/total*100):0;
         const cor=catColors2[cat]||'#888';
@@ -4794,6 +4807,193 @@ function _gerarPDFEstoque(itens, entidade) {
   w.document.close();
   setTimeout(()=>w.print(), 600);
 }
+
+
+// ── PDF KPI GASTOS POR CLIENTE ──
+window.gerarPDFKpiClientes = function() {
+  const lista = getDespesasFiltradas();
+  const hoje  = new Date().toLocaleDateString('pt-BR');
+  const total = lista.reduce((a,d)=>a+d.valor,0);
+  const porCliente = {};
+  lista.forEach(d=>{ const k=d.orcCliente||'Manual'; porCliente[k]=(porCliente[k]||0)+d.valor; });
+  const clientesOrdenados = Object.entries(porCliente).sort((a,b)=>b[1]-a[1]);
+  const maxVal = clientesOrdenados[0]?.[1]||1;
+  const CORES = ['#e8520a','#1a5fa8','#0a8a4a','#6b46c1','#e67e22','#c0392b','#16a085','#8e44ad','#2980b9','#f39c12'];
+
+  // Gerar barras SVG horizontais
+  const svgH = Math.max(180, clientesOrdenados.length * 44 + 40);
+  const barras = clientesOrdenados.map(([nome,val],i) => {
+    const pct = Math.round(val/maxVal*100);
+    const cor = CORES[i % CORES.length];
+    const y = 20 + i*44;
+    const nomeShort = nome.length>20?nome.substring(0,19)+'…':nome;
+    const bW = Math.round(pct/100*340);
+    return `<g>
+      <text x="0" y="${y+15}" font-size="11" fill="#444" font-family="Arial">${nomeShort}</text>
+      <rect x="0" y="${y+20}" width="${bW}" height="18" rx="3" fill="${cor}" opacity="0.85"/>
+      <text x="${bW+6}" y="${y+33}" font-size="10" fill="${cor}" font-weight="700" font-family="Arial">R$ ${val.toLocaleString('pt-BR',{minimumFractionDigits:2})}</text>
+    </g>`;
+  }).join('');
+
+  // Pizza SVG
+  let slices = '';
+  let legendItems = '';
+  let startAngle = -Math.PI/2;
+  const cx=80, cy=80, r=70;
+  clientesOrdenados.forEach(([nome,val],i) => {
+    const frac = total>0?val/total:0;
+    const angle = frac*2*Math.PI;
+    const x1=cx+r*Math.cos(startAngle), y1=cy+r*Math.sin(startAngle);
+    const x2=cx+r*Math.cos(startAngle+angle), y2=cy+r*Math.sin(startAngle+angle);
+    const large=angle>Math.PI?1:0;
+    const cor=CORES[i%CORES.length];
+    const pct=Math.round(frac*100);
+    if(frac>0) slices+=`<path d="M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${large},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${cor}" stroke="#fff" stroke-width="1.5"/>`;
+    const nomeShort=nome.length>22?nome.substring(0,21)+'…':nome;
+    legendItems+=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="width:10px;height:10px;border-radius:2px;background:${cor};flex-shrink:0;display:inline-block"></span><span style="font-size:10px;color:#444;flex:1">${nomeShort}</span><span style="font-size:10px;font-weight:700;color:${cor}">${pct}%</span></div>`;
+    startAngle+=angle;
+  });
+
+  const linhas = clientesOrdenados.map(([nome,val],i)=>{
+    const pct=total>0?Math.round(val/total*100):0;
+    const cor=CORES[i%CORES.length];
+    return `<tr style="background:${i%2===0?'#fff':'#fafaf8'}">
+      <td style="padding:7px 10px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${cor};margin-right:6px"></span>${nome}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:700;color:${cor}">R$ ${val.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td style="padding:7px 10px;text-align:right;color:#888">${pct}%</td>
+    </tr>`;
+  }).join('');
+
+  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Gastos por Cliente — CMT</title>
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:12px;color:#222;background:#f0ede8}.page{background:#fff;max-width:900px;margin:0 auto;padding:28px 32px}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid #e8520a}.logo{font-size:22px;font-weight:900;color:#1a2332}.logo span{color:#e8520a}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px}.box{background:#f8f7f4;border-radius:8px;padding:16px}.box-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#888;margin-bottom:12px}table{width:100%;border-collapse:collapse}th{text-align:left;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;padding:6px 10px;background:#f8f7f4;border-bottom:2px solid #e0ddd6}td{border-bottom:1px solid #f0ede8;font-size:11px}.footer{margin-top:20px;padding-top:10px;border-top:1px solid #e0ddd6;font-size:10px;color:#aaa;display:flex;justify-content:space-between}@media print{body{background:#fff}.page{padding:16px;max-width:100%}}</style>
+  </head><body><div class="page">
+  <div class="header">
+    <div><div class="logo">CMT <span>Projetos e Fachadas</span></div>
+    <div style="font-size:14px;font-weight:700;color:#1a2332;margin-top:4px">Gastos por Cliente</div>
+    <div style="font-size:11px;color:#888;margin-top:2px">Gerado em ${hoje} · ${lista.length} lançamentos</div></div>
+    <div style="text-align:right"><div style="font-size:11px;color:#888">Total gasto</div>
+    <div style="font-size:26px;font-weight:900;color:#e8520a">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
+  </div>
+  <div class="grid2">
+    <div class="box">
+      <div class="box-title">📊 Distribuição por cliente</div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <svg viewBox="0 0 160 160" width="140" height="140">${slices}</svg>
+        <div style="flex:1">${legendItems}</div>
+      </div>
+    </div>
+    <div class="box">
+      <div class="box-title">📈 Comparativo (barras)</div>
+      <svg viewBox="0 0 400 ${svgH}" width="100%" height="${Math.min(svgH,220)}">${barras}</svg>
+    </div>
+  </div>
+  <table><thead><tr><th>Cliente</th><th style="text-align:right">Total Gasto</th><th style="text-align:right">% do Total</th></tr></thead>
+  <tbody>${linhas}
+    <tr style="background:#1a2332"><td style="padding:8px 10px;color:#fff;font-weight:700">TOTAL</td>
+    <td style="padding:8px 10px;text-align:right;color:#e8520a;font-weight:800">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+    <td style="padding:8px 10px;text-align:right;color:rgba(255,255,255,.6)">100%</td></tr>
+  </tbody></table>
+  <div class="footer"><span>CMT Projetos e Fachadas — Gastos por Cliente</span><span>Gerado em ${hoje}</span></div>
+  </div></body></html>`;
+
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(),600);
+};
+
+// ── PDF KPI POR CATEGORIA ──
+window.gerarPDFKpiCategorias = function() {
+  const lista = getDespesasFiltradas();
+  const hoje  = new Date().toLocaleDateString('pt-BR');
+  const total = lista.reduce((a,d)=>a+d.valor,0);
+  const porCat = {};
+  lista.forEach(d=>{ porCat[d.cat]=(porCat[d.cat]||0)+d.valor; });
+  const catOrdenadas = Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
+  const catColors = {'Material':'#e8520a','Mão de obra':'#0a8a4a','Frete':'#1a5fa8','Alimentação':'#e67e22','Pró-labore':'#c0392b','Fixação':'#7b5fc9','Impressão':'#2980b9','Logística':'#16a085','Serviço':'#8e44ad','ACM':'#1a2332','PVC':'#27ae60','Acrílico':'#e9b94e','Lona p/ Toldo':'#27ae60','Elétrico':'#f39c12','Metalon':'#636e72','Ferragem':'#95a5a6','Terceirizado':'#c0392b','Outros':'#888'};
+  const CORES_FB=['#e8520a','#0a8a4a','#1a5fa8','#6b46c1','#e67e22','#c0392b','#16a085','#8e44ad','#2980b9','#f39c12','#27ae60','#636e72'];
+
+  // Pizza SVG
+  let slices='', legendItems='';
+  let startAngle=-Math.PI/2;
+  const cx=80,cy=80,r=70;
+  catOrdenadas.forEach(([cat,val],i)=>{
+    const frac=total>0?val/total:0;
+    const angle=frac*2*Math.PI;
+    const x1=cx+r*Math.cos(startAngle),y1=cy+r*Math.sin(startAngle);
+    const x2=cx+r*Math.cos(startAngle+angle),y2=cy+r*Math.sin(startAngle+angle);
+    const large=angle>Math.PI?1:0;
+    const cor=catColors[cat]||CORES_FB[i%CORES_FB.length];
+    const pct=Math.round(frac*100);
+    if(frac>0) slices+=`<path d="M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${large},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${cor}" stroke="#fff" stroke-width="1.5"/>`;
+    legendItems+=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="width:10px;height:10px;border-radius:2px;background:${cor};flex-shrink:0;display:inline-block"></span><span style="font-size:10px;color:#444;flex:1">${cat}</span><span style="font-size:10px;font-weight:700;color:${cor}">${pct}%</span></div>`;
+    startAngle+=angle;
+  });
+
+  // Barras SVG horizontais
+  const maxCat=catOrdenadas[0]?.[1]||1;
+  const svgH=Math.max(160,catOrdenadas.length*38+30);
+  const barras=catOrdenadas.map(([cat,val],i)=>{
+    const pct=Math.round(val/maxCat*100);
+    const cor=catColors[cat]||CORES_FB[i%CORES_FB.length];
+    const y=15+i*38;
+    const bW=Math.round(pct/100*340);
+    return `<g>
+      <text x="0" y="${y+13}" font-size="10" fill="#444" font-family="Arial">${cat}</text>
+      <rect x="0" y="${y+17}" width="${bW}" height="15" rx="3" fill="${cor}" opacity="0.85"/>
+      <text x="${bW+5}" y="${y+29}" font-size="9" fill="${cor}" font-weight="700" font-family="Arial">R$ ${val.toLocaleString('pt-BR',{minimumFractionDigits:2})} (${Math.round(val/total*100)}%)</text>
+    </g>`;
+  }).join('');
+
+  const linhas=catOrdenadas.map(([cat,val],i)=>{
+    const pct=total>0?Math.round(val/total*100):0;
+    const cor=catColors[cat]||CORES_FB[i%CORES_FB.length];
+    const barW=Math.round(pct/100*120);
+    return `<tr style="background:${i%2===0?'#fff':'#fafaf8'}">
+      <td style="padding:7px 10px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${cor};margin-right:6px"></span>${cat}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:700;color:${cor}">R$ ${val.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td style="padding:7px 10px;text-align:right;color:#888">${pct}%</td>
+      <td style="padding:7px 10px"><div style="height:8px;background:#f0ede8;border-radius:4px;width:120px;overflow:hidden"><div style="height:100%;background:${cor};border-radius:4px;width:${barW}px"></div></div></td>
+    </tr>`;
+  }).join('');
+
+  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Por Categoria — CMT</title>
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:12px;color:#222;background:#f0ede8}.page{background:#fff;max-width:900px;margin:0 auto;padding:28px 32px}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid #e8520a}.logo{font-size:22px;font-weight:900;color:#1a2332}.logo span{color:#e8520a}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px}.box{background:#f8f7f4;border-radius:8px;padding:16px}.box-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#888;margin-bottom:12px}table{width:100%;border-collapse:collapse}th{text-align:left;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;padding:6px 10px;background:#f8f7f4;border-bottom:2px solid #e0ddd6}td{border-bottom:1px solid #f0ede8;font-size:11px}.footer{margin-top:20px;padding-top:10px;border-top:1px solid #e0ddd6;font-size:10px;color:#aaa;display:flex;justify-content:space-between}@media print{body{background:#fff}.page{padding:16px;max-width:100%}}</style>
+  </head><body><div class="page">
+  <div class="header">
+    <div><div class="logo">CMT <span>Projetos e Fachadas</span></div>
+    <div style="font-size:14px;font-weight:700;color:#1a2332;margin-top:4px">Despesas por Categoria</div>
+    <div style="font-size:11px;color:#888;margin-top:2px">Gerado em ${hoje} · ${lista.length} lançamentos</div></div>
+    <div style="text-align:right"><div style="font-size:11px;color:#888">Total gasto</div>
+    <div style="font-size:26px;font-weight:900;color:#e8520a">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
+  </div>
+  <div class="grid2">
+    <div class="box">
+      <div class="box-title">📊 Distribuição por categoria</div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <svg viewBox="0 0 160 160" width="140" height="140">${slices}</svg>
+        <div style="flex:1">${legendItems}</div>
+      </div>
+    </div>
+    <div class="box">
+      <div class="box-title">📈 Comparativo (barras)</div>
+      <svg viewBox="0 0 400 ${svgH}" width="100%" height="${Math.min(svgH,220)}">${barras}</svg>
+    </div>
+  </div>
+  <table><thead><tr><th>Categoria</th><th style="text-align:right">Total Gasto</th><th style="text-align:right">%</th><th>Proporção</th></tr></thead>
+  <tbody>${linhas}
+    <tr style="background:#1a2332"><td style="padding:8px 10px;color:#fff;font-weight:700">TOTAL</td>
+    <td style="padding:8px 10px;text-align:right;color:#e8520a;font-weight:800">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+    <td style="padding:8px 10px;text-align:right;color:rgba(255,255,255,.6)">100%</td><td></td></tr>
+  </tbody></table>
+  <div class="footer"><span>CMT Projetos e Fachadas — Despesas por Categoria</span><span>Gerado em ${hoje}</span></div>
+  </div></body></html>`;
+
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(),600);
+};
 
 // ── PWA INSTALL BANNER (iOS Safari) ──
 (function() {
