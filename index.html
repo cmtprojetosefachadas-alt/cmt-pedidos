@@ -4456,13 +4456,22 @@ window.renderEntradasLista = function renderEntradasLista() {
 
   const matchCliente = e => !buscaCliente || (e.clienteNome||'').toLowerCase().includes(buscaCliente) || (e.obs||'').toLowerCase().includes(buscaCliente);
 
+  const mesAtualEnt = new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
+  const visualizandoMesAtualEnt = mesSelecionado === mesAtualEnt || mesSelecionado === 'todos';
+
+  // ATRASADAS DE MESES ANTERIORES: não recebidas, data < hoje, de qualquer mês anterior
+  // Sempre aparecem no topo quando visualizando o mês atual ou "todos"
+  const atrasadasOutrosMesesEnt = visualizandoMesAtualEnt
+    ? fluxoEntradas.filter(e => e.recebido!==true && e.data && e.data < hoje && !entradaMesMatch(e, mesAtualEnt) && matchCliente(e)).sort((a,b)=>(a.data||'').localeCompare(b.data||''))
+    : [];
+
   // RECEBIDAS: recebido===true, do mês selecionado
   const recebidas = fluxoEntradas.filter(e => e.recebido===true && entradaMesMatch(e, mesSelecionado) && matchCliente(e)).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
 
-  // PENDENTES (a receber): recebido!==true, do mês selecionado
+  // PENDENTES (a receber): recebido!==true, do mês selecionado, data futura
   const pendentes = fluxoEntradas.filter(e => e.recebido!==true && entradaMesMatch(e, mesSelecionado) && matchCliente(e) && e.data >= hoje).sort((a,b)=>(a.data||'').localeCompare(b.data||''));
 
-  // VENCIDAS: pendentes com data já passada (não recebidas)
+  // VENCIDAS do mês selecionado: pendentes com data já passada (não recebidas)
   const vencidas = fluxoEntradas.filter(e => e.recebido!==true && entradaMesMatch(e, mesSelecionado) && matchCliente(e) && e.data && e.data < hoje).sort((a,b)=>(a.data||'').localeCompare(b.data||''));
 
   const totalRecebidas = recebidas.reduce((s,e)=>s+(e.valor||0),0);
@@ -4525,6 +4534,16 @@ window.renderEntradasLista = function renderEntradasLista() {
     </tr>`).join('');
 
   el.innerHTML = `
+    ${atrasadasOutrosMesesEnt.length ? `
+    <div class="form-card" style="margin-bottom:12px;border:2px solid #7C0000;background:#fff0f0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+        <div style="font-size:14px;font-weight:800;color:#7C0000;">🔴 PENDÊNCIAS DE MESES ANTERIORES — NÃO RECEBIDAS</div>
+        <span style="background:#7C0000;color:#fff;padding:4px 14px;border-radius:6px;font-size:13px;font-weight:700;">${atrasadasOutrosMesesEnt.length} item${atrasadasOutrosMesesEnt.length>1?'s':''} · ${fmtMoney(atrasadasOutrosMesesEnt.reduce((s,e)=>s+(e.valor||0),0))}</span>
+      </div>
+      <div style="font-size:12px;color:#7C0000;margin-bottom:10px;padding:8px 12px;background:#FECACA;border-radius:6px;">⚠️ Esses recebimentos venceram em meses anteriores e ainda não foram confirmados. Dê baixa ou verifique!</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowVencidas(atrasadasOutrosMesesEnt)}</tbody></table>
+    </div>` : ''}
+
     ${vencidas.length ? `
     <div class="form-card" style="margin-bottom:12px;border:2px solid #A32D2D;background:#fff8f8;">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
@@ -4534,6 +4553,13 @@ window.renderEntradasLista = function renderEntradasLista() {
       <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowVencidas(vencidas)}</tbody></table>
     </div>` : ''}
 
+    ${!atrasadasOutrosMesesEnt.length && !vencidas.length && !recebidas.length && !pendentes.length ? '<div style="text-align:center;color:var(--muted);padding:30px;font-size:13px;">Nenhuma entrada registrada para este período.</div>' : ''}
+    <div class="form-card" style="margin-bottom:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:700;color:var(--green);">✅ ENTRADAS RECEBIDAS (${recebidas.length})</div>
+        <span style="background:var(--green-bg);color:var(--green-text);padding:4px 14px;border-radius:6px;font-size:13px;font-weight:700;">${fmtMoney(totalRecebidas)}</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowRecebidas(recebidas)}</tbody></table>
     ${recebidas.length ? `
     <div class="form-card" style="margin-bottom:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -4551,8 +4577,6 @@ window.renderEntradasLista = function renderEntradasLista() {
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowPendentes(pendentes)}</tbody></table>
     </div>` : ''}
-
-    ${!vencidas.length && !recebidas.length && !pendentes.length ? '<div style="text-align:center;color:var(--muted);padding:30px;font-size:13px;">Nenhuma entrada registrada para este período.</div>' : ''}
   `;
 }
 
@@ -4629,14 +4653,23 @@ function renderSaidasLista(lista) {
   // Retrocompatibilidade: registros antigos sem campo paga e futura===false → considerar paga
   const isPaga = s => s.paga === true || (s.paga === undefined && s.futura === false);
 
+  const hoje = new Date().toISOString().split('T')[0];
+  const mesAtualStr = new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}); // MM/YYYY
+  const visualizandoMesAtual = mesSelecionado === mesAtualStr || mesSelecionado === 'todos';
+
+  // ATRASADAS DE MESES ANTERIORES: não pagas, data < hoje, de qualquer mês anterior
+  // Sempre aparecem no topo quando visualizando o mês atual ou "todos"
+  const atrasadasOutrosMeses = visualizandoMesAtual
+    ? fluxoSaidas.filter(s => !isPaga(s) && s.data && s.data < hoje && !saidaMesMatch(s, mesAtualStr)).filter(filtrarSaida).sort((a,b)=>(a.data||'').localeCompare(b.data||''))
+    : [];
+
   // SAÍDAS REALIZADAS do mês selecionado
   let realizadas = fluxoSaidas.filter(s => isPaga(s) && saidaMesMatch(s, mesSelecionado)).filter(filtrarSaida).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
 
-  // SAÍDAS A PAGAR: paga!==true (pendentes/futuras)
+  // SAÍDAS A PAGAR: paga!==true (pendentes/futuras) do mês selecionado
   let futurasAll = fluxoSaidas.filter(s => !isPaga(s) && saidaMesMatch(s, mesSelecionado)).filter(filtrarSaida).sort((a,b)=>(a.data||'').localeCompare(b.data||''));
 
-  // VENCIDAS: a pagar com data já passada
-  const hoje = new Date().toISOString().split('T')[0];
+  // VENCIDAS do mês selecionado: a pagar com data já passada
   const vencidas = futurasAll.filter(s => s.data && s.data < hoje);
   const futurasNormais = futurasAll.filter(s => !s.data || s.data >= hoje);
 
@@ -4700,6 +4733,16 @@ function renderSaidasLista(lista) {
     </tr>`).join('');
 
   el.innerHTML = `
+    ${atrasadasOutrosMeses.length ? `
+    <div class="form-card" style="margin-bottom:12px;border:2px solid #7C0000;background:#fff0f0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+        <div style="font-size:14px;font-weight:800;color:#7C0000;">🔴 PENDÊNCIAS DE MESES ANTERIORES — NÃO PAGAS</div>
+        <span style="background:#7C0000;color:#fff;padding:4px 14px;border-radius:6px;font-size:13px;font-weight:700;">${atrasadasOutrosMeses.length} item${atrasadasOutrosMeses.length>1?'s':''} · ${fmtMoney(atrasadasOutrosMeses.reduce((s,e)=>s+(e.valor||0),0))}</span>
+      </div>
+      <div style="font-size:12px;color:#7C0000;margin-bottom:10px;padding:8px 12px;background:#FECACA;border-radius:6px;">⚠️ Essas saídas venceram em meses anteriores e ainda não foram pagas. Regularize ou dê baixa!</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowVencidas(atrasadasOutrosMeses)}</tbody></table>
+    </div>` : ''}
+
     ${vencidas.length ? `
     <div class="form-card" style="margin-bottom:12px;border:2px solid #A32D2D;background:#fff8f8;">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
