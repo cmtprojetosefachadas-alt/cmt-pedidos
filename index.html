@@ -1675,9 +1675,13 @@ function renderOrcamentos(){
   if(!orcamentos.length){list.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Nenhum orçamento ainda.</div>';return;}
 
   // Agrupar por mês
+  // Regra: aprovado → usa mês da aprovação (mês que entrou no faturamento); demais → data do orçamento
+  const mesAtual=new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
   const grupos={};
   orcamentos.forEach(o=>{
-    const mes=o.data?extraiMes(o.data):'Sem data';
+    const mes=o.status==='approved'
+      ?(o.dataAprovacao?extraiMes(o.dataAprovacao):mesAtual)
+      :(o.data?extraiMes(o.data):'Sem data');
     if(!grupos[mes])grupos[mes]={orcs:[],total:0,aprov:0,rej:0,sent:0,pend:0,valAprov:0,valRej:0};
     grupos[mes].orcs.push(o);
     if(o.status==='approved'){grupos[mes].aprov++;grupos[mes].valAprov+=(o.valor||0);grupos[mes].total+=(o.valor||0);}
@@ -1685,7 +1689,6 @@ function renderOrcamentos(){
     else if(o.status==='sent'){grupos[mes].sent++;grupos[mes].total+=(o.valor||0);}
     else{grupos[mes].pend++;grupos[mes].total+=(o.valor||0);}
   });
-  const mesAtual=new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
   const mesesOrdenados=Object.keys(grupos).sort((a,b)=>{
     if(a==='Sem data')return 1;if(b==='Sem data')return -1;
     const[ma,ya]=a.split('/');const[mb,yb]=b.split('/');
@@ -1818,9 +1821,12 @@ function filtrarOrcamentos(){
     list.innerHTML=`<div style="text-align:center;color:var(--muted);padding:48px;font-size:14px;">🔍 Nenhum orçamento encontrado para "<strong>${termo||statusFiltro}</strong>".</div>`;
     return;
   }
+  const _mesAtualF=new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
   const grupos={};
   filtrados.forEach(o=>{
-    const mes=o.data?extraiMes(o.data):'Sem data';
+    const mes=o.status==='approved'
+      ?(o.dataAprovacao?extraiMes(o.dataAprovacao):_mesAtualF)
+      :(o.data?extraiMes(o.data):'Sem data');
     if(!grupos[mes])grupos[mes]={orcs:[],total:0,aprov:0,rej:0,sent:0,pend:0,valAprov:0,valRej:0};
     grupos[mes].orcs.push(o);
     if(o.status==='approved'){grupos[mes].aprov++;grupos[mes].valAprov+=(o.valor||0);grupos[mes].total+=(o.valor||0);}
@@ -1927,9 +1933,13 @@ function gerarRelatorioOrcamentos(){
   }
 
   // Agrupa por mês
+  // Regra: aprovado → usa mês da aprovação (faturamento real); demais → data do orçamento
+  const _mesAtualL=new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'});
   const grupos={};
   lista.forEach(o=>{
-    const mes=o.data?extraiMes(o.data):'Sem data';
+    const mes=o.status==='approved'
+      ?(o.dataAprovacao?extraiMes(o.dataAprovacao):_mesAtualL)
+      :(o.data?extraiMes(o.data):'Sem data');
     if(!grupos[mes])grupos[mes]={orcs:[],total:0,aprov:0,rej:0,pend:0,sent:0,valAprov:0,valRej:0};
     grupos[mes].orcs.push(o);
     if(o.status==='approved'){grupos[mes].aprov++;grupos[mes].valAprov+=(o.valor||0);grupos[mes].total+=(o.valor||0);}
@@ -2793,9 +2803,17 @@ document.addEventListener('click',async e=>{
   // ORC status
   if(e.target.id==='btn-salvar-orc-status'){
     const status=document.getElementById('orc-modal-status').value;
-    await updateDoc(doc(db,'orcamentos',currentOrcId),{status});
+    const updateData={status};
+    if(status==='approved'){
+      const oAtual=orcamentos.find(x=>x.id===currentOrcId);
+      if(!oAtual||!oAtual.dataAprovacao) updateData.dataAprovacao=new Date().toLocaleDateString('pt-BR');
+    }
+    await updateDoc(doc(db,'orcamentos',currentOrcId),updateData);
+    const oLocal=orcamentos.find(x=>x.id===currentOrcId);
+    if(oLocal){oLocal.status=status;if(updateData.dataAprovacao)oLocal.dataAprovacao=updateData.dataAprovacao;}
     document.getElementById('btn-converter').style.display=status==='approved'?'inline-flex':'none';
     document.getElementById('orc-modal-bg').classList.remove('open');
+    renderOrcamentos();
     showToast('Status atualizado!');return;
   }
   // WPP orc modal
