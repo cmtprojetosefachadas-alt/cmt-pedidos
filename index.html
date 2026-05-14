@@ -490,22 +490,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div>
           <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;">📌 Como está o local</div>
           <div style="position:relative;">
-            <div id="orcfoto1-preview" onclick="document.getElementById('orcfoto1-input').click()" style="width:100%;height:160px;background:var(--surface2);border:2px dashed var(--border2);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:12px;color:var(--muted);gap:6px;">
+            <div id="orcfoto1-preview" onclick="document.getElementById('orcfoto1-input').click()" style="width:100%;height:280px;background:var(--surface2);border:2px dashed var(--border2);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:12px;color:var(--muted);gap:6px;">
               <span style="font-size:28px;">📷</span><span>Clique para adicionar foto</span>
             </div>
             <button id="orcfoto1-del" onclick="clearOrcFoto(1)" style="display:none;position:absolute;top:6px;right:6px;background:rgba(163,45,45,0.85);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:15px;cursor:pointer;line-height:1;z-index:2;">×</button>
             <input type="file" id="orcfoto1-input" accept="image/*" style="display:none" onchange="loadOrcFoto(1,this)"/>
+            <input type="hidden" id="orcfoto1-b64" value=""/>
           </div>
           <div id="orcfoto1-data" style="display:none;"></div>
         </div>
         <div>
           <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;">✅ Projeto aprovado</div>
           <div style="position:relative;">
-            <div id="orcfoto2-preview" onclick="document.getElementById('orcfoto2-input').click()" style="width:100%;height:160px;background:var(--surface2);border:2px dashed var(--border2);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:12px;color:var(--muted);gap:6px;">
+            <div id="orcfoto2-preview" onclick="document.getElementById('orcfoto2-input').click()" style="width:100%;height:280px;background:var(--surface2);border:2px dashed var(--border2);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:12px;color:var(--muted);gap:6px;">
               <span style="font-size:28px;">🖼️</span><span>Clique para adicionar foto</span>
             </div>
             <button id="orcfoto2-del" onclick="clearOrcFoto(2)" style="display:none;position:absolute;top:6px;right:6px;background:rgba(163,45,45,0.85);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:15px;cursor:pointer;line-height:1;z-index:2;">×</button>
             <input type="file" id="orcfoto2-input" accept="image/*" style="display:none" onchange="loadOrcFoto(2,this)"/>
+            <input type="hidden" id="orcfoto2-b64" value=""/>
           </div>
           <div id="orcfoto2-data" style="display:none;"></div>
         </div>
@@ -2324,9 +2326,11 @@ function loadOrcFoto(n,input){
   reader.onload=function(e){
     const prev=document.getElementById('orcfoto'+n+'-preview');
     const del=document.getElementById('orcfoto'+n+'-del');
+    const hiddenInput=document.getElementById('orcfoto'+n+'-b64');
     if(n===1) window._orcFoto1=e.target.result;
     else window._orcFoto2=e.target.result;
-    if(prev){prev.innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;"/>';}
+    if(hiddenInput) hiddenInput.value=e.target.result;
+    if(prev){prev.innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"/>';}
     if(del){del.style.display='block';}
   };
   reader.readAsDataURL(input.files[0]);
@@ -2335,20 +2339,22 @@ function clearOrcFoto(n){
   const prev=document.getElementById('orcfoto'+n+'-preview');
   const del=document.getElementById('orcfoto'+n+'-del');
   const inp=document.getElementById('orcfoto'+n+'-input');
+  const hiddenInput=document.getElementById('orcfoto'+n+'-b64');
   const icon=n===1?'📷':'🖼️';
   if(n===1) window._orcFoto1='';
   else window._orcFoto2='';
+  if(hiddenInput) hiddenInput.value='';
   if(prev){prev.innerHTML='<span style="font-size:28px;">'+icon+'</span><span>Clique para adicionar foto</span>';}
   if(del){del.style.display='none';}
   if(inp){inp.value='';}
 }
 function getOrcFotosHTML(){
-  const f1=window._orcFoto1||'';
-  const f2=window._orcFoto2||'';
+  const f1=(document.getElementById('orcfoto1-b64')||{}).value||window._orcFoto1||'';
+  const f2=(document.getElementById('orcfoto2-b64')||{}).value||window._orcFoto2||'';
   if(!f1&&!f2)return '';
   let html='<div style="margin-top:20px;border-top:1px solid #ddd;padding-top:16px;"><strong style="font-size:13px;display:block;margin-bottom:10px;">📷 Fotos do Projeto</strong><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">';
-  if(f1)html+='<div><div style="font-size:10px;color:#888;font-weight:700;letter-spacing:0.05em;margin-bottom:5px;">📌 COMO ESTÁ O LOCAL</div><img src="'+f1+'" style="width:100%;height:210px;object-fit:cover;border-radius:6px;border:1px solid #ddd;"/></div>';
-  if(f2)html+='<div><div style="font-size:10px;color:#888;font-weight:700;letter-spacing:0.05em;margin-bottom:5px;">✅ PROJETO APROVADO</div><img src="'+f2+'" style="width:100%;height:210px;object-fit:cover;border-radius:6px;border:1px solid #ddd;"/></div>';
+  if(f1)html+='<div><div style="font-size:10px;color:#888;font-weight:700;letter-spacing:0.05em;margin-bottom:5px;">📌 COMO ESTÁ O LOCAL</div><img src="'+f1+'" style="width:100%;max-height:300px;object-fit:contain;border-radius:6px;border:1px solid #ddd;display:block;"/></div>';
+  if(f2)html+='<div><div style="font-size:10px;color:#888;font-weight:700;letter-spacing:0.05em;margin-bottom:5px;">✅ PROJETO APROVADO</div><img src="'+f2+'" style="width:100%;max-height:300px;object-fit:contain;border-radius:6px;border:1px solid #ddd;display:block;"/></div>';
   html+='</div></div>';
   return html;
 }
