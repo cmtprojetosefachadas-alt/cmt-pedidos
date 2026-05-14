@@ -196,7 +196,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="sidebar-section">Gestão</div>
   <button class="side-btn active" id="tab-visao"><span class="side-icon">📊</span> Visão Geral</button>
   <button class="side-btn" id="tab-clientes"><span class="side-icon">🏢</span> Clientes <span class="side-badge" id="sb-clientes">0</span></button>
-  <button class="side-btn" id="tab-pedidos"><span class="side-icon">📦</span> Pedidos <span class="side-badge" id="badge-pedidos-ativos" style="display:none;">0</span></button>
+  <button class="side-btn" id="tab-pedidos"><span class="side-icon">📦</span> Pedidos <span id="badge-ped-ativos" style="display:none;background:var(--brand);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;margin-left:auto;">0</span></button>
   <button class="side-btn" id="tab-orcamentos"><span class="side-icon">📋</span> Orçamentos <span class="side-badge" id="sb-orcamentos">0</span></button>
   <button class="side-btn" id="tab-finalizados"><span class="side-icon">✅</span> Finalizados <span class="side-badge green" id="sb-finalizados">0</span></button>
 
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 
   <div id="panel-pedidos" class="panel">
-    <div class="section-header"><span class="section-title">Pedidos em andamento &nbsp;<span id="pedidos-ativos-count" style="font-size:14px;font-weight:500;color:var(--brand);background:#fff3ec;padding:3px 12px;border-radius:20px;"></span></span></div>
+    <div class="section-header"><span class="section-title">Pedidos em andamento &nbsp;<span id="ped-count-label" style="font-size:14px;font-weight:500;color:var(--brand);background:#fff3ec;padding:3px 12px;border-radius:20px;"></span></span></div>
     <div class="cards-grid" id="pedidos-grid"><div class="loading">Carregando...</div></div>
   </div>
 
@@ -439,29 +439,30 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
     <div class="form-card">
       <h3>🛡️ Garantias</h3>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);transition:background 0.15s;" onmouseover="this.style.background='#fff3ec'" onmouseout="if(!this.querySelector('input').checked)this.style.background='var(--surface2)'">
-          <input type="checkbox" id="gar-acm" value="ACM: Garantia de 5 a 7 anos do fabricante." style="margin-top:2px;accent-color:var(--brand);width:16px;height:16px;flex-shrink:0;" onchange="updateGarantiasCheck()"/>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Selecione os itens que se aplicam — apenas os marcados aparecem no PDF.</p>
+      <div style="display:flex;flex-direction:column;gap:8px;" id="garantias-checks">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;">
+          <input type="checkbox" id="gar-acm" data-val="ACM: Garantia de 5 a 7 anos do fabricante." style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()"/>
           <span style="font-size:13px;"><strong>ACM</strong> — 5 a 7 anos do fabricante</span>
         </label>
-        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);transition:background 0.15s;" onmouseover="this.style.background='#fff3ec'" onmouseout="if(!this.querySelector('input').checked)this.style.background='var(--surface2)'">
-          <input type="checkbox" id="gar-luz" value="Iluminação: 3 meses (produtos eletrônicos dos fabricantes)." style="margin-top:2px;accent-color:var(--brand);width:16px;height:16px;flex-shrink:0;" onchange="updateGarantiasCheck()"/>
-          <span style="font-size:13px;"><strong>Iluminação</strong> — 3 meses (produtos eletrônicos dos fabricantes)</span>
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;">
+          <input type="checkbox" id="gar-luz" data-val="Iluminação: 3 meses (produtos eletrônicos dos fabricantes)." style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()"/>
+          <span style="font-size:13px;"><strong>Iluminação</strong> — 3 meses (eletrônicos dos fabricantes)</span>
         </label>
-        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);transition:background 0.15s;" onmouseover="this.style.background='#fff3ec'" onmouseout="if(!this.querySelector('input').checked)this.style.background='var(--surface2)'">
-          <input type="checkbox" id="gar-pvc" value="PVC: 3 anos do fabricante." style="margin-top:2px;accent-color:var(--brand);width:16px;height:16px;flex-shrink:0;" onchange="updateGarantiasCheck()"/>
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;">
+          <input type="checkbox" id="gar-pvc" data-val="PVC: 3 anos do fabricante." style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()"/>
           <span style="font-size:13px;"><strong>PVC</strong> — 3 anos do fabricante</span>
         </label>
-        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);transition:background 0.15s;" onmouseover="this.style.background='#fff3ec'" onmouseout="if(!this.querySelector('input').checked)this.style.background='var(--surface2)'">
-          <input type="checkbox" id="gar-mdo" value="Mão de obra: 6 meses." style="margin-top:2px;accent-color:var(--brand);width:16px;height:16px;flex-shrink:0;" onchange="updateGarantiasCheck()"/>
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;">
+          <input type="checkbox" id="gar-mdo" data-val="Mão de obra: 6 meses." style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()"/>
           <span style="font-size:13px;"><strong>Mão de obra</strong> — 6 meses</span>
         </label>
-        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);transition:background 0.15s;" onmouseover="this.style.background='#fff3ec'" onmouseout="if(!this.querySelector('input').checked)this.style.background='var(--surface2)'">
-          <input type="checkbox" id="gar-acrilico" value="Acrílico: 12 meses do fabricante." style="margin-top:2px;accent-color:var(--brand);width:16px;height:16px;flex-shrink:0;" onchange="updateGarantiasCheck()"/>
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;">
+          <input type="checkbox" id="gar-acrilico" data-val="Acrílico: 12 meses do fabricante." style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()"/>
           <span style="font-size:13px;"><strong>Acrílico</strong> — 12 meses do fabricante</span>
         </label>
-        <input type="hidden" id="f-garantias" value=""/>
       </div>
+      <input type="hidden" id="f-garantias"/>
     </div>
     <div class="form-card">
       <h3>📷 Fotos do Projeto</h3>
@@ -469,28 +470,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div>
           <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;">📌 Como está o local</div>
           <div style="position:relative;">
-            <div id="orc-foto1-preview" style="width:100%;height:160px;background:var(--surface2);border:2px dashed var(--border2);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:12px;color:var(--muted);gap:6px;" onclick="document.getElementById('orc-foto1-input').click()">
-              <span style="font-size:28px;">📷</span>
-              <span>Clique para adicionar foto</span>
+            <div id="orcfoto1-preview" onclick="document.getElementById('orcfoto1-input').click()" style="width:100%;height:160px;background:var(--surface2);border:2px dashed var(--border2);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:12px;color:var(--muted);gap:6px;">
+              <span style="font-size:28px;">📷</span><span>Clique para adicionar foto</span>
             </div>
-            <button id="btn-del-orc-foto1" onclick="deletarOrcFoto('orc-foto1')" style="display:none;position:absolute;top:6px;right:6px;background:rgba(163,45,45,0.85);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:15px;cursor:pointer;line-height:1;z-index:2;">×</button>
-            <input type="file" id="orc-foto1-input" accept="image/*" style="display:none" onchange="carregarOrcFoto('orc-foto1', this)"/>
+            <button id="orcfoto1-del" onclick="clearOrcFoto(1)" style="display:none;position:absolute;top:6px;right:6px;background:rgba(163,45,45,0.85);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:15px;cursor:pointer;line-height:1;z-index:2;">×</button>
+            <input type="file" id="orcfoto1-input" accept="image/*" style="display:none" onchange="loadOrcFoto(1,this)"/>
           </div>
+          <div id="orcfoto1-data" style="display:none;"></div>
         </div>
         <div>
           <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;">✅ Projeto aprovado</div>
           <div style="position:relative;">
-            <div id="orc-foto2-preview" style="width:100%;height:160px;background:var(--surface2);border:2px dashed var(--border2);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:12px;color:var(--muted);gap:6px;" onclick="document.getElementById('orc-foto2-input').click()">
-              <span style="font-size:28px;">🖼️</span>
-              <span>Clique para adicionar foto</span>
+            <div id="orcfoto2-preview" onclick="document.getElementById('orcfoto2-input').click()" style="width:100%;height:160px;background:var(--surface2);border:2px dashed var(--border2);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:12px;color:var(--muted);gap:6px;">
+              <span style="font-size:28px;">🖼️</span><span>Clique para adicionar foto</span>
             </div>
-            <button id="btn-del-orc-foto2" onclick="deletarOrcFoto('orc-foto2')" style="display:none;position:absolute;top:6px;right:6px;background:rgba(163,45,45,0.85);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:15px;cursor:pointer;line-height:1;z-index:2;">×</button>
-            <input type="file" id="orc-foto2-input" accept="image/*" style="display:none" onchange="carregarOrcFoto('orc-foto2', this)"/>
+            <button id="orcfoto2-del" onclick="clearOrcFoto(2)" style="display:none;position:absolute;top:6px;right:6px;background:rgba(163,45,45,0.85);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:15px;cursor:pointer;line-height:1;z-index:2;">×</button>
+            <input type="file" id="orcfoto2-input" accept="image/*" style="display:none" onchange="loadOrcFoto(2,this)"/>
           </div>
+          <div id="orcfoto2-data" style="display:none;"></div>
         </div>
       </div>
-      <div id="orc-foto1-data" style="display:none;"></div>
-      <div id="orc-foto2-data" style="display:none;"></div>
     </div>
     <div class="actions">
       <button class="btn btn-primary" id="btn-pdf">&#128444; Visualizar / Imprimir PDF</button>
@@ -1172,13 +1171,13 @@ window.showTab = async function showTab(tab){
       document.getElementById('f-num').dataset.editId='';
       document.getElementById('f-obs').value='';
       document.getElementById('f-garantias').value='';
-      // Reset garantias checkboxes
+      // Reset checkboxes
       ['gar-acm','gar-luz','gar-pvc','gar-mdo','gar-acrilico'].forEach(id=>{
         const el=document.getElementById(id);
-        if(el){ el.checked=false; if(el.closest('label')) el.closest('label').style.background='var(--surface2)'; }
+        if(el){el.checked=false;if(el.closest('label'))el.closest('label').style.background='var(--surface2)';}
       });
       // Reset fotos
-      deletarOrcFoto('orc-foto1'); deletarOrcFoto('orc-foto2');
+      clearOrcFoto(1);clearOrcFoto(2);
       atualizarSelectClientes();
     }
   }
@@ -1725,11 +1724,10 @@ function renderFaturamento(){
 
 function renderPedidos(){
   const ativos=pedidos.filter(p=>!p.cancelado&&Number(p.etapa||0)<ETAPAS.length-1&&!p.finalizado);
-  // Update badge on sidebar and panel header
-  const badge = document.getElementById('badge-pedidos-ativos');
-  const countEl = document.getElementById('pedidos-ativos-count');
-  if(badge){ badge.textContent=ativos.length; badge.style.display = ativos.length > 0 ? 'inline-block' : 'none'; }
-  if(countEl){ countEl.textContent = ativos.length > 0 ? ativos.length + ' ativo' + (ativos.length > 1 ? 's' : '') : ''; }
+  const badge=document.getElementById('badge-ped-ativos');
+  const lbl=document.getElementById('ped-count-label');
+  if(badge){badge.textContent=ativos.length;badge.style.display=ativos.length>0?'inline-block':'none';}
+  if(lbl){lbl.textContent=ativos.length>0?ativos.length+' ativo'+(ativos.length>1?'s':''):'';}
   document.getElementById('pedidos-grid').innerHTML=ativos.map(clienteCard).join('')||'<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum pedido ativo.</div>';
 }
 
@@ -2265,58 +2263,65 @@ function renderCadLista(){
     </div>`).join('');
 }
 
-// Garantias checkboxes
-function updateGarantiasCheck(){
-  const ids = ['gar-acm','gar-luz','gar-pvc','gar-mdo','gar-acrilico'];
-  const lines = ids.map(id=>{
-    const el = document.getElementById(id);
-    if(el && el.checked){
-      const lbl = el.closest('label');
-      if(lbl) lbl.style.background='#fff3ec';
-      return el.value;
+// ===== GARANTIAS CHECKBOXES =====
+function syncGarantias(){
+  const ids=[
+    {id:'gar-acm'},
+    {id:'gar-luz'},
+    {id:'gar-pvc'},
+    {id:'gar-mdo'},
+    {id:'gar-acrilico'}
+  ];
+  const lines=[];
+  ids.forEach(({id})=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    const lbl=el.closest('label');
+    if(el.checked){
+      if(lbl)lbl.style.background='#fff3ec';
+      lines.push(el.dataset.val);
     } else {
-      const lbl = el ? el.closest('label') : null;
-      if(lbl) lbl.style.background='var(--surface2)';
-      return null;
+      if(lbl)lbl.style.background='var(--surface2)';
     }
-  }).filter(Boolean);
-  const hidden = document.getElementById('f-garantias');
-  if(hidden) hidden.value = lines.join('\n');
+  });
+  const hid=document.getElementById('f-garantias');
+  if(hid)hid.value=lines.join('\n');
 }
 
-// Orc fotos
-function carregarOrcFoto(id, input){
-  if(!input.files||!input.files[0]) return;
-  const reader = new FileReader();
-  reader.onload = function(e){
-    const preview = document.getElementById(id+'-preview');
-    const dataEl = document.getElementById(id+'-data');
-    const delBtn = document.getElementById('btn-del-'+id);
-    if(preview){ preview.innerHTML = '<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;"/>'; }
-    if(dataEl){ dataEl.textContent = e.target.result; }
-    if(delBtn){ delBtn.style.display='block'; }
+// ===== ORC FOTOS =====
+function loadOrcFoto(n,input){
+  if(!input.files||!input.files[0])return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const prev=document.getElementById('orcfoto'+n+'-preview');
+    const data=document.getElementById('orcfoto'+n+'-data');
+    const del=document.getElementById('orcfoto'+n+'-del');
+    if(prev){prev.innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;"/>';}
+    if(data){data.textContent=e.target.result;}
+    if(del){del.style.display='block';}
   };
   reader.readAsDataURL(input.files[0]);
 }
-function deletarOrcFoto(id){
-  const preview = document.getElementById(id+'-preview');
-  const dataEl = document.getElementById(id+'-data');
-  const delBtn = document.getElementById('btn-del-'+id);
-  const input = document.getElementById(id+'-input');
-  if(preview){ preview.innerHTML = id==='orc-foto1' ? '<span style="font-size:28px;">📷</span><span>Clique para adicionar foto</span>' : '<span style="font-size:28px;">🖼️</span><span>Clique para adicionar foto</span>'; }
-  if(dataEl){ dataEl.textContent=''; }
-  if(delBtn){ delBtn.style.display='none'; }
-  if(input){ input.value=''; }
+function clearOrcFoto(n){
+  const prev=document.getElementById('orcfoto'+n+'-preview');
+  const data=document.getElementById('orcfoto'+n+'-data');
+  const del=document.getElementById('orcfoto'+n+'-del');
+  const inp=document.getElementById('orcfoto'+n+'-input');
+  const icon=n===1?'📷':'🖼️';
+  const txt=n===1?'Como está o local':'Projeto aprovado';
+  if(prev){prev.innerHTML='<span style="font-size:28px;">'+icon+'</span><span>Clique para adicionar foto</span>';}
+  if(data){data.textContent='';}
+  if(del){del.style.display='none';}
+  if(inp){inp.value='';}
 }
-
-function getOrcFotoHTML(){
-  const f1 = document.getElementById('orc-foto1-data')?.textContent||'';
-  const f2 = document.getElementById('orc-foto2-data')?.textContent||'';
-  if(!f1 && !f2) return '';
-  let html = '<div style="margin-top:18px;border-top:1px solid #ddd;padding-top:14px;"><strong style="font-size:13px;">📷 Fotos do Projeto</strong><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;">';
-  if(f1) html += '<div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:5px;">📌 COMO ESTÁ O LOCAL</div><img src="'+f1+'" style="width:100%;height:200px;object-fit:cover;border-radius:6px;border:1px solid #ddd;"/></div>';
-  if(f2) html += '<div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:5px;">✅ PROJETO APROVADO</div><img src="'+f2+'" style="width:100%;height:200px;object-fit:cover;border-radius:6px;border:1px solid #ddd;"/></div>';
-  html += '</div></div>';
+function getOrcFotosHTML(){
+  const f1=(document.getElementById('orcfoto1-data')||{}).textContent||'';
+  const f2=(document.getElementById('orcfoto2-data')||{}).textContent||'';
+  if(!f1&&!f2)return '';
+  let html='<div style="margin-top:20px;border-top:1px solid #ddd;padding-top:16px;"><strong style="font-size:13px;display:block;margin-bottom:10px;">📷 Fotos do Projeto</strong><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">';
+  if(f1)html+='<div><div style="font-size:10px;color:#888;font-weight:700;letter-spacing:0.05em;margin-bottom:5px;">📌 COMO ESTÁ O LOCAL</div><img src="'+f1+'" style="width:100%;height:210px;object-fit:cover;border-radius:6px;border:1px solid #ddd;"/></div>';
+  if(f2)html+='<div><div style="font-size:10px;color:#888;font-weight:700;letter-spacing:0.05em;margin-bottom:5px;">✅ PROJETO APROVADO</div><img src="'+f2+'" style="width:100%;height:210px;object-fit:cover;border-radius:6px;border:1px solid #ddd;"/></div>';
+  html+='</div></div>';
   return html;
 }
 
@@ -2347,7 +2352,7 @@ function gerarPDFHTML(){
     </div>
     <div class="pdf-obs"><strong>Observações:</strong><br/>${obs.replace(/\n/g,'<br/>')}</div>
     ${garantias?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>🛡️ Garantias:</strong><br/>${garantias.replace(/\n/g,'<br/>')}</div>`:''}
-    ${getOrcFotoHTML()}
+    ${getOrcFotosHTML()}
     <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${fmtDate(dt)}</span></div>
     <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
       <div style="text-align:center;width:45%;">
@@ -2872,18 +2877,13 @@ document.addEventListener('click',async e=>{
       document.getElementById('f-num').value=o.num||'';
       document.getElementById('f-obs').value=o.obs||'';
       document.getElementById('f-garantias').value=o.garantias||'';
-      // Restore checkboxes from saved garantias text
-      const garMap = {
-        'gar-acm': 'ACM:',
-        'gar-luz': 'Iluminação:',
-        'gar-pvc': 'PVC:',
-        'gar-mdo': 'Mão de obra:',
-        'gar-acrilico': 'Acrílico:'
-      };
-      const garText = o.garantias||'';
-      Object.entries(garMap).forEach(([id, prefix])=>{
+      // Restore checkboxes from saved text
+      const _gText=o.garantias||'';
+      [{id:'gar-acm',key:'ACM:'},{id:'gar-luz',key:'Iluminação:'},{id:'gar-pvc',key:'PVC:'},{id:'gar-mdo',key:'Mão de obra:'},{id:'gar-acrilico',key:'Acrílico:'}].forEach(({id,key})=>{
         const el=document.getElementById(id);
-        if(el){ el.checked=garText.includes(prefix); if(el.closest('label')) el.closest('label').style.background=el.checked?'#fff3ec':'var(--surface2)'; }
+        if(!el)return;
+        el.checked=_gText.includes(key);
+        if(el.closest('label'))el.closest('label').style.background=el.checked?'#fff3ec':'var(--surface2)';
       });
       if(o.data){
         const partes=o.data.split('/');
