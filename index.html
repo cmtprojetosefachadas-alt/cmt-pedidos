@@ -2465,7 +2465,25 @@ document.getElementById('btn-editar-pdf').addEventListener('click',()=>{
 document.getElementById('btn-imprimir').addEventListener('click',()=>window.print());
 
 // PDF e WPP
-document.getElementById('btn-pdf').addEventListener('click',()=>{gerarPDFHTML();showTab('preview');});
+document.getElementById('btn-pdf').addEventListener('click',()=>{
+  // Captura fotos direto do preview antes de qualquer coisa
+  const _p1=document.getElementById('orcfoto1-preview');
+  const _p2=document.getElementById('orcfoto2-preview');
+  const _i1=_p1&&_p1.querySelector('img');
+  const _i2=_p2&&_p2.querySelector('img');
+  if(_i1&&_i1.src&&_i1.src.startsWith('data:')){
+    window._orcFoto1=_i1.src;
+    try{sessionStorage.setItem('_orcFoto1',_i1.src);}catch(e){}
+    const _h=document.getElementById('orcfoto1-b64');if(_h)_h.value=_i1.src;
+  }
+  if(_i2&&_i2.src&&_i2.src.startsWith('data:')){
+    window._orcFoto2=_i2.src;
+    try{sessionStorage.setItem('_orcFoto2',_i2.src);}catch(e){}
+    const _h=document.getElementById('orcfoto2-b64');if(_h)_h.value=_i2.src;
+  }
+  gerarPDFHTML();
+  showTab('preview');
+});
 document.getElementById('btn-wpp-orc').addEventListener('click',()=>window.open('https://wa.me/?text='+getWppMsg(),'_blank'));
 document.getElementById('btn-wpp-pdf').addEventListener('click',()=>window.open('https://wa.me/?text='+getWppMsg(),'_blank'));
 
