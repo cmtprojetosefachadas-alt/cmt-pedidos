@@ -2314,8 +2314,9 @@ function syncGarantias(){
 }
 
 // ===== ORC FOTOS =====
-// Armazena fotos em variáveis globais do módulo
-let _orcFoto1='', _orcFoto2='';
+// Armazena fotos no window para garantir acesso global entre módulos
+window._orcFoto1='';
+window._orcFoto2='';
 
 function loadOrcFoto(n,input){
   if(!input.files||!input.files[0])return;
@@ -2323,8 +2324,8 @@ function loadOrcFoto(n,input){
   reader.onload=function(e){
     const prev=document.getElementById('orcfoto'+n+'-preview');
     const del=document.getElementById('orcfoto'+n+'-del');
-    if(n===1) _orcFoto1=e.target.result;
-    else _orcFoto2=e.target.result;
+    if(n===1) window._orcFoto1=e.target.result;
+    else window._orcFoto2=e.target.result;
     if(prev){prev.innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;"/>';}
     if(del){del.style.display='block';}
   };
@@ -2335,15 +2336,15 @@ function clearOrcFoto(n){
   const del=document.getElementById('orcfoto'+n+'-del');
   const inp=document.getElementById('orcfoto'+n+'-input');
   const icon=n===1?'📷':'🖼️';
-  if(n===1) _orcFoto1='';
-  else _orcFoto2='';
+  if(n===1) window._orcFoto1='';
+  else window._orcFoto2='';
   if(prev){prev.innerHTML='<span style="font-size:28px;">'+icon+'</span><span>Clique para adicionar foto</span>';}
   if(del){del.style.display='none';}
   if(inp){inp.value='';}
 }
 function getOrcFotosHTML(){
-  const f1=_orcFoto1||'';
-  const f2=_orcFoto2||'';
+  const f1=window._orcFoto1||'';
+  const f2=window._orcFoto2||'';
   if(!f1&&!f2)return '';
   let html='<div style="margin-top:20px;border-top:1px solid #ddd;padding-top:16px;"><strong style="font-size:13px;display:block;margin-bottom:10px;">📷 Fotos do Projeto</strong><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">';
   if(f1)html+='<div><div style="font-size:10px;color:#888;font-weight:700;letter-spacing:0.05em;margin-bottom:5px;">📌 COMO ESTÁ O LOCAL</div><img src="'+f1+'" style="width:100%;height:210px;object-fit:cover;border-radius:6px;border:1px solid #ddd;"/></div>';
