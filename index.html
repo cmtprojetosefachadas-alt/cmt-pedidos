@@ -2324,6 +2324,10 @@ function getOrcFotosHTML(){
   html+='</div></div>';
   return html;
 }
+// Expor funções no escopo global (necessário por causa do type="module")
+window.syncGarantias = syncGarantias;
+window.loadOrcFoto = loadOrcFoto;
+window.clearOrcFoto = clearOrcFoto;
 
 function gerarPDFHTML(){
   const num=document.getElementById('f-num').value;
