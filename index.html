@@ -2327,8 +2327,13 @@ function loadOrcFoto(n,input){
     const prev=document.getElementById('orcfoto'+n+'-preview');
     const del=document.getElementById('orcfoto'+n+'-del');
     const hiddenInput=document.getElementById('orcfoto'+n+'-b64');
-    if(n===1) window._orcFoto1=e.target.result;
-    else window._orcFoto2=e.target.result;
+    if(n===1){
+      window._orcFoto1=e.target.result;
+      try{sessionStorage.setItem('_orcFoto1',e.target.result);}catch(ex){}
+    } else {
+      window._orcFoto2=e.target.result;
+      try{sessionStorage.setItem('_orcFoto2',e.target.result);}catch(ex){}
+    }
     if(hiddenInput) hiddenInput.value=e.target.result;
     if(prev){prev.innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"/>';}
     if(del){del.style.display='block';}
@@ -2341,8 +2346,8 @@ function clearOrcFoto(n){
   const inp=document.getElementById('orcfoto'+n+'-input');
   const hiddenInput=document.getElementById('orcfoto'+n+'-b64');
   const icon=n===1?'📷':'🖼️';
-  if(n===1) window._orcFoto1='';
-  else window._orcFoto2='';
+  if(n===1){window._orcFoto1='';try{sessionStorage.removeItem('_orcFoto1');}catch(ex){}}
+  else{window._orcFoto2='';try{sessionStorage.removeItem('_orcFoto2');}catch(ex){}}
   if(hiddenInput) hiddenInput.value='';
   if(prev){prev.innerHTML='<span style="font-size:28px;">'+icon+'</span><span>Clique para adicionar foto</span>';}
   if(del){del.style.display='none';}
@@ -2372,8 +2377,12 @@ function gerarPDFHTML(){
   const obs=document.getElementById('f-obs').value||'Sem observações.';
   const garantias=document.getElementById('f-garantias').value||'';
   // Captura fotos direto aqui para garantir leitura correta
-  const foto1=(document.getElementById('orcfoto1-b64')||{}).value||window._orcFoto1||'';
-  const foto2=(document.getElementById('orcfoto2-b64')||{}).value||window._orcFoto2||'';
+  const _b64el1=document.getElementById('orcfoto1-b64');
+  const _b64el2=document.getElementById('orcfoto2-b64');
+  const foto1=(_b64el1&&_b64el1.value?_b64el1.value:'')||window._orcFoto1||(()=>{try{return sessionStorage.getItem('_orcFoto1')||'';}catch(ex){return '';}})()||'';
+  const foto2=(_b64el2&&_b64el2.value?_b64el2.value:'')||window._orcFoto2||(()=>{try{return sessionStorage.getItem('_orcFoto2')||'';}catch(ex){return '';}})()||'';
+  console.log('[PDF-FOTO] b64el1 value length:',((_b64el1&&_b64el1.value)||'').length,'window._orcFoto1 length:',window._orcFoto1.length,'session:',(()=>{try{return (sessionStorage.getItem('_orcFoto1')||'').length;}catch(e){return 0;}})());
+  console.log('[PDF-FOTO] foto1 length:',foto1.length,'foto2 length:',foto2.length);
   const fotosHTML=(foto1||foto2)?('<div style="margin-top:24px;padding-top:20px;border-top:2px solid #eee;"><div style="font-size:13px;font-weight:700;color:#333;margin-bottom:14px;">📷 Fotos do Projeto</div><div style="display:grid;grid-template-columns:'+(foto1&&foto2?'1fr 1fr':'1fr')+';gap:16px;">'+(foto1?'<div><div style="font-size:10px;color:#888;font-weight:700;letter-spacing:0.05em;margin-bottom:6px;text-transform:uppercase;">📌 Como está o local</div><img src="'+foto1+'" style="width:100%;max-height:320px;object-fit:contain;border-radius:8px;border:1px solid #ddd;display:block;"/></div>':'')+(foto2?'<div><div style="font-size:10px;color:#888;font-weight:700;letter-spacing:0.05em;margin-bottom:6px;text-transform:uppercase;">✅ Projeto aprovado</div><img src="'+foto2+'" style="width:100%;max-height:320px;object-fit:contain;border-radius:8px;border:1px solid #ddd;display:block;"/></div>':'')+'</div></div>'):'';
   const sub=editingItens.reduce(function(s,it){return s+(parseFloat(it.valor)||0);},0);
   const desc=parseFloat(document.getElementById('desconto').value)||0;
