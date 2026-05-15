@@ -595,14 +595,14 @@ body {
           <div class="margem-header">
             <span class="margem-label">Margem de venda</span>
             <div style="display:flex;align-items:center;gap:4px">
-              <input type="number" id="margem-input" min="5" max="80" value="30"
+              <input type="number" id="margem-input" min="1" max="99" value="30"
                 style="width:62px;font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:var(--accent);background:transparent;border:none;border-bottom:2px solid var(--accent);outline:none;text-align:right;padding:0 2px"
                 oninput="window.updateMargemInput(this.value)"
                 onblur="window.updateMargemInput(this.value)">
               <span style="font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:var(--accent)">%</span>
             </div>
           </div>
-          <input type="range" id="margem-slider" min="5" max="80" value="30" oninput="window.updateMargem(this.value)">
+          <input type="range" id="margem-slider" min="1" max="99" value="30" oninput="window.updateMargem(this.value)">
           <div class="margem-bars">
             <div class="mbar">
               <div class="mbar-label">Custo total</div>
@@ -1742,8 +1742,8 @@ window.recalcular = function() {
   const moPct  = parseFloat(document.getElementById('mo-pct')?.value||25);
   const subMat = items.reduce((a,i)=>a+(i.custo||0)*i.qty, 0);
   // Venda calculada apenas pela margem sobre materiais
-  const divisor = 1 - margem/100;
-  const venda   = divisor > 0.01 ? subMat / divisor : subMat * (1 + margem/100);
+  const divisor = Math.max(0.01, 1 - margem/100);
+  const venda   = subMat / divisor;
   // MO calculada sobre o valor de venda (separada da margem)
   const moVal   = venda * moPct / 100;
   const custoTotal = subMat + moVal;
@@ -1776,8 +1776,8 @@ window.updateMargem = function(v) {
 window.updateMargemInput = function(v) {
   let val = parseInt(v);
   if(isNaN(val)) return;
-  if(val < 5)  val = 5;
-  if(val > 80) val = 80;
+  if(val < 1)  val = 1;
+  if(val > 99) val = 99;
   const inp = document.getElementById('margem-input');
   if(inp && parseInt(inp.value) !== val) inp.value = val;
   const sl = document.getElementById('margem-slider');
