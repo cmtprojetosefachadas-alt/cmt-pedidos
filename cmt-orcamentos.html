@@ -1741,12 +1741,15 @@ window.recalcular = function() {
   const margem = parseInt(document.getElementById('margem-slider')?.value||30);
   const moPct  = parseFloat(document.getElementById('mo-pct')?.value||25);
   const subMat = items.reduce((a,i)=>a+(i.custo||0)*i.qty, 0);
-  const divisor = 1 - margem/100 - moPct/100;
-  const venda   = divisor>0 ? subMat/divisor : subMat*(1+margem/100);
-  const moVal   = venda*moPct/100;
-  const custoTotal = subMat+moVal;
-  const lucro   = venda-custoTotal;
-  const lucroP  = venda>0?(lucro/venda*100):0;
+  // Venda calculada apenas pela margem sobre materiais
+  const divisor = 1 - margem/100;
+  const venda   = divisor > 0.01 ? subMat / divisor : subMat * (1 + margem/100);
+  // MO calculada sobre o valor de venda (separada da margem)
+  const moVal   = venda * moPct / 100;
+  const custoTotal = subMat + moVal;
+  // Lucro = receita da margem menos o custo de MO
+  const lucro   = (venda * margem/100) - moVal;
+  const lucroP  = venda > 0 ? (lucro / venda * 100) : 0;
 
   if(tb) tb.style.display='block';
   const set = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
@@ -1811,11 +1814,11 @@ window.salvarOrcamento = async function() {
   const responsavel = document.getElementById('mo-responsavel')?.value||'';
 
   const subMat  = items.reduce((a,i)=>a+(i.custo||0)*i.qty, 0);
-  const divisor = 1-margem/100-moPct/100;
-  const venda   = divisor>0?subMat/divisor:subMat*(1+margem/100);
+  const divisor = 1 - margem/100;
+  const venda   = divisor > 0.01 ? subMat/divisor : subMat*(1+margem/100);
   const moVal   = venda*moPct/100;
   const custoTotal = subMat+moVal;
-  const lucro   = venda-custoTotal;
+  const lucro   = (venda*margem/100) - moVal;
   const numero  = (document.getElementById('orc-num')||document.getElementById('orc-num-av'))?.value||'#001';
 
   const data = {
@@ -3021,7 +3024,7 @@ window.atualizarTotaisEdit = function() {
   const isCard   = pag==='cartao_debito'||pag==='cartao_credito';
   const taxaCard = isCard?(parseFloat(document.getElementById('edit-taxa-cartao')?.value)||0):0;
   const subMat   = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100, 0);
-  const divisor  = Math.max(0.10, 1-margem/100-moPct/100);
+  const divisor  = Math.max(0.01, 1-margem/100);
   const vendaBase= subMat/divisor;
   const taxaVal  = Math.round(vendaBase*taxaCard/100*100)/100;
   const venda    = Math.round((vendaBase+taxaVal)*100)/100;
@@ -3097,8 +3100,8 @@ window.salvarEdicaoOrcamento = async function() {
   const isCard   = pag==='cartao_debito'||pag==='cartao_credito';
   const taxaCard = isCard?(parseFloat(document.getElementById('edit-taxa-cartao').value)||0):0;
   const subMat   = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100, 0);
-  const divisor  = 1-margem/100-moPct/100;
-  const vendaBase= divisor>0?subMat/divisor:subMat*(1+margem/100);
+  const divisor  = Math.max(0.01, 1-margem/100);
+  const vendaBase= subMat/divisor;
   const taxaVal  = Math.round(vendaBase*taxaCard/100*100)/100;
   const venda    = Math.round((vendaBase+taxaVal)*100)/100;
   const moVal    = Math.round(vendaBase*moPct/100*100)/100;
