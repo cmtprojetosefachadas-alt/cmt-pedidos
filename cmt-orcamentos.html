@@ -594,7 +594,13 @@ body {
         <div class="margem-block">
           <div class="margem-header">
             <span class="margem-label">Margem de venda</span>
-            <span class="margem-val" id="margem-display">30%</span>
+            <div style="display:flex;align-items:center;gap:4px">
+              <input type="number" id="margem-input" min="5" max="80" value="30"
+                style="width:62px;font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:var(--accent);background:transparent;border:none;border-bottom:2px solid var(--accent);outline:none;text-align:right;padding:0 2px"
+                oninput="window.updateMargemInput(this.value)"
+                onblur="window.updateMargemInput(this.value)">
+              <span style="font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:var(--accent)">%</span>
+            </div>
           </div>
           <input type="range" id="margem-slider" min="5" max="80" value="30" oninput="window.updateMargem(this.value)">
           <div class="margem-bars">
@@ -1758,8 +1764,21 @@ window.recalcular = function() {
 };
 
 window.updateMargem = function(v) {
-  const el = document.getElementById('margem-display');
-  if(el) el.textContent = v+'%';
+  // Slider moved → sync input field
+  const inp = document.getElementById('margem-input');
+  if(inp) inp.value = v;
+  window.recalcular();
+};
+
+window.updateMargemInput = function(v) {
+  let val = parseInt(v);
+  if(isNaN(val)) return;
+  if(val < 5)  val = 5;
+  if(val > 80) val = 80;
+  const inp = document.getElementById('margem-input');
+  if(inp && parseInt(inp.value) !== val) inp.value = val;
+  const sl = document.getElementById('margem-slider');
+  if(sl) sl.value = val;
   window.recalcular();
 };
 
@@ -1834,7 +1853,7 @@ window.limparOrcamento = function() {
   clear('orc-desc'); clear('av-nome'); clear('orc-cliente-av');
   clear('orc-telefone'); clear('orc-email'); clear('orc-endereco');
   const sl = document.getElementById('margem-slider'); if(sl) sl.value=30;
-  const md = document.getElementById('margem-display'); if(md) md.textContent='30%';
+  const mi = document.getElementById('margem-input'); if(mi) mi.value=30;
   const mo = document.getElementById('mo-pct'); if(mo) mo.value=25;
   const tb = document.getElementById('total-block'); if(tb) tb.style.display='none';
 };
@@ -3629,7 +3648,12 @@ function renderDespesas() {
     if(!window._cliExpandido) window._cliExpandido = {};
     if(!window._despChecked) window._despChecked = {};
 
-    tbody.innerHTML = Object.entries(porCli).sort((a,b)=>b[1].total-a[1].total).map(([cli,{items,total}])=>{
+    tbody.innerHTML = Object.entries(porCli).sort((a,b)=>{
+      const aConcluido = a[1].items.length>0 && a[1].items.every(d=>window._despChecked?.[d.id]) ? 1 : 0;
+      const bConcluido = b[1].items.length>0 && b[1].items.every(d=>window._despChecked?.[d.id]) ? 1 : 0;
+      if(aConcluido !== bConcluido) return aConcluido - bConcluido;
+      return b[1].total - a[1].total;
+    }).map(([cli,{items,total}])=>{
       const cliKey = 'cli_'+cli.replace(/[^a-zA-Z0-9]/g,'_');
       const expanded = window._cliExpandido[cliKey] !== false; // aberto por padrão
       const orcsCliente = orcsAprov.filter(o=>o.cliente===cli);
@@ -3666,7 +3690,11 @@ function renderDespesas() {
         </td>
       </tr>`;
 
-      const detalheRows = expanded ? items.map(d=>{
+      const detalheRows = expanded ? [...items].sort((a,b)=>{
+        const ack = window._despChecked?.[a.id] ? 1 : 0;
+        const bck = window._despChecked?.[b.id] ? 1 : 0;
+        return ack - bck;
+      }).map(d=>{
         const ck = window._despChecked?.[d.id];
         const riscado = ck ? 'opacity:0.45;text-decoration:line-through;' : 'opacity:0.88;';
         const notaAberta = !!window._despNotaAberta?.[d.id];
@@ -3732,7 +3760,11 @@ function renderDespesas() {
       window.atualizarSaldoClienteBox();
   window.renderClientSummary();
   }
-    tbody.innerHTML = lista.map(d=>{
+    tbody.innerHTML = [...lista].sort((a,b)=>{
+      const ack = window._despChecked?.[a.id] ? 1 : 0;
+      const bck = window._despChecked?.[b.id] ? 1 : 0;
+      return ack - bck;
+    }).map(d=>{
       const ck = window._despChecked?.[d.id];
       const riscado = ck ? 'opacity:0.45;text-decoration:line-through;' : '';
       const notaAberta = !!window._despNotaAberta?.[d.id];
