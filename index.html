@@ -1226,6 +1226,9 @@ window.showTab = async function showTab(tab){
 }
 
 // LISTENERS
+// Carregar garantias customizadas do Firebase ao iniciar
+carregarGarantiasCustom();
+
 onSnapshot(query(collection(db,'pedidos'),orderBy('criadoEm','desc')),snap=>{
   pedidos=snap.docs.map(d=>({id:d.id,...d.data()}));
   renderClientes();renderPedidos();renderFinalizados();renderFaturamento();renderVisaoGeral();updateStats();
@@ -2441,44 +2444,70 @@ function getOrcFotosHTML(){
 window.syncGarantias = syncGarantias;
 window.editarGarantia = editarGarantia;
 
-function adicionarNovaGarantia(){
+// ===== GARANTIAS CUSTOMIZADAS (Firebase) =====
+function renderGarantiaCustom(uid, nome, desc, valFull){
+  const container=document.getElementById('garantias-checks');
+  if(!container||document.getElementById('label-'+uid))return;
+  const label=document.createElement('label');
+  label.id='label-'+uid;
+  label.style.cssText='display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;';
+  label.innerHTML=`
+    <input type="checkbox" id="${uid}" data-val="${valFull}" data-fbid="${uid}" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()"/>
+    <span style="font-size:13px;flex:1;" id="span-${uid}"><strong>${nome}</strong> — ${desc}</span>
+    <button type="button" onclick="editarGarantia('${uid}')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Editar texto da garantia" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">✏️</button>
+    <button type="button" onclick="removerGarantia('${uid}')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Remover permanentemente" onmouseover="this.style.color='#e53e3e'" onmouseout="this.style.color='var(--muted)'">🗑️</button>
+  `;
+  container.appendChild(label);
+}
+
+async function carregarGarantiasCustom(){
+  try{
+    const snap=await getDocs(collection(db,'garantias_custom'));
+    snap.forEach(d=>{
+      const {nome,desc,val}=d.data();
+      renderGarantiaCustom(d.id, nome, desc, val);
+    });
+  }catch(e){console.error('Erro ao carregar garantias:',e);}
+}
+
+async function adicionarNovaGarantia(){
   const nomeEl=document.getElementById('nova-garantia-nome');
   const descEl=document.getElementById('nova-garantia-desc');
   const nome=(nomeEl.value||'').trim();
   const desc=(descEl.value||'').trim();
   if(!nome||!desc){
-    nomeEl.style.borderColor='var(--danger,#e53e3e)';
-    descEl.style.borderColor='var(--danger,#e53e3e)';
+    nomeEl.style.borderColor='#e53e3e';descEl.style.borderColor='#e53e3e';
     setTimeout(()=>{nomeEl.style.borderColor='var(--border)';descEl.style.borderColor='var(--border)';},1500);
     return;
   }
-  // Gerar ID único
-  const uid='gar-custom-'+Date.now();
   const valFull=nome+': '+desc+'.';
-  // Criar o label
-  const container=document.getElementById('garantias-checks');
-  const label=document.createElement('label');
-  label.id='label-'+uid;
-  label.style.cssText='display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--brand);border-radius:8px;background:var(--surface2);transition:all 0.15s;';
-  label.innerHTML=`
-    <input type="checkbox" id="${uid}" data-val="${valFull}" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()" checked/>
-    <span style="font-size:13px;flex:1;" id="span-${uid}"><strong>${nome}</strong> — ${desc}</span>
-    <button type="button" onclick="editarGarantia('${uid}')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Editar texto da garantia" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">✏️</button>
-    <button type="button" onclick="removerGarantia('${uid}')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Remover esta garantia" onmouseover="this.style.color='#e53e3e'" onmouseout="this.style.color='var(--muted)'">🗑️</button>
-  `;
-  container.appendChild(label);
-  // Limpar campos
-  nomeEl.value='';descEl.value='';nomeEl.focus();
-  // Sincronizar
-  syncGarantias();
-  // Feedback visual
-  label.scrollIntoView({behavior:'smooth',block:'nearest'});
-  setTimeout(()=>{label.style.borderColor='var(--border)';},2000);
+  try{
+    // Salvar no Firebase permanentemente
+    const ref=await addDoc(collection(db,'garantias_custom'),{nome,desc,val:valFull,criadoEm:serverTimestamp()});
+    renderGarantiaCustom(ref.id, nome, desc, valFull);
+    nomeEl.value='';descEl.value='';nomeEl.focus();
+    syncGarantias();
+    // Marca o novo como checked e com borda azul
+    const chk=document.getElementById(ref.id);
+    if(chk){chk.checked=true;syncGarantias();}
+    const lbl=document.getElementById('label-'+ref.id);
+    if(lbl){lbl.style.borderColor='var(--brand)';lbl.scrollIntoView({behavior:'smooth',block:'nearest'});setTimeout(()=>{lbl.style.borderColor='var(--border)';},2000);}
+    showToast('Garantia adicionada permanentemente!');
+  }catch(e){console.error(e);showToast('Erro ao salvar garantia.');}
 }
 
-function removerGarantia(uid){
-  const label=document.getElementById('label-'+uid);
-  if(label){label.remove();syncGarantias();}
+async function removerGarantia(uid){
+  if(!confirm('Remover este item de garantia permanentemente?'))return;
+  try{
+    await deleteDoc(doc(db,'garantias_custom',uid));
+    const label=document.getElementById('label-'+uid);
+    if(label){label.remove();syncGarantias();}
+    showToast('Garantia removida!');
+  }catch(e){
+    // Se não for do Firebase (ID customizado), só remove do DOM
+    const label=document.getElementById('label-'+uid);
+    if(label){label.remove();syncGarantias();}
+  }
 }
 window.adicionarNovaGarantia = adicionarNovaGarantia;
 window.removerGarantia = removerGarantia;
