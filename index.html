@@ -493,6 +493,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <button type="button" onclick="editarGarantia('gar-ledagua')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Editar texto da garantia" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">✏️</button>
         </label>
       </div>
+      <!-- Adicionar nova garantia -->
+      <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--border);">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">➕ Adicionar novo item de garantia:</p>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="nova-garantia-nome" placeholder="Nome (ex: Aço Inox)" style="flex:0 0 130px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);"/>
+          <input type="text" id="nova-garantia-desc" placeholder="Descrição (ex: 2 anos do fabricante)" style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);"/>
+          <button type="button" onclick="adicionarNovaGarantia()" style="padding:8px 14px;border:none;border-radius:8px;background:var(--brand);color:#fff;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;">+ Adicionar</button>
+        </div>
+      </div>
       <input type="hidden" id="f-garantias"/>
     </div>
     <div class="form-card">
@@ -2441,6 +2450,48 @@ function getOrcFotosHTML(){
 // Expor funções no escopo global (necessário por causa do type="module")
 window.syncGarantias = syncGarantias;
 window.editarGarantia = editarGarantia;
+
+function adicionarNovaGarantia(){
+  const nomeEl=document.getElementById('nova-garantia-nome');
+  const descEl=document.getElementById('nova-garantia-desc');
+  const nome=(nomeEl.value||'').trim();
+  const desc=(descEl.value||'').trim();
+  if(!nome||!desc){
+    nomeEl.style.borderColor='var(--danger,#e53e3e)';
+    descEl.style.borderColor='var(--danger,#e53e3e)';
+    setTimeout(()=>{nomeEl.style.borderColor='var(--border)';descEl.style.borderColor='var(--border)';},1500);
+    return;
+  }
+  // Gerar ID único
+  const uid='gar-custom-'+Date.now();
+  const valFull=nome+': '+desc+'.';
+  // Criar o label
+  const container=document.getElementById('garantias-checks');
+  const label=document.createElement('label');
+  label.id='label-'+uid;
+  label.style.cssText='display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--brand);border-radius:8px;background:var(--surface2);transition:all 0.15s;';
+  label.innerHTML=`
+    <input type="checkbox" id="${uid}" data-val="${valFull}" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()" checked/>
+    <span style="font-size:13px;flex:1;" id="span-${uid}"><strong>${nome}</strong> — ${desc}</span>
+    <button type="button" onclick="editarGarantia('${uid}')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Editar texto da garantia" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">✏️</button>
+    <button type="button" onclick="removerGarantia('${uid}')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Remover esta garantia" onmouseover="this.style.color='#e53e3e'" onmouseout="this.style.color='var(--muted)'">🗑️</button>
+  `;
+  container.appendChild(label);
+  // Limpar campos
+  nomeEl.value='';descEl.value='';nomeEl.focus();
+  // Sincronizar
+  syncGarantias();
+  // Feedback visual
+  label.scrollIntoView({behavior:'smooth',block:'nearest'});
+  setTimeout(()=>{label.style.borderColor='var(--border)';},2000);
+}
+
+function removerGarantia(uid){
+  const label=document.getElementById('label-'+uid);
+  if(label){label.remove();syncGarantias();}
+}
+window.adicionarNovaGarantia = adicionarNovaGarantia;
+window.removerGarantia = removerGarantia;
 window.loadOrcFoto = loadOrcFoto;
 window.clearOrcFoto = clearOrcFoto;
 window.getOrcFotosHTML = getOrcFotosHTML;
@@ -2524,6 +2575,9 @@ function gerarPDFHTML(){
           <strong>Cliente: ${cliente}</strong><br/>Assinatura
         </div>
       </div>
+    </div>
+    <div style="margin-top:30px;padding-top:12px;border-top:1px solid #eee;font-size:9px;color:#999;line-height:1.5;text-align:center;">
+      Este documento é de uso exclusivo do destinatário identificado. As imagens, projetos, valores, descrições e demais informações contidas neste orçamento são de propriedade intelectual da <strong>CMT Projetos e Fachadas</strong>, protegidos nos termos da Lei nº 9.610/1998 (Lei de Direitos Autorais, arts. 7º, 22 e 28) e da Lei nº 9.279/1996 (Lei da Propriedade Industrial). É vedada a reprodução, cópia, repasse ou uso não autorizado destas informações para fins comerciais ou concorrenciais, sob pena de responsabilidade civil e criminal. CNPJ: 53.466.209/0001-01 · Franca/SP.
     </div>
     ${fotosHTML}
   `;
@@ -3145,6 +3199,9 @@ document.addEventListener('click',async e=>{
         <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>CMT Projetos e Fachadas</strong><br/>CNPJ: 53.466.209/0001-01</div></div>
         <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>Cliente: ${o.nome}</strong><br/>Assinatura</div></div>
       </div>
+      <div style="margin-top:30px;padding-top:12px;border-top:1px solid #eee;font-size:9px;color:#999;line-height:1.5;text-align:center;">
+      Este documento é de uso exclusivo do destinatário identificado. As imagens, projetos, valores, descrições e demais informações contidas neste orçamento são de propriedade intelectual da <strong>CMT Projetos e Fachadas</strong>, protegidos nos termos da Lei nº 9.610/1998 (Lei de Direitos Autorais, arts. 7º, 22 e 28) e da Lei nº 9.279/1996 (Lei da Propriedade Industrial). É vedada a reprodução, cópia, repasse ou uso não autorizado destas informações para fins comerciais ou concorrenciais, sob pena de responsabilidade civil e criminal. CNPJ: 53.466.209/0001-01 · Franca/SP.
+    </div>
       ${(o.foto1||o.foto2)?`
       <div style="page-break-before:always;padding-top:24px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #1a1a2e;">
