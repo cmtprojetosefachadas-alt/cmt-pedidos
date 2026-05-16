@@ -2350,30 +2350,20 @@ function editarGarantia(id){
 }
 
 function syncGarantias(){
-  const ids=[
-    {id:'gar-acm'},
-    {id:'gar-luz'},
-    {id:'gar-pvc'},
-    {id:'gar-mdo'},
-    {id:'gar-acrilico'},
-    {id:'gar-polialv'},
-    {id:'gar-policomp'},
-    {id:'gar-modled'},
-    {id:'gar-manguled'},
-    {id:'gar-ledagua'}
-  ];
+  // Lê TODOS os checkboxes do container — fixos e customizados
+  const container=document.getElementById('garantias-checks');
   const lines=[];
-  ids.forEach(({id})=>{
-    const el=document.getElementById(id);
-    if(!el)return;
-    const lbl=el.closest('label');
-    if(el.checked){
-      if(lbl)lbl.style.background='#fff3ec';
-      lines.push(el.dataset.val);
-    } else {
-      if(lbl)lbl.style.background='var(--surface2)';
-    }
-  });
+  if(container){
+    container.querySelectorAll('input[type="checkbox"]').forEach(el=>{
+      const lbl=el.closest('label');
+      if(el.checked){
+        if(lbl)lbl.style.background='#fff3ec';
+        if(el.dataset.val)lines.push(el.dataset.val);
+      } else {
+        if(lbl)lbl.style.background='var(--surface2)';
+      }
+    });
+  }
   const hid=document.getElementById('f-garantias');
   if(hid)hid.value=lines.join('\n');
 }
