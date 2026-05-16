@@ -442,45 +442,55 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <h3>🛡️ Garantias</h3>
       <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Selecione os itens que se aplicam — apenas os marcados aparecem no PDF.</p>
       <div style="display:flex;flex-direction:column;gap:8px;" id="garantias-checks">
-        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;" id="label-gar-acm">
           <input type="checkbox" id="gar-acm" data-val="ACM: Garantia de 5 a 7 anos do fabricante." style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()"/>
-          <span style="font-size:13px;"><strong>ACM</strong> — 5 a 7 anos do fabricante</span>
+          <span style="font-size:13px;flex:1;" id="span-gar-acm"><strong>ACM</strong> — 5 a 7 anos do fabricante</span>
+          <button type="button" onclick="editarGarantia('gar-acm')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Editar texto da garantia" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">✏️</button>
         </label>
-        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;" id="label-gar-luz">
           <input type="checkbox" id="gar-luz" data-val="Iluminação: 3 meses (produtos eletrônicos dos fabricantes)." style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()"/>
-          <span style="font-size:13px;"><strong>Iluminação</strong> — 3 meses (eletrônicos dos fabricantes)</span>
+          <span style="font-size:13px;flex:1;" id="span-gar-luz"><strong>Iluminação</strong> — 3 meses (eletrônicos dos fabricantes)</span>
+          <button type="button" onclick="editarGarantia('gar-luz')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Editar texto da garantia" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">✏️</button>
         </label>
-        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;" id="label-gar-pvc">
           <input type="checkbox" id="gar-pvc" data-val="PVC: 3 anos do fabricante." style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()"/>
-          <span style="font-size:13px;"><strong>PVC</strong> — 3 anos do fabricante</span>
+          <span style="font-size:13px;flex:1;" id="span-gar-pvc"><strong>PVC</strong> — 3 anos do fabricante</span>
+          <button type="button" onclick="editarGarantia('gar-pvc')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Editar texto da garantia" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">✏️</button>
         </label>
-        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;" id="label-gar-mdo">
           <input type="checkbox" id="gar-mdo" data-val="Mão de obra: 6 meses." style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()"/>
-          <span style="font-size:13px;"><strong>Mão de obra</strong> — 6 meses</span>
+          <span style="font-size:13px;flex:1;" id="span-gar-mdo"><strong>Mão de obra</strong> — 6 meses</span>
+          <button type="button" onclick="editarGarantia('gar-mdo')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Editar texto da garantia" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">✏️</button>
         </label>
-        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;" id="label-gar-acrilico">
           <input type="checkbox" id="gar-acrilico" data-val="Acrílico: 12 meses do fabricante." style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()"/>
-          <span style="font-size:13px;"><strong>Acrílico</strong> — 12 meses do fabricante</span>
+          <span style="font-size:13px;flex:1;" id="span-gar-acrilico"><strong>Acrílico</strong> — 12 meses do fabricante</span>
+          <button type="button" onclick="editarGarantia('gar-acrilico')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Editar texto da garantia" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">✏️</button>
         </label>
-        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;" id="label-gar-polialv">
           <input type="checkbox" id="gar-polialv" data-val="Policarbonato Alveolar: 3 a 5 anos do fabricante." style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()"/>
-          <span style="font-size:13px;"><strong>Policarbonato Alveolar</strong> — 3 a 5 anos do fabricante</span>
+          <span style="font-size:13px;flex:1;" id="span-gar-polialv"><strong>Policarbonato Alveolar</strong> — 3 a 5 anos do fabricante</span>
+          <button type="button" onclick="editarGarantia('gar-polialv')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Editar texto da garantia" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">✏️</button>
         </label>
-        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;" id="label-gar-policomp">
           <input type="checkbox" id="gar-policomp" data-val="Policarbonato Compacto: 8 anos do fabricante." style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()"/>
-          <span style="font-size:13px;"><strong>Policarbonato Compacto</strong> — 8 anos do fabricante</span>
+          <span style="font-size:13px;flex:1;" id="span-gar-policomp"><strong>Policarbonato Compacto</strong> — 8 anos do fabricante</span>
+          <button type="button" onclick="editarGarantia('gar-policomp')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Editar texto da garantia" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">✏️</button>
         </label>
-        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;" id="label-gar-modled">
           <input type="checkbox" id="gar-modled" data-val="Módulo de Led: 3 meses do fabricante." style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()"/>
-          <span style="font-size:13px;"><strong>Módulo de Led</strong> — 3 meses do fabricante</span>
+          <span style="font-size:13px;flex:1;" id="span-gar-modled"><strong>Módulo de Led</strong> — 3 meses do fabricante</span>
+          <button type="button" onclick="editarGarantia('gar-modled')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Editar texto da garantia" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">✏️</button>
         </label>
-        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;" id="label-gar-manguled">
           <input type="checkbox" id="gar-manguled" data-val="Mangueira de Led: 3 meses do fabricante." style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()"/>
-          <span style="font-size:13px;"><strong>Mangueira de Led</strong> — 3 meses do fabricante</span>
+          <span style="font-size:13px;flex:1;" id="span-gar-manguled"><strong>Mangueira de Led</strong> — 3 meses do fabricante</span>
+          <button type="button" onclick="editarGarantia('gar-manguled')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Editar texto da garantia" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">✏️</button>
         </label>
-        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);transition:all 0.15s;" id="label-gar-ledagua">
           <input type="checkbox" id="gar-ledagua" data-val="Led à prova d'água: 12 meses do fabricante." style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;" onchange="syncGarantias()"/>
-          <span style="font-size:13px;"><strong>Led à prova d'água</strong> — 12 meses do fabricante</span>
+          <span style="font-size:13px;flex:1;" id="span-gar-ledagua"><strong>Led à prova d'água</strong> — 12 meses do fabricante</span>
+          <button type="button" onclick="editarGarantia('gar-ledagua')" style="background:none;border:none;cursor:pointer;padding:2px 6px;color:var(--muted);font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.15s;" title="Editar texto da garantia" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">✏️</button>
         </label>
       </div>
       <input type="hidden" id="f-garantias"/>
@@ -2287,6 +2297,49 @@ function renderCadLista(){
 }
 
 // ===== GARANTIAS CHECKBOXES =====
+function editarGarantia(id){
+  const input=document.getElementById(id);
+  const span=document.getElementById('span-'+id);
+  if(!input||!span)return;
+  const valAtual=input.getAttribute('data-val');
+  // Criar modal de edição inline
+  const bg=document.createElement('div');
+  bg.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  const box=document.createElement('div');
+  box.style.cssText='background:var(--surface);border-radius:12px;padding:24px;width:90%;max-width:480px;box-shadow:var(--shadow-lg);';
+  box.innerHTML=`
+    <h3 style="margin:0 0 6px;font-size:15px;">✏️ Editar Garantia</h3>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 14px;">Edite o texto que aparecerá no PDF do orçamento:</p>
+    <textarea id="gar-edit-val" style="width:100%;height:90px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box;font-family:inherit;">${valAtual}</textarea>
+    <div style="display:flex;gap:10px;margin-top:14px;justify-content:flex-end;">
+      <button id="gar-edit-cancel" style="padding:8px 18px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:13px;">Cancelar</button>
+      <button id="gar-edit-save" style="padding:8px 18px;border:none;border-radius:8px;background:var(--brand);color:#fff;cursor:pointer;font-size:13px;font-weight:600;">Salvar</button>
+    </div>`;
+  bg.appendChild(box);
+  document.body.appendChild(bg);
+  const ta=box.querySelector('#gar-edit-val');
+  ta.focus();ta.select();
+  box.querySelector('#gar-edit-cancel').onclick=()=>bg.remove();
+  bg.onclick=(e)=>{if(e.target===bg)bg.remove();};
+  box.querySelector('#gar-edit-save').onclick=()=>{
+    const novo=ta.value.trim();
+    if(!novo){bg.remove();return;}
+    // Atualiza o data-val do checkbox
+    input.setAttribute('data-val',novo);
+    // Atualiza o span visual — extrai nome em negrito
+    const partes=novo.split(':');
+    const negrito=partes[0]||id;
+    const resto=partes.slice(1).join(':').trim();
+    span.innerHTML='<strong>'+negrito+'</strong>'+(resto?' — '+resto:'');
+    // Re-sincroniza o campo hidden se estiver marcado
+    syncGarantias();
+    bg.remove();
+    // Feedback
+    const label=document.getElementById('label-'+id);
+    if(label){label.style.borderColor='var(--brand)';setTimeout(()=>{label.style.borderColor='var(--border)';},1500);}
+  };
+}
+
 function syncGarantias(){
   const ids=[
     {id:'gar-acm'},
@@ -2387,6 +2440,7 @@ function getOrcFotosHTML(){
 }
 // Expor funções no escopo global (necessário por causa do type="module")
 window.syncGarantias = syncGarantias;
+window.editarGarantia = editarGarantia;
 window.loadOrcFoto = loadOrcFoto;
 window.clearOrcFoto = clearOrcFoto;
 window.getOrcFotosHTML = getOrcFotosHTML;
