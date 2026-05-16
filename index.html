@@ -2320,6 +2320,9 @@ function syncGarantias(){
 // Armazena fotos no window para garantir acesso global entre módulos
 window._orcFoto1='';
 window._orcFoto2='';
+// Fotos persistidas do orçamento em edição — só limpas em novo orçamento
+window._orcFoto1Saved='';
+window._orcFoto2Saved='';
 
 function loadOrcFoto(n,input){
   if(!input.files||!input.files[0])return;
@@ -2347,8 +2350,8 @@ function clearOrcFoto(n){
   const inp=document.getElementById('orcfoto'+n+'-input');
   const hiddenInput=document.getElementById('orcfoto'+n+'-b64');
   const icon=n===1?'📷':'🖼️';
-  if(n===1){window._orcFoto1='';try{sessionStorage.removeItem('_orcFoto1');}catch(ex){}}
-  else{window._orcFoto2='';try{sessionStorage.removeItem('_orcFoto2');}catch(ex){}}
+  if(n===1){window._orcFoto1='';window._orcFoto1Saved='';try{sessionStorage.removeItem('_orcFoto1');}catch(ex){}}
+  else{window._orcFoto2='';window._orcFoto2Saved='';try{sessionStorage.removeItem('_orcFoto2');}catch(ex){}}
   if(hiddenInput) hiddenInput.value='';
   if(prev){prev.innerHTML='<span style="font-size:28px;">'+icon+'</span><span>Clique para adicionar foto</span>';}
   if(del){del.style.display='none';}
@@ -2380,8 +2383,8 @@ function gerarPDFHTML(){
   // Captura fotos direto aqui para garantir leitura correta
   const _b64el1=document.getElementById('orcfoto1-b64');
   const _b64el2=document.getElementById('orcfoto2-b64');
-  const foto1=(_b64el1&&_b64el1.value?_b64el1.value:'')||window._orcFoto1||(()=>{try{return sessionStorage.getItem('_orcFoto1')||'';}catch(ex){return '';}})()||'';
-  const foto2=(_b64el2&&_b64el2.value?_b64el2.value:'')||window._orcFoto2||(()=>{try{return sessionStorage.getItem('_orcFoto2')||'';}catch(ex){return '';}})()||'';
+  const foto1=(_b64el1&&_b64el1.value?_b64el1.value:'')||window._orcFoto1||window._orcFoto1Saved||(()=>{try{return sessionStorage.getItem('_orcFoto1')||'';}catch(ex){return '';}})()||'';
+  const foto2=(_b64el2&&_b64el2.value?_b64el2.value:'')||window._orcFoto2||window._orcFoto2Saved||(()=>{try{return sessionStorage.getItem('_orcFoto2')||'';}catch(ex){return '';}})()||'';
   console.log('[PDF-FOTO] b64el1 value length:',((_b64el1&&_b64el1.value)||'').length,'window._orcFoto1 length:',window._orcFoto1.length,'session:',(()=>{try{return (sessionStorage.getItem('_orcFoto1')||'').length;}catch(e){return 0;}})());
   console.log('[PDF-FOTO] foto1 length:',foto1.length,'foto2 length:',foto2.length);
   const _logoB64='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAFrCAYAAABrILShAAABCGlDQ1BJQ0MgUHJvZmlsZQ';
@@ -2539,6 +2542,15 @@ document.getElementById('btn-salvar-orc').addEventListener('click',async()=>{
   const [y,m,d]=dataVal?dataVal.split('-'):['','',''];
   const dataFmt=dataVal?`${d}/${m}/${y}`:'';
   const editId=document.getElementById('f-num').dataset.editId;
+  // Captura fotos para salvar no Firebase
+  const _pv1=document.getElementById('orcfoto1-preview');
+  const _pv2=document.getElementById('orcfoto2-preview');
+  const _fi1=_pv1&&_pv1.querySelector('img');
+  const _fi2=_pv2&&_pv2.querySelector('img');
+  if(_fi1&&_fi1.src&&_fi1.src.startsWith('data:')){window._orcFoto1=_fi1.src;try{sessionStorage.setItem('_orcFoto1',_fi1.src);}catch(e){}}
+  if(_fi2&&_fi2.src&&_fi2.src.startsWith('data:')){window._orcFoto2=_fi2.src;try{sessionStorage.setItem('_orcFoto2',_fi2.src);}catch(e){}}
+  const _foto1salvar=(document.getElementById('orcfoto1-b64')||{}).value||window._orcFoto1||window._orcFoto1Saved||'';
+  const _foto2salvar=(document.getElementById('orcfoto2-b64')||{}).value||window._orcFoto2||window._orcFoto2Saved||'';
   const dados={
     num,nome:clienteNome,tel,
     desc:editingItens.map(i=>i.desc).join(', ').substring(0,60)||'Sem itens',
@@ -2547,7 +2559,9 @@ document.getElementById('btn-salvar-orc').addEventListener('click',async()=>{
     validade:fmtDate(document.getElementById('f-validade').value),
     itens:editingItens,
     obs:document.getElementById('f-obs').value,
-    garantias:document.getElementById('f-garantias').value
+    garantias:document.getElementById('f-garantias').value,
+    foto1:_foto1salvar,
+    foto2:_foto2salvar
   };
   if(editId){
     await updateDoc(doc(db,'orcamentos',editId),dados);
@@ -3011,6 +3025,25 @@ document.addEventListener('click',async e=>{
         if(sel.options[i].value===o.nome){sel.selectedIndex=i;break;}
       }
       document.getElementById('f-num').dataset.editId=currentOrcId;
+      // Restaurar fotos salvas
+      if(o.foto1){
+        window._orcFoto1=o.foto1;
+        window._orcFoto1Saved=o.foto1;
+        try{sessionStorage.setItem('_orcFoto1',o.foto1);}catch(e){}
+        const hid1=document.getElementById('orcfoto1-b64');if(hid1)hid1.value=o.foto1;
+        const prev1=document.getElementById('orcfoto1-preview');
+        if(prev1){prev1.innerHTML='<img src="'+o.foto1+'" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"/>';}
+        const del1=document.getElementById('orcfoto1-del');if(del1)del1.style.display='block';
+      } else { window._orcFoto1Saved=''; }
+      if(o.foto2){
+        window._orcFoto2=o.foto2;
+        window._orcFoto2Saved=o.foto2;
+        try{sessionStorage.setItem('_orcFoto2',o.foto2);}catch(e){}
+        const hid2=document.getElementById('orcfoto2-b64');if(hid2)hid2.value=o.foto2;
+        const prev2=document.getElementById('orcfoto2-preview');
+        if(prev2){prev2.innerHTML='<img src="'+o.foto2+'" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"/>';}
+        const del2=document.getElementById('orcfoto2-del');if(del2)del2.style.display='block';
+      } else { window._orcFoto2Saved=''; }
     },300);
     return;
   }
