@@ -2324,23 +2324,41 @@ window._orcFoto2='';
 window._orcFoto1Saved='';
 window._orcFoto2Saved='';
 
+function comprimirFoto(dataUrl,maxW,maxH,quality,cb){
+  const img=new Image();
+  img.onload=function(){
+    let w=img.width,h=img.height;
+    if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+    if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
+    const canvas=document.createElement('canvas');
+    canvas.width=w;canvas.height=h;
+    canvas.getContext('2d').drawImage(img,0,0,w,h);
+    cb(canvas.toDataURL('image/jpeg',quality));
+  };
+  img.src=dataUrl;
+}
 function loadOrcFoto(n,input){
   if(!input.files||!input.files[0])return;
   const reader=new FileReader();
   reader.onload=function(e){
-    const prev=document.getElementById('orcfoto'+n+'-preview');
-    const del=document.getElementById('orcfoto'+n+'-del');
-    const hiddenInput=document.getElementById('orcfoto'+n+'-b64');
-    if(n===1){
-      window._orcFoto1=e.target.result;
-      try{sessionStorage.setItem('_orcFoto1',e.target.result);}catch(ex){}
-    } else {
-      window._orcFoto2=e.target.result;
-      try{sessionStorage.setItem('_orcFoto2',e.target.result);}catch(ex){}
-    }
-    if(hiddenInput) hiddenInput.value=e.target.result;
-    if(prev){prev.innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"/>';}
-    if(del){del.style.display='block';}
+    // Comprimir para max 1200x1200 com qualidade 0.75 (~200-400KB)
+    comprimirFoto(e.target.result,1200,1200,0.75,function(compressed){
+      const prev=document.getElementById('orcfoto'+n+'-preview');
+      const del=document.getElementById('orcfoto'+n+'-del');
+      const hiddenInput=document.getElementById('orcfoto'+n+'-b64');
+      if(n===1){
+        window._orcFoto1=compressed;
+        window._orcFoto1Saved=compressed;
+        try{sessionStorage.setItem('_orcFoto1',compressed);}catch(ex){}
+      } else {
+        window._orcFoto2=compressed;
+        window._orcFoto2Saved=compressed;
+        try{sessionStorage.setItem('_orcFoto2',compressed);}catch(ex){}
+      }
+      if(hiddenInput) hiddenInput.value=compressed;
+      if(prev){prev.innerHTML='<img src="'+compressed+'" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"/>';}
+      if(del){del.style.display='block';}
+    });
   };
   reader.readAsDataURL(input.files[0]);
 }
