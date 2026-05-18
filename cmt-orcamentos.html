@@ -863,106 +863,60 @@ body {
     <h2 style="margin:0">🏭 Fornecedores</h2>
     <button class="btn btn-primary" onclick="window.abrirModalFornecedor()" style="width:auto;padding:10px 20px;white-space:nowrap;margin-top:0">+ Novo Fornecedor</button>
   </div>
-
-  <!-- Filtros -->
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
     <input type="text" id="forn-busca" class="field" placeholder="🔍 Buscar por nome, CNPJ/CPF..." style="flex:1;min-width:200px;padding:8px 12px" oninput="window.renderFornecedores()">
     <select id="forn-filtro-cat" class="field" style="min-width:160px;padding:8px 12px" onchange="window.renderFornecedores()">
       <option value="">Todas categorias</option>
     </select>
   </div>
-
-  <!-- Lista -->
-  <div id="forn-lista" style="display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))"></div>
+  <div id="forn-lista" style="display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(340px,1fr))"></div>
 </div>
 
-<!-- MODAL FORNECEDOR -->
-<div id="modal-fornecedor" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;padding:16px">
-  <div style="background:#f4f3f0;border-radius:16px;padding:24px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
+<!-- MODAL FORNECEDOR (dados + produtos múltiplos) -->
+<div id="modal-fornecedor" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;padding:16px">
+  <div style="background:#f4f3f0;border-radius:16px;padding:24px;max-width:700px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <h3 style="margin:0;font-size:18px" id="forn-modal-title">Novo Fornecedor</h3>
       <button onclick="window.fecharModalFornecedor()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">✕</button>
     </div>
     <input type="hidden" id="forn-id">
-    <div style="display:grid;gap:14px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <label class="label">Nome / Razão Social *</label>
-          <input type="text" id="forn-nome" class="field" placeholder="Nome do fornecedor">
+
+    <!-- DADOS DO FORNECEDOR -->
+    <div style="background:#fff;border-radius:10px;padding:16px;margin-bottom:16px;border:1px solid #e0ddd8">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Dados do Fornecedor</div>
+      <div style="display:grid;gap:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div><label class="label">Nome / Razão Social *</label><input type="text" id="forn-nome" class="field" placeholder="Nome do fornecedor"></div>
+          <div><label class="label">CNPJ / CPF</label><input type="text" id="forn-doc" class="field" placeholder="00.000.000/0001-00"></div>
         </div>
-        <div>
-          <label class="label">CNPJ / CPF</label>
-          <input type="text" id="forn-doc" class="field" placeholder="00.000.000/0001-00">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div><label class="label">Telefone / WhatsApp</label><input type="text" id="forn-telefone" class="field" placeholder="(00) 00000-0000"></div>
+          <div><label class="label">E-mail</label><input type="email" id="forn-email" class="field" placeholder="contato@empresa.com"></div>
         </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <label class="label">Telefone / WhatsApp</label>
-          <input type="text" id="forn-telefone" class="field" placeholder="(00) 00000-0000">
+        <div><label class="label">Endereço</label><input type="text" id="forn-endereco" class="field" placeholder="Rua, número, bairro"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div><label class="label">Cidade</label><input type="text" id="forn-cidade" class="field" placeholder="Cidade"></div>
+          <div><label class="label">Estado</label><input type="text" id="forn-estado" class="field" placeholder="SP" maxlength="2"></div>
+          <div><label class="label">CEP</label><input type="text" id="forn-cep" class="field" placeholder="00000-000"></div>
         </div>
-        <div>
-          <label class="label">E-mail</label>
-          <input type="email" id="forn-email" class="field" placeholder="contato@empresa.com">
-        </div>
-      </div>
-      <div>
-        <label class="label">Endereço</label>
-        <input type="text" id="forn-endereco" class="field" placeholder="Rua, número, bairro">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-        <div>
-          <label class="label">Cidade</label>
-          <input type="text" id="forn-cidade" class="field" placeholder="Cidade">
-        </div>
-        <div>
-          <label class="label">Estado</label>
-          <input type="text" id="forn-estado" class="field" placeholder="SP" maxlength="2">
-        </div>
-        <div>
-          <label class="label">CEP</label>
-          <input type="text" id="forn-cep" class="field" placeholder="00000-000">
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <label class="label">Categoria do Produto *</label>
-          <input type="text" id="forn-categoria" class="field" placeholder="Ex: ACM, Vidro, Estrutura..." list="forn-cat-datalist">
-          <datalist id="forn-cat-datalist"></datalist>
-        </div>
-        <div>
-          <label class="label">Unidade de Medida</label>
-          <select id="forn-unidade" class="field">
-            <option value="un">Unidade (un)</option>
-            <option value="m²">Metro quadrado (m²)</option>
-            <option value="m">Metro linear (m)</option>
-            <option value="kg">Quilograma (kg)</option>
-            <option value="l">Litro (l)</option>
-            <option value="cx">Caixa (cx)</option>
-            <option value="rolo">Rolo</option>
-            <option value="pç">Peça (pç)</option>
-            <option value="placa">Placa</option>
-            <option value="outro">Outro</option>
-          </select>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <label class="label">Produto / Material Principal</label>
-          <input type="text" id="forn-produto" class="field" placeholder="Ex: Chapa ACM 3mm Prata">
-        </div>
-        <div>
-          <label class="label">Valor de Referência (R$)</label>
-          <input type="number" id="forn-valor" class="field" placeholder="0,00" min="0" step="0.01">
-        </div>
-      </div>
-      <div>
-        <label class="label">Observações</label>
-        <textarea id="forn-obs" class="field" rows="3" placeholder="Condições de pagamento, prazo de entrega, etc..." style="resize:vertical"></textarea>
+        <div><label class="label">Observações</label><textarea id="forn-obs" class="field" rows="2" placeholder="Condições de pagamento, prazo de entrega..." style="resize:vertical"></textarea></div>
       </div>
     </div>
-    <div style="display:flex;gap:10px;margin-top:20px">
-      <button class="btn" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text)" onclick="window.fecharModalFornecedor()">Cancelar</button>
-      <button class="btn btn-primary" style="flex:2" onclick="window.salvarFornecedor()">Salvar Fornecedor</button>
+
+    <!-- PRODUTOS DO FORNECEDOR -->
+    <div style="background:#fff;border-radius:10px;padding:16px;border:1px solid #e0ddd8;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Produtos / Materiais</div>
+        <button onclick="window.addLinhaProduto()" style="background:var(--accent);color:#fff;border:none;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">+ Adicionar</button>
+      </div>
+      <div id="forn-produtos-lista" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div id="forn-produtos-vazio" style="text-align:center;color:var(--muted);font-size:13px;padding:16px 0">Nenhum produto adicionado. Clique em + Adicionar.</div>
+      <datalist id="forn-cat-dl"></datalist>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);margin-top:0" onclick="window.fecharModalFornecedor()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:2;margin-top:0" onclick="window.salvarFornecedor()">Salvar Fornecedor</button>
     </div>
   </div>
 
@@ -5299,9 +5253,12 @@ window.confirmarEdicaoValor = async function() {
 
 
 // ══════════════════════════════════════════════
-// FORNECEDORES
+// FORNECEDORES (multi-produto)
 // ══════════════════════════════════════════════
 let _fornecedores = [];
+let _fornProdutosTemp = []; // produtos no modal aberto
+
+const FORN_UNIDADES = ['un','m²','m','kg','l','cx','rolo','pç','placa','outro'];
 
 async function carregarFornecedores() {
   try {
@@ -5312,38 +5269,60 @@ async function carregarFornecedores() {
 }
 
 function _atualizarDatalistCatForn() {
-  const cats = [...new Set(_fornecedores.map(f => f.categoria).filter(Boolean))].sort();
-  // datalist no modal
-  const dl = document.getElementById('forn-cat-datalist');
-  if(dl) dl.innerHTML = cats.map(c => `<option value="${c}">`).join('');
-  // select no filtro
+  // Coletar todas as categorias de todos os produtos
+  const cats = [...new Set(_fornecedores.flatMap(f => (f.produtos||[]).map(p=>p.categoria)).filter(Boolean))].sort();
   const sel = document.getElementById('forn-filtro-cat');
   if(sel) {
     const cur = sel.value;
-    sel.innerHTML = '<option value="">Todas categorias</option>' + cats.map(c => `<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
+    sel.innerHTML = '<option value="">Todas categorias</option>' + cats.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
   }
 }
+
+// Renderiza as linhas de produto dentro do modal
+window.renderLinhaProdutos = function() {
+  const lista = document.getElementById('forn-produtos-lista');
+  const vazio = document.getElementById('forn-produtos-vazio');
+  if(!lista) return;
+  if(!_fornProdutosTemp.length) { lista.innerHTML=''; vazio.style.display='block'; return; }
+  vazio.style.display='none';
+  lista.innerHTML = _fornProdutosTemp.map((p,i)=>`
+    <div style="display:grid;grid-template-columns:2fr 2fr 1fr 1fr auto;gap:8px;align-items:center;background:#f8f7f5;border-radius:8px;padding:10px 12px;border:1px solid #e8e5e0">
+      <input type="text" value="${p.produto||''}" placeholder="Nome do produto" class="field" style="font-size:12px;padding:6px 10px"
+        oninput="_fornProdutosTemp[${i}].produto=this.value">
+      <input type="text" value="${p.categoria||''}" placeholder="Categoria" class="field" style="font-size:12px;padding:6px 10px" list="forn-cat-dl"
+        oninput="_fornProdutosTemp[${i}].categoria=this.value">
+      <select class="field" style="font-size:12px;padding:6px 8px" onchange="_fornProdutosTemp[${i}].unidade=this.value">
+        ${FORN_UNIDADES.map(u=>`<option value="${u}" ${(p.unidade||'un')===u?'selected':''}>${u}</option>`).join('')}
+      </select>
+      <input type="number" value="${p.valor||''}" placeholder="R$ 0,00" class="field" style="font-size:12px;padding:6px 10px;text-align:right" min="0" step="0.01"
+        oninput="_fornProdutosTemp[${i}].valor=parseFloat(this.value)||0">
+      <button onclick="_fornProdutosTemp.splice(${i},1);window.renderLinhaProdutos()" style="background:none;border:none;color:#cc3300;font-size:18px;cursor:pointer;line-height:1;padding:0 4px" title="Remover">✕</button>
+    </div>
+  `).join('');
+  // cabeçalho de coluna se tiver itens
+};
+
+window.addLinhaProduto = function() {
+  _fornProdutosTemp.push({produto:'',categoria:'',unidade:'un',valor:0});
+  window.renderLinhaProdutos();
+  // scroll para o final da lista
+  setTimeout(()=>{
+    const lista = document.getElementById('forn-produtos-lista');
+    if(lista) lista.lastElementChild?.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }, 50);
+};
 
 window.abrirModalFornecedor = function(id) {
   const m = document.getElementById('modal-fornecedor');
   if(!m) return;
+  _fornProdutosTemp = [];
   document.getElementById('forn-id').value = '';
-  document.getElementById('forn-nome').value = '';
-  document.getElementById('forn-doc').value = '';
-  document.getElementById('forn-telefone').value = '';
-  document.getElementById('forn-email').value = '';
-  document.getElementById('forn-endereco').value = '';
-  document.getElementById('forn-cidade').value = '';
-  document.getElementById('forn-estado').value = '';
-  document.getElementById('forn-cep').value = '';
-  document.getElementById('forn-categoria').value = '';
-  document.getElementById('forn-unidade').value = 'un';
-  document.getElementById('forn-produto').value = '';
-  document.getElementById('forn-valor').value = '';
-  document.getElementById('forn-obs').value = '';
+  ['forn-nome','forn-doc','forn-telefone','forn-email','forn-endereco','forn-cidade','forn-estado','forn-cep','forn-obs'].forEach(k=>{
+    const el=document.getElementById(k); if(el) el.value='';
+  });
   document.getElementById('forn-modal-title').textContent = 'Novo Fornecedor';
   if(id) {
-    const f = _fornecedores.find(x => x.id === id);
+    const f = _fornecedores.find(x=>x.id===id);
     if(f) {
       document.getElementById('forn-modal-title').textContent = 'Editar Fornecedor';
       document.getElementById('forn-id').value = f.id;
@@ -5355,25 +5334,24 @@ window.abrirModalFornecedor = function(id) {
       document.getElementById('forn-cidade').value = f.cidade||'';
       document.getElementById('forn-estado').value = f.estado||'';
       document.getElementById('forn-cep').value = f.cep||'';
-      document.getElementById('forn-categoria').value = f.categoria||'';
-      document.getElementById('forn-unidade').value = f.unidade||'un';
-      document.getElementById('forn-produto').value = f.produto||'';
-      document.getElementById('forn-valor').value = f.valor||'';
       document.getElementById('forn-obs').value = f.obs||'';
+      _fornProdutosTemp = (f.produtos||[]).map(p=>({...p}));
     }
   }
-  _atualizarDatalistCatForn();
+  window.renderLinhaProdutos();
   m.style.display = 'flex';
 };
 
 window.fecharModalFornecedor = function() {
   const m = document.getElementById('modal-fornecedor');
-  if(m) m.style.display = 'none';
+  if(m) m.style.display='none';
 };
 
 window.salvarFornecedor = async function() {
   const nome = document.getElementById('forn-nome').value.trim();
   if(!nome) { showToast('Informe o nome do fornecedor!'); return; }
+  // Validar produtos (pelo menos nome preenchido)
+  const produtos = _fornProdutosTemp.filter(p=>p.produto?.trim());
   const id = document.getElementById('forn-id').value;
   const data = {
     nome,
@@ -5384,11 +5362,8 @@ window.salvarFornecedor = async function() {
     cidade: document.getElementById('forn-cidade').value.trim(),
     estado: document.getElementById('forn-estado').value.trim().toUpperCase(),
     cep: document.getElementById('forn-cep').value.trim(),
-    categoria: document.getElementById('forn-categoria').value.trim(),
-    unidade: document.getElementById('forn-unidade').value,
-    produto: document.getElementById('forn-produto').value.trim(),
-    valor: parseFloat(document.getElementById('forn-valor').value)||0,
     obs: document.getElementById('forn-obs').value.trim(),
+    produtos,
     alteradoEm: new Date().toISOString()
   };
   try {
@@ -5399,7 +5374,7 @@ window.salvarFornecedor = async function() {
     } else {
       data.criadoEm = new Date().toISOString();
       const ref = await addDoc(collection(db,'cmt_fornecedores'), data);
-      _fornecedores.push({id: ref.id, ...data});
+      _fornecedores.push({id:ref.id, ...data});
     }
     window.fecharModalFornecedor();
     _atualizarDatalistCatForn();
@@ -5422,57 +5397,75 @@ window.renderFornecedores = function() {
   const busca = (document.getElementById('forn-busca')?.value||'').toLowerCase();
   const cat = document.getElementById('forn-filtro-cat')?.value||'';
   const lista = _fornecedores.filter(f => {
-    const ok_cat = !cat || f.categoria===cat;
-    const ok_busca = !busca || (f.nome||'').toLowerCase().includes(busca)
-                            || (f.doc||'').includes(busca)
-                            || (f.produto||'').toLowerCase().includes(busca);
+    const prods = f.produtos||[];
+    const ok_cat = !cat || prods.some(p=>p.categoria===cat);
+    const ok_busca = !busca ||
+      (f.nome||'').toLowerCase().includes(busca) ||
+      (f.doc||'').includes(busca) ||
+      prods.some(p=>(p.produto||'').toLowerCase().includes(busca)||(p.categoria||'').toLowerCase().includes(busca));
     return ok_cat && ok_busca;
   });
   const el = document.getElementById('forn-lista');
   if(!el) return;
   if(!lista.length) {
-    el.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px">Nenhum fornecedor encontrado.</div>`;
+    el.innerHTML=`<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px">Nenhum fornecedor encontrado.</div>`;
     return;
   }
   const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('pt-BR') : '—';
   const fmtMoney = v => v ? 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—';
-  el.innerHTML = lista.map(f => `
+  el.innerHTML = lista.map(f => {
+    const prods = f.produtos||[];
+    const cats = [...new Set(prods.map(p=>p.categoria).filter(Boolean))];
+    const prodRows = prods.length ? prods.map(p=>`
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;padding:5px 0;border-bottom:1px solid #eee;font-size:12px">
+        <div style="font-weight:600;color:var(--text)">${p.produto||'—'}</div>
+        <div style="color:var(--muted)">${p.categoria||'—'} · ${p.unidade||'un'}</div>
+        <div style="text-align:right;font-weight:700;color:var(--accent)">${fmtMoney(p.valor)}</div>
+      </div>`).join('') : `<div style="color:var(--muted);font-size:12px;padding:6px 0">Nenhum produto cadastrado</div>`;
+    return `
     <div style="background:var(--card);border-radius:14px;padding:18px;border:1px solid var(--border);display:flex;flex-direction:column;gap:10px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-        <div>
+        <div style="cursor:pointer" onclick="window.abrirModalFornecedor('${f.id}')">
           <div style="font-weight:700;font-size:16px;color:var(--text)">${f.nome||'—'}</div>
-          ${f.doc ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${f.doc}</div>` : ''}
+          ${f.doc?`<div style="font-size:12px;color:var(--muted);margin-top:2px">${f.doc}</div>`:''}
         </div>
-        <div style="display:flex;gap:6px;flex-shrink:0">
-          <button onclick="window.gerarPDFFornecedor('${f.id}')" title="PDF" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px">📄 PDF</button>
-          <button onclick="window.abrirModalFornecedor('${f.id}')" title="Editar" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:14px">✏️</button>
-          <button onclick="window.excluirFornecedor('${f.id}')" title="Excluir" style="background:none;border:1px solid #f003;color:var(--red);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:14px">🗑️</button>
+        <div style="display:flex;gap:5px;flex-shrink:0">
+          <button onclick="window.gerarPDFFornecedor('${f.id}')" title="PDF" style="background:var(--accent);color:#fff;border:none;border-radius:7px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:700">📄 PDF</button>
+          <button onclick="window.abrirModalFornecedor('${f.id}')" title="Editar" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 9px;cursor:pointer;font-size:14px">✏️</button>
+          <button onclick="window.excluirFornecedor('${f.id}')" title="Excluir" style="background:none;border:1px solid #f003;color:var(--red);border-radius:7px;padding:5px 9px;cursor:pointer;font-size:14px">🗑️</button>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px">
-        ${f.telefone ? `<div><span style="color:var(--muted)">📞</span> ${f.telefone}</div>` : ''}
-        ${f.email ? `<div><span style="color:var(--muted)">✉️</span> ${f.email}</div>` : ''}
-        ${(f.cidade||f.estado) ? `<div style="grid-column:1/-1"><span style="color:var(--muted)">📍</span> ${[f.endereco,f.cidade,f.estado].filter(Boolean).join(', ')}</div>` : ''}
+      <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)">
+        ${f.telefone?`<span>📞 ${f.telefone}</span>`:''}
+        ${f.email?`<span>✉️ ${f.email}</span>`:''}
+        ${(f.cidade||f.estado)?`<span>📍 ${[f.cidade,f.estado].filter(Boolean).join(', ')}</span>`:''}
       </div>
-      <div style="border-top:1px solid var(--border);padding-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:12px">
-        <div><div style="color:var(--muted);font-size:11px">CATEGORIA</div><div style="font-weight:600">${f.categoria||'—'}</div></div>
-        <div><div style="color:var(--muted);font-size:11px">PRODUTO</div><div style="font-weight:600">${f.produto||'—'}</div></div>
-        <div><div style="color:var(--muted);font-size:11px">VALOR REF.</div><div style="font-weight:600;color:var(--accent)">${fmtMoney(f.valor)} / ${f.unidade||'un'}</div></div>
+      ${cats.length?`<div style="display:flex;gap:5px;flex-wrap:wrap">${cats.map(c=>`<span style="background:rgba(232,82,10,0.1);color:var(--accent);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700">${c}</span>`).join('')}</div>`:''}
+      <div style="border-top:1px solid var(--border);padding-top:8px">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">${prods.length} produto${prods.length!==1?'s':''}</div>
+        ${prodRows}
       </div>
-      ${f.obs ? `<div style="font-size:12px;color:var(--muted);background:var(--bg);border-radius:8px;padding:8px">${f.obs}</div>` : ''}
       <div style="font-size:11px;color:var(--muted);display:flex;gap:12px">
         <span>Criado: ${fmtDate(f.criadoEm)}</span>
         <span>Atualizado: ${fmtDate(f.alteradoEm)}</span>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 };
 
 window.gerarPDFFornecedor = function(id) {
-  const f = _fornecedores.find(x => x.id === id);
+  const f = _fornecedores.find(x=>x.id===id);
   if(!f) return;
   const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('pt-BR') : '—';
-  const fmtMoney = v => v ? 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—';
+  const fmtMoney = v => (v&&Number(v)>0) ? 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—';
+  const prods = f.produtos||[];
+  const prodRows = prods.map((p,i)=>`
+    <tr style="${i%2===0?'background:#fafafa':''}">
+      <td style="padding:8px 12px;border-bottom:1px solid #eee">${p.produto||'—'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center">${p.categoria||'—'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center">${p.unidade||'—'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:#e8520a">${fmtMoney(p.valor)}</td>
+    </tr>`).join('');
   const win = window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
   <title>Fornecedor – ${f.nome}</title>
@@ -5481,18 +5474,25 @@ window.gerarPDFFornecedor = function(id) {
     body{font-family:Arial,sans-serif;color:#333;padding:32px;font-size:13px}
     .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #e8520a;padding-bottom:16px;margin-bottom:24px}
     .logo-txt{font-size:22px;font-weight:900;color:#e8520a;letter-spacing:-1px}
-    .logo-sub{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:2px}
-    h1{font-size:18px;font-weight:700;margin-bottom:4px}
-    .badge{display:inline-block;background:#e8520a;color:#fff;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:16px}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #ddd;border-radius:8px;overflow:hidden;margin-bottom:16px}
-    .cell{padding:10px 14px;border-bottom:1px solid #eee}
+    .logo-sub{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:2px;margin-top:2px}
+    h1{font-size:20px;font-weight:900;margin-bottom:3px}
+    .doc{font-size:12px;color:#888;margin-bottom:18px}
+    .badge{display:inline-block;background:#e8520a;color:#fff;border-radius:6px;padding:3px 12px;font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:16px}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #ddd;border-radius:8px;overflow:hidden;margin-bottom:20px}
+    .cell{padding:9px 14px;border-bottom:1px solid #eee}
     .cell:nth-child(odd){border-right:1px solid #eee;background:#fafafa}
-    .cell label{display:block;font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px}
-    .cell span{font-size:13px;font-weight:600;color:#333}
+    .cell label{display:block;font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px}
+    .cell span{font-size:13px;font-weight:600}
     .full{grid-column:1/-1}
-    .obs{background:#fff8f0;border:1px solid #f0d0b0;border-radius:8px;padding:12px;margin-bottom:16px}
+    .section-title{font-size:12px;font-weight:700;color:#e8520a;text-transform:uppercase;letter-spacing:1px;margin:20px 0 10px}
+    table{width:100%;border-collapse:collapse;border:1px solid #ddd;border-radius:8px;overflow:hidden}
+    thead tr{background:#e8520a;color:#fff}
+    thead th{padding:10px 12px;text-align:left;font-size:12px;font-weight:700;letter-spacing:.5px}
+    thead th:last-child{text-align:right}
+    tbody tr:last-child td{border-bottom:none}
+    .obs{background:#fff8f0;border:1px solid #f0d0b0;border-radius:8px;padding:12px;margin-top:16px}
     .footer{font-size:10px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:12px;margin-top:24px}
-    @media print{body{padding:16px}.btn{display:none}}
+    @media print{body{padding:16px}}
   </style></head><body>
   <div class="header">
     <div><div class="logo-txt">CMT</div><div class="logo-sub">Projetos e Fachadas</div></div>
@@ -5500,29 +5500,33 @@ window.gerarPDFFornecedor = function(id) {
   </div>
   <div class="badge">FICHA DE FORNECEDOR</div>
   <h1>${f.nome||'—'}</h1>
-  ${f.doc ? `<p style="color:#666;font-size:12px;margin-bottom:16px">CNPJ/CPF: ${f.doc}</p>` : '<div style="margin-bottom:16px"></div>'}
-
-  <div class="grid">
+  ${f.doc?`<div class="doc">CNPJ/CPF: ${f.doc}</div>`:'<div style="margin-bottom:18px"></div>'}
+  <div class="info-grid">
     <div class="cell"><label>Telefone / WhatsApp</label><span>${f.telefone||'—'}</span></div>
     <div class="cell"><label>E-mail</label><span>${f.email||'—'}</span></div>
     <div class="cell full"><label>Endereço</label><span>${f.endereco||'—'}</span></div>
-    <div class="cell"><label>Cidade</label><span>${f.cidade||'—'}</span></div>
-    <div class="cell"><label>Estado / CEP</label><span>${[f.estado,f.cep].filter(Boolean).join(' – ')||'—'}</span></div>
-    <div class="cell"><label>Categoria do Produto</label><span>${f.categoria||'—'}</span></div>
-    <div class="cell"><label>Unidade de Medida</label><span>${f.unidade||'—'}</span></div>
-    <div class="cell full"><label>Produto / Material Principal</label><span>${f.produto||'—'}</span></div>
-    <div class="cell"><label>Valor de Referência</label><span style="color:#e8520a;font-size:15px">${fmtMoney(f.valor)} / ${f.unidade||'un'}</span></div>
+    <div class="cell"><label>Cidade / Estado</label><span>${[f.cidade,f.estado].filter(Boolean).join(' – ')||'—'}</span></div>
+    <div class="cell"><label>CEP</label><span>${f.cep||'—'}</span></div>
     <div class="cell"><label>Cadastrado em</label><span>${fmtDate(f.criadoEm)}</span></div>
-    <div class="cell full"><label>Última atualização</label><span>${fmtDate(f.alteradoEm)}</span></div>
+    <div class="cell"><label>Última atualização</label><span>${fmtDate(f.alteradoEm)}</span></div>
   </div>
-  ${f.obs ? `<div class="obs"><strong style="font-size:11px;text-transform:uppercase;color:#999;letter-spacing:.8px">Observações</strong><p style="margin-top:6px">${f.obs}</p></div>` : ''}
-
+  <div class="section-title">📦 Produtos / Materiais (${prods.length})</div>
+  ${prods.length ? `
+  <table>
+    <thead><tr>
+      <th>Produto / Material</th>
+      <th style="text-align:center">Categoria</th>
+      <th style="text-align:center">Unidade</th>
+      <th style="text-align:right">Valor Ref.</th>
+    </tr></thead>
+    <tbody>${prodRows}</tbody>
+  </table>` : '<div style="color:#999;font-style:italic;padding:8px 0">Nenhum produto cadastrado.</div>'}
+  ${f.obs?`<div class="obs"><strong style="font-size:11px;text-transform:uppercase;color:#e8520a;letter-spacing:.8px">Observações</strong><p style="margin-top:6px">${f.obs}</p></div>`:''}
   <div class="footer">CMT Projetos e Fachadas — Sistema interno de gestão</div>
   <script>window.onload=()=>{window.print();}<\/script>
   </body></html>`);
   win.document.close();
 };
-
 // init() só é chamado após login bem-sucedido
 
 
