@@ -856,7 +856,116 @@ body {
   </div>
 </div>
 
-</div><!-- /main -->
+</div>
+<!-- ===== FORNECEDORES ===== -->
+<div class="screen" id="screen-fornecedores">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px">
+    <h2 style="margin:0">🏭 Fornecedores</h2>
+    <button class="btn btn-primary" onclick="window.abrirModalFornecedor()" style="width:auto;padding:10px 20px;white-space:nowrap;margin-top:0">+ Novo Fornecedor</button>
+  </div>
+
+  <!-- Filtros -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+    <input type="text" id="forn-busca" class="field" placeholder="🔍 Buscar por nome, CNPJ/CPF..." style="flex:1;min-width:200px;padding:8px 12px" oninput="window.renderFornecedores()">
+    <select id="forn-filtro-cat" class="field" style="min-width:160px;padding:8px 12px" onchange="window.renderFornecedores()">
+      <option value="">Todas categorias</option>
+    </select>
+  </div>
+
+  <!-- Lista -->
+  <div id="forn-lista" style="display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))"></div>
+</div>
+
+<!-- MODAL FORNECEDOR -->
+<div id="modal-fornecedor" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;padding:16px">
+  <div style="background:#f4f3f0;border-radius:16px;padding:24px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h3 style="margin:0;font-size:18px" id="forn-modal-title">Novo Fornecedor</h3>
+      <button onclick="window.fecharModalFornecedor()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <input type="hidden" id="forn-id">
+    <div style="display:grid;gap:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="label">Nome / Razão Social *</label>
+          <input type="text" id="forn-nome" class="field" placeholder="Nome do fornecedor">
+        </div>
+        <div>
+          <label class="label">CNPJ / CPF</label>
+          <input type="text" id="forn-doc" class="field" placeholder="00.000.000/0001-00">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="label">Telefone / WhatsApp</label>
+          <input type="text" id="forn-telefone" class="field" placeholder="(00) 00000-0000">
+        </div>
+        <div>
+          <label class="label">E-mail</label>
+          <input type="email" id="forn-email" class="field" placeholder="contato@empresa.com">
+        </div>
+      </div>
+      <div>
+        <label class="label">Endereço</label>
+        <input type="text" id="forn-endereco" class="field" placeholder="Rua, número, bairro">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div>
+          <label class="label">Cidade</label>
+          <input type="text" id="forn-cidade" class="field" placeholder="Cidade">
+        </div>
+        <div>
+          <label class="label">Estado</label>
+          <input type="text" id="forn-estado" class="field" placeholder="SP" maxlength="2">
+        </div>
+        <div>
+          <label class="label">CEP</label>
+          <input type="text" id="forn-cep" class="field" placeholder="00000-000">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="label">Categoria do Produto *</label>
+          <input type="text" id="forn-categoria" class="field" placeholder="Ex: ACM, Vidro, Estrutura..." list="forn-cat-datalist">
+          <datalist id="forn-cat-datalist"></datalist>
+        </div>
+        <div>
+          <label class="label">Unidade de Medida</label>
+          <select id="forn-unidade" class="field">
+            <option value="un">Unidade (un)</option>
+            <option value="m²">Metro quadrado (m²)</option>
+            <option value="m">Metro linear (m)</option>
+            <option value="kg">Quilograma (kg)</option>
+            <option value="l">Litro (l)</option>
+            <option value="cx">Caixa (cx)</option>
+            <option value="rolo">Rolo</option>
+            <option value="pç">Peça (pç)</option>
+            <option value="placa">Placa</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="label">Produto / Material Principal</label>
+          <input type="text" id="forn-produto" class="field" placeholder="Ex: Chapa ACM 3mm Prata">
+        </div>
+        <div>
+          <label class="label">Valor de Referência (R$)</label>
+          <input type="number" id="forn-valor" class="field" placeholder="0,00" min="0" step="0.01">
+        </div>
+      </div>
+      <div>
+        <label class="label">Observações</label>
+        <textarea id="forn-obs" class="field" rows="3" placeholder="Condições de pagamento, prazo de entrega, etc..." style="resize:vertical"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text)" onclick="window.fecharModalFornecedor()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:2" onclick="window.salvarFornecedor()">Salvar Fornecedor</button>
+    </div>
+  </div>
+
 
 <!-- ===== ESTOQUE ===== -->
 <div class="screen" id="screen-estoque" style="padding:0 28px 28px">
@@ -1292,114 +1401,6 @@ body {
 </div><!-- /content-wrap -->
 </div><!-- /app-wrap -->
 
-<!-- ===== FORNECEDORES ===== -->
-<div class="screen" id="screen-fornecedores">
-  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px">
-    <h2 style="margin:0">🏭 Fornecedores</h2>
-    <button class="btn btn-primary" onclick="window.abrirModalFornecedor()" style="width:auto;padding:10px 20px;white-space:nowrap;margin-top:0">+ Novo Fornecedor</button>
-  </div>
-
-  <!-- Filtros -->
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
-    <input type="text" id="forn-busca" class="field" placeholder="🔍 Buscar por nome, CNPJ/CPF..." style="flex:1;min-width:200px;padding:8px 12px" oninput="window.renderFornecedores()">
-    <select id="forn-filtro-cat" class="field" style="min-width:160px;padding:8px 12px" onchange="window.renderFornecedores()">
-      <option value="">Todas categorias</option>
-    </select>
-  </div>
-
-  <!-- Lista -->
-  <div id="forn-lista" style="display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))"></div>
-</div>
-
-<!-- MODAL FORNECEDOR -->
-<div id="modal-fornecedor" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;padding:16px">
-  <div style="background:#f4f3f0;border-radius:16px;padding:24px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <h3 style="margin:0;font-size:18px" id="forn-modal-title">Novo Fornecedor</h3>
-      <button onclick="window.fecharModalFornecedor()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">✕</button>
-    </div>
-    <input type="hidden" id="forn-id">
-    <div style="display:grid;gap:14px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <label class="label">Nome / Razão Social *</label>
-          <input type="text" id="forn-nome" class="field" placeholder="Nome do fornecedor">
-        </div>
-        <div>
-          <label class="label">CNPJ / CPF</label>
-          <input type="text" id="forn-doc" class="field" placeholder="00.000.000/0001-00">
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <label class="label">Telefone / WhatsApp</label>
-          <input type="text" id="forn-telefone" class="field" placeholder="(00) 00000-0000">
-        </div>
-        <div>
-          <label class="label">E-mail</label>
-          <input type="email" id="forn-email" class="field" placeholder="contato@empresa.com">
-        </div>
-      </div>
-      <div>
-        <label class="label">Endereço</label>
-        <input type="text" id="forn-endereco" class="field" placeholder="Rua, número, bairro">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-        <div>
-          <label class="label">Cidade</label>
-          <input type="text" id="forn-cidade" class="field" placeholder="Cidade">
-        </div>
-        <div>
-          <label class="label">Estado</label>
-          <input type="text" id="forn-estado" class="field" placeholder="SP" maxlength="2">
-        </div>
-        <div>
-          <label class="label">CEP</label>
-          <input type="text" id="forn-cep" class="field" placeholder="00000-000">
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <label class="label">Categoria do Produto *</label>
-          <input type="text" id="forn-categoria" class="field" placeholder="Ex: ACM, Vidro, Estrutura..." list="forn-cat-datalist">
-          <datalist id="forn-cat-datalist"></datalist>
-        </div>
-        <div>
-          <label class="label">Unidade de Medida</label>
-          <select id="forn-unidade" class="field">
-            <option value="un">Unidade (un)</option>
-            <option value="m²">Metro quadrado (m²)</option>
-            <option value="m">Metro linear (m)</option>
-            <option value="kg">Quilograma (kg)</option>
-            <option value="l">Litro (l)</option>
-            <option value="cx">Caixa (cx)</option>
-            <option value="rolo">Rolo</option>
-            <option value="pç">Peça (pç)</option>
-            <option value="placa">Placa</option>
-            <option value="outro">Outro</option>
-          </select>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <label class="label">Produto / Material Principal</label>
-          <input type="text" id="forn-produto" class="field" placeholder="Ex: Chapa ACM 3mm Prata">
-        </div>
-        <div>
-          <label class="label">Valor de Referência (R$)</label>
-          <input type="number" id="forn-valor" class="field" placeholder="0,00" min="0" step="0.01">
-        </div>
-      </div>
-      <div>
-        <label class="label">Observações</label>
-        <textarea id="forn-obs" class="field" rows="3" placeholder="Condições de pagamento, prazo de entrega, etc..." style="resize:vertical"></textarea>
-      </div>
-    </div>
-    <div style="display:flex;gap:10px;margin-top:20px">
-      <button class="btn" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text)" onclick="window.fecharModalFornecedor()">Cancelar</button>
-      <button class="btn btn-primary" style="flex:2" onclick="window.salvarFornecedor()">Salvar Fornecedor</button>
-    </div>
-  </div>
 </div>
 
 <!-- LOGIN SCREEN -->
