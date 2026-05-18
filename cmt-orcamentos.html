@@ -5263,9 +5263,28 @@ const FORN_UNIDADES = ['un','m²','m','kg','l','cx','rolo','pç','placa','outro'
 async function carregarFornecedores() {
   try {
     const snap = await getDocs(collection(db, 'cmt_fornecedores'));
-    _fornecedores = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _fornecedores = snap.docs.map(d => {
+      const data = d.data();
+      // Compatibilidade: migra formato antigo (campos soltos) para array produtos
+      if(!data.produtos || !Array.isArray(data.produtos)) {
+        data.produtos = [];
+        if(data.produto && data.produto.trim()) {
+          data.produtos.push({
+            produto: data.produto||'',
+            categoria: data.categoria||'',
+            unidade: data.unidade||'un',
+            valor: parseFloat(data.valor)||0
+          });
+        }
+      }
+      return { id: d.id, ...data };
+    });
     _atualizarDatalistCatForn();
-  } catch(e) { _fornecedores = []; }
+  } catch(e) {
+    console.error('Erro ao carregar fornecedores:', e);
+    showToast('Erro ao carregar fornecedores: ' + e.message);
+    _fornecedores = [];
+  }
 }
 
 function _atualizarDatalistCatForn() {
