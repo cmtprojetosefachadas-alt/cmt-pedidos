@@ -5303,29 +5303,94 @@ window.renderLinhaProdutos = function() {
   const lista = document.getElementById('forn-produtos-lista');
   const vazio = document.getElementById('forn-produtos-vazio');
   if(!lista) return;
-  if(!_fornProdutosTemp.length) { lista.innerHTML=''; vazio.style.display='block'; return; }
-  vazio.style.display='none';
-  lista.innerHTML = _fornProdutosTemp.map((p,i)=>`
-    <div style="display:grid;grid-template-columns:2fr 2fr 1fr 1fr auto;gap:8px;align-items:center;background:#f8f7f5;border-radius:8px;padding:10px 12px;border:1px solid #e8e5e0">
-      <input type="text" value="${p.produto||''}" placeholder="Nome do produto" class="field" style="font-size:12px;padding:6px 10px"
-        oninput="_fornProdutosTemp[${i}].produto=this.value">
-      <input type="text" value="${p.categoria||''}" placeholder="Categoria" class="field" style="font-size:12px;padding:6px 10px" list="forn-cat-dl"
-        oninput="_fornProdutosTemp[${i}].categoria=this.value">
-      <select class="field" style="font-size:12px;padding:6px 8px" onchange="_fornProdutosTemp[${i}].unidade=this.value">
+  if(!_fornProdutosTemp.length) {
+    lista.innerHTML='';
+    if(vazio) vazio.style.display='block';
+    return;
+  }
+  if(vazio) vazio.style.display='none';
+
+  // Cabeçalho
+  const header = `<div style="display:grid;grid-template-columns:2fr 1.5fr 90px 100px 72px;gap:8px;padding:0 12px 6px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px">
+    <div>Produto</div><div>Categoria</div><div>Unid.</div><div style="text-align:right">Valor R$</div><div></div>
+  </div>`;
+
+  const rows = _fornProdutosTemp.map((p,i)=>`
+    <div data-row="${i}" style="display:grid;grid-template-columns:2fr 1.5fr 90px 100px 72px;gap:8px;align-items:center;background:#fff;border-radius:8px;padding:8px 12px;border:1px solid ${p._salvo?'#b6e5b6':'#e0ddd8'}">
+      <input type="text" data-field="produto" data-idx="${i}" value="${(p.produto||'').replace(/"/g,'&quot;')}" placeholder="Nome do produto"
+        style="font-size:12px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-family:inherit;outline:none;width:100%">
+      <input type="text" data-field="categoria" data-idx="${i}" value="${(p.categoria||'').replace(/"/g,'&quot;')}" placeholder="Categoria" list="forn-cat-dl"
+        style="font-size:12px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-family:inherit;outline:none;width:100%">
+      <select data-field="unidade" data-idx="${i}"
+        style="font-size:12px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-family:inherit;outline:none;width:100%;background:#fff">
         ${FORN_UNIDADES.map(u=>`<option value="${u}" ${(p.unidade||'un')===u?'selected':''}>${u}</option>`).join('')}
       </select>
-      <input type="number" value="${p.valor||''}" placeholder="R$ 0,00" class="field" style="font-size:12px;padding:6px 10px;text-align:right" min="0" step="0.01"
-        oninput="_fornProdutosTemp[${i}].valor=parseFloat(this.value)||0">
-      <button onclick="_fornProdutosTemp.splice(${i},1);window.renderLinhaProdutos()" style="background:none;border:none;color:#cc3300;font-size:18px;cursor:pointer;line-height:1;padding:0 4px" title="Remover">✕</button>
+      <input type="number" data-field="valor" data-idx="${i}" value="${p.valor||''}" placeholder="0,00" min="0" step="0.01"
+        style="font-size:12px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-family:inherit;outline:none;width:100%;text-align:right">
+      <div style="display:flex;gap:4px;align-items:center">
+        <button data-save="${i}" title="Salvar produto"
+          style="background:#e8520a;border:none;color:#fff;border-radius:6px;width:32px;height:32px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">💾</button>
+        <button data-del="${i}" title="Remover produto"
+          style="background:#fff0f0;border:1px solid #ffcccc;color:#cc2200;border-radius:6px;width:32px;height:32px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700">✕</button>
+      </div>
     </div>
   `).join('');
-  // cabeçalho de coluna se tiver itens
+
+  lista.innerHTML = header + rows;
+
+  // Event delegation
+  lista.oninput = function(e) {
+    const el = e.target;
+    const idx = parseInt(el.dataset.idx);
+    const field = el.dataset.field;
+    if(isNaN(idx) || !field || !_fornProdutosTemp[idx]) return;
+    _fornProdutosTemp[idx]._salvo = false;
+    if(field==='valor') _fornProdutosTemp[idx].valor = parseFloat(el.value)||0;
+    else _fornProdutosTemp[idx][field] = el.value;
+  };
+  lista.onchange = function(e) {
+    const el = e.target;
+    const idx = parseInt(el.dataset.idx);
+    const field = el.dataset.field;
+    if(isNaN(idx) || !field || !_fornProdutosTemp[idx]) return;
+    _fornProdutosTemp[idx]._salvo = false;
+    _fornProdutosTemp[idx][field] = el.value;
+  };
+  lista.onclick = function(e) {
+    // Excluir linha
+    const btnDel = e.target.closest('[data-del]');
+    if(btnDel) {
+      const idx = parseInt(btnDel.dataset.del);
+      if(!isNaN(idx)) { _fornProdutosTemp.splice(idx,1); window.renderLinhaProdutos(); }
+      return;
+    }
+    // Salvar produto individual
+    const btnSave = e.target.closest('[data-save]');
+    if(btnSave) {
+      const idx = parseInt(btnSave.dataset.save);
+      if(isNaN(idx) || !_fornProdutosTemp[idx]) return;
+      const p = _fornProdutosTemp[idx];
+      if(!p.produto || !String(p.produto).trim()) { showToast('Informe o nome do produto!'); return; }
+      // Coleta valores atuais dos inputs da linha
+      const row = btnSave.closest('[data-row]');
+      if(row) {
+        row.querySelectorAll('[data-field]').forEach(el => {
+          const f = el.dataset.field;
+          if(f==='valor') _fornProdutosTemp[idx].valor = parseFloat(el.value)||0;
+          else _fornProdutosTemp[idx][f] = el.value;
+        });
+      }
+      _fornProdutosTemp[idx]._salvo = true;
+      // Borda verde para confirmar
+      if(row) { row.style.border='1px solid #4caf50'; row.style.background='#f6fff6'; }
+      showToast('Produto salvo! Clique em "Salvar Fornecedor" para confirmar tudo.');
+    }
+  };
 };
 
 window.addLinhaProduto = function() {
   _fornProdutosTemp.push({produto:'',categoria:'',unidade:'un',valor:0});
   window.renderLinhaProdutos();
-  // scroll para o final da lista
   setTimeout(()=>{
     const lista = document.getElementById('forn-produtos-lista');
     if(lista) lista.lastElementChild?.scrollIntoView({behavior:'smooth',block:'nearest'});
