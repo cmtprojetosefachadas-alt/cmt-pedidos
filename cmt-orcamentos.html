@@ -1296,7 +1296,7 @@ body {
 <div class="screen" id="screen-fornecedores">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px">
     <h2 style="margin:0">🏭 Fornecedores</h2>
-    <button class="btn btn-primary" onclick="window.abrirModalFornecedor()">+ Novo Fornecedor</button>
+    <button class="btn btn-primary" onclick="window.abrirModalFornecedor()" style="width:auto;padding:10px 20px;white-space:nowrap;margin-top:0">+ Novo Fornecedor</button>
   </div>
 
   <!-- Filtros -->
@@ -1313,7 +1313,7 @@ body {
 
 <!-- MODAL FORNECEDOR -->
 <div id="modal-fornecedor" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;padding:16px">
-  <div style="background:var(--card);border-radius:16px;padding:24px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
+  <div style="background:#f4f3f0;border-radius:16px;padding:24px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <h3 style="margin:0;font-size:18px" id="forn-modal-title">Novo Fornecedor</h3>
       <button onclick="window.fecharModalFornecedor()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">✕</button>
@@ -1375,6 +1375,7 @@ body {
             <option value="cx">Caixa (cx)</option>
             <option value="rolo">Rolo</option>
             <option value="pç">Peça (pç)</option>
+            <option value="placa">Placa</option>
             <option value="outro">Outro</option>
           </select>
         </div>
