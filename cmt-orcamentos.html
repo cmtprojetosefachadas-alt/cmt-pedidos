@@ -2017,6 +2017,7 @@ async function init() {
   await carregarSaldos();
   await carregarEstoque();
   await carregarFornecedores();
+  window.renderFornecedores();
   renderCatalogo();
   renderListaOrcamentos();
   renderRelatorio();
@@ -5370,7 +5371,14 @@ window.salvarFornecedor = async function() {
   const nome = document.getElementById('forn-nome').value.trim();
   if(!nome) { showToast('Informe o nome do fornecedor!'); return; }
   // Validar produtos (pelo menos nome preenchido)
-  const produtos = _fornProdutosTemp.filter(p=>p.produto?.trim());
+  const produtos = _fornProdutosTemp
+    .filter(p => p.produto && String(p.produto).trim())
+    .map(p => ({
+      produto: String(p.produto||'').trim(),
+      categoria: String(p.categoria||'').trim(),
+      unidade: String(p.unidade||'un'),
+      valor: parseFloat(p.valor)||0
+    }));
   const id = document.getElementById('forn-id').value;
   const data = {
     nome,
@@ -5412,15 +5420,24 @@ window.excluirFornecedor = async function(id) {
   } catch(e) { showToast('Erro: '+e.message); }
 };
 
+// Controla quais cards estão expandidos
+const _fornExpandido = new Set();
+
+window.toggleFornecedor = function(id) {
+  if(_fornExpandido.has(id)) _fornExpandido.delete(id);
+  else _fornExpandido.add(id);
+  window.renderFornecedores();
+};
+
 window.renderFornecedores = function() {
   const busca = (document.getElementById('forn-busca')?.value||'').toLowerCase();
   const cat = document.getElementById('forn-filtro-cat')?.value||'';
   const lista = _fornecedores.filter(f => {
     const prods = f.produtos||[];
-    const ok_cat = !cat || prods.some(p=>p.categoria===cat);
+    const ok_cat = !cat || prods.some(p=>(p.categoria||'')===cat);
     const ok_busca = !busca ||
       (f.nome||'').toLowerCase().includes(busca) ||
-      (f.doc||'').includes(busca) ||
+      (f.doc||'').toLowerCase().includes(busca) ||
       prods.some(p=>(p.produto||'').toLowerCase().includes(busca)||(p.categoria||'').toLowerCase().includes(busca));
     return ok_cat && ok_busca;
   });
@@ -5431,43 +5448,76 @@ window.renderFornecedores = function() {
     return;
   }
   const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('pt-BR') : '—';
-  const fmtMoney = v => v ? 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—';
+  const fmtMoney = v => (v && Number(v)>0) ? 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—';
+
   el.innerHTML = lista.map(f => {
     const prods = f.produtos||[];
     const cats = [...new Set(prods.map(p=>p.categoria).filter(Boolean))];
-    const prodRows = prods.length ? prods.map(p=>`
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;padding:5px 0;border-bottom:1px solid #eee;font-size:12px">
+    const aberto = _fornExpandido.has(f.id);
+
+    const prodRows = prods.map(p=>`
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;align-items:center">
         <div style="font-weight:600;color:var(--text)">${p.produto||'—'}</div>
-        <div style="color:var(--muted)">${p.categoria||'—'} · ${p.unidade||'un'}</div>
+        <div style="color:var(--muted);font-size:11px">${p.categoria||'—'} · ${p.unidade||'un'}</div>
         <div style="text-align:right;font-weight:700;color:var(--accent)">${fmtMoney(p.valor)}</div>
-      </div>`).join('') : `<div style="color:var(--muted);font-size:12px;padding:6px 0">Nenhum produto cadastrado</div>`;
+      </div>`).join('');
+
     return `
-    <div style="background:var(--card);border-radius:14px;padding:18px;border:1px solid var(--border);display:flex;flex-direction:column;gap:10px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-        <div style="cursor:pointer" onclick="window.abrirModalFornecedor('${f.id}')">
-          <div style="font-weight:700;font-size:16px;color:var(--text)">${f.nome||'—'}</div>
-          ${f.doc?`<div style="font-size:12px;color:var(--muted);margin-top:2px">${f.doc}</div>`:''}
+    <div style="background:var(--card);border-radius:14px;border:1px solid var(--border);overflow:hidden">
+
+      <!-- CABEÇALHO DO CARD (sempre visível) -->
+      <div style="padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer"
+           onclick="window.toggleFornecedor('${f.id}')">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.nome||'—'}</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;font-size:12px;color:var(--muted)">
+            ${f.doc?`<span>${f.doc}</span>`:''}
+            ${f.telefone?`<span>📞 ${f.telefone}</span>`:''}
+            ${(f.cidade||f.estado)?`<span>📍 ${[f.cidade,f.estado].filter(Boolean).join(', ')}</span>`:''}
+          </div>
         </div>
-        <div style="display:flex;gap:5px;flex-shrink:0">
-          <button onclick="window.gerarPDFFornecedor('${f.id}')" title="PDF" style="background:var(--accent);color:#fff;border:none;border-radius:7px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:700">📄 PDF</button>
-          <button onclick="window.abrirModalFornecedor('${f.id}')" title="Editar" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 9px;cursor:pointer;font-size:14px">✏️</button>
-          <button onclick="window.excluirFornecedor('${f.id}')" title="Excluir" style="background:none;border:1px solid #f003;color:var(--red);border-radius:7px;padding:5px 9px;cursor:pointer;font-size:14px">🗑️</button>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          ${cats.length?cats.map(c=>`<span style="background:rgba(232,82,10,0.1);color:var(--accent);border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700">${c}</span>`).join(''):''}
+          <span style="font-size:11px;color:var(--muted);white-space:nowrap">${prods.length} produto${prods.length!==1?'s':''}</span>
+          <span style="font-size:18px;color:var(--muted);transition:.2s;transform:${aberto?'rotate(180deg)':'rotate(0)'};display:inline-block">⌄</span>
         </div>
       </div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)">
-        ${f.telefone?`<span>📞 ${f.telefone}</span>`:''}
-        ${f.email?`<span>✉️ ${f.email}</span>`:''}
-        ${(f.cidade||f.estado)?`<span>📍 ${[f.cidade,f.estado].filter(Boolean).join(', ')}</span>`:''}
-      </div>
-      ${cats.length?`<div style="display:flex;gap:5px;flex-wrap:wrap">${cats.map(c=>`<span style="background:rgba(232,82,10,0.1);color:var(--accent);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700">${c}</span>`).join('')}</div>`:''}
-      <div style="border-top:1px solid var(--border);padding-top:8px">
-        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">${prods.length} produto${prods.length!==1?'s':''}</div>
-        ${prodRows}
-      </div>
-      <div style="font-size:11px;color:var(--muted);display:flex;gap:12px">
-        <span>Criado: ${fmtDate(f.criadoEm)}</span>
-        <span>Atualizado: ${fmtDate(f.alteradoEm)}</span>
-      </div>
+
+      <!-- PAINEL EXPANDIDO -->
+      ${aberto ? `
+      <div style="border-top:1px solid var(--border);padding:14px 18px;display:flex;flex-direction:column;gap:10px">
+
+        <!-- tabela produtos -->
+        <div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;padding:0 0 6px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;border-bottom:2px solid var(--border)">
+            <div>Produto</div><div>Categoria · Unid.</div><div style="text-align:right">Valor Ref.</div>
+          </div>
+          ${prodRows || `<div style="color:var(--muted);font-size:12px;padding:8px 0;text-align:center">Nenhum produto cadastrado</div>`}
+        </div>
+
+        ${f.obs?`<div style="background:var(--bg);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted)"><strong>Obs:</strong> ${f.obs}</div>`:''}
+
+        <div style="font-size:11px;color:var(--muted);display:flex;gap:12px">
+          <span>Criado: ${fmtDate(f.criadoEm)}</span>
+          <span>Atualizado: ${fmtDate(f.alteradoEm)}</span>
+        </div>
+
+        <!-- botões de ação -->
+        <div style="display:flex;gap:8px;padding-top:4px">
+          <button onclick="event.stopPropagation();window.gerarPDFFornecedor('${f.id}')"
+            style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12px;font-weight:700;flex:1">
+            📄 Gerar PDF
+          </button>
+          <button onclick="event.stopPropagation();window.abrirModalFornecedor('${f.id}')"
+            style="background:none;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12px;font-weight:600;flex:1">
+            ✏️ Editar
+          </button>
+          <button onclick="event.stopPropagation();window.excluirFornecedor('${f.id}')"
+            style="background:none;border:1px solid #f003;color:var(--red);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px">
+            🗑️
+          </button>
+        </div>
+      </div>` : ''}
     </div>`;
   }).join('');
 };
