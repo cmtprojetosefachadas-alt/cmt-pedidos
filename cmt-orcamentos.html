@@ -5505,7 +5505,7 @@ window.renderFornecedores = function() {
       (f.doc||'').toLowerCase().includes(busca) ||
       prods.some(p=>(p.produto||'').toLowerCase().includes(busca)||(p.categoria||'').toLowerCase().includes(busca));
     return ok_cat && ok_busca;
-  });
+  }).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
   const el = document.getElementById('forn-lista');
   if(!el) return;
   if(!lista.length) {
@@ -5530,46 +5530,43 @@ window.renderFornecedores = function() {
     return `
     <div style="background:var(--card);border-radius:14px;border:1px solid var(--border);overflow:hidden">
 
-      <!-- CABEÇALHO DO CARD (sempre visível) -->
-      <div style="padding:16px 18px;cursor:pointer" onclick="window.toggleFornecedor('${f.id}')">
-        <!-- linha 1: nome + seta -->
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">
-          <div style="font-weight:700;font-size:15px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${f.nome||'—'}</div>
-          <span style="font-size:20px;color:var(--muted);flex-shrink:0;line-height:1;transform:${aberto?'rotate(180deg)':'rotate(0)'};display:inline-block;transition:.2s">⌄</span>
+      <!-- CABEÇALHO -->
+      <div style="padding:16px 18px;cursor:pointer;user-select:none" onclick="window.toggleFornecedor('${f.id}')">
+
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:15px;color:var(--text);line-height:1.3;word-break:break-word">${f.nome||'—'}</div>
+            ${f.doc?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${f.doc}</div>`:''}
+          </div>
+          <span style="font-size:20px;color:var(--muted);flex-shrink:0;line-height:1;margin-top:2px;transform:${aberto?'rotate(180deg)':'rotate(0deg)'};display:inline-block;transition:.2s">⌄</span>
         </div>
-        <!-- linha 2: info de contato -->
-        <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:6px">
-          ${f.doc?`<span>${f.doc}</span>`:''}
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:12px;color:var(--muted)">
           ${f.telefone?`<span>📞 ${f.telefone}</span>`:''}
+          ${f.email?`<span>✉️ ${f.email}</span>`:''}
           ${(f.cidade||f.estado)?`<span>📍 ${[f.cidade,f.estado].filter(Boolean).join(', ')}</span>`:''}
         </div>
-        <!-- linha 3: badges + contador -->
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          ${cats.length?cats.map(c=>`<span style="background:rgba(232,82,10,0.1);color:var(--accent);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700">${c}</span>`).join(''):''}
-          <span style="font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap">${prods.length} produto${prods.length!==1?'s':''}</span>
+
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:8px">
+          ${cats.map(c=>`<span style="background:rgba(232,82,10,0.1);color:var(--accent);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700">${c}</span>`).join('')}
+          <span style="font-size:11px;color:var(--muted);margin-left:auto">${prods.length} produto${prods.length!==1?'s':''}</span>
         </div>
       </div>
 
       <!-- PAINEL EXPANDIDO -->
       ${aberto ? `
       <div style="border-top:1px solid var(--border);padding:14px 18px;display:flex;flex-direction:column;gap:10px">
-
-        <!-- tabela produtos -->
         <div>
           <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;padding:0 0 6px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;border-bottom:2px solid var(--border)">
             <div>Produto</div><div>Categoria · Unid.</div><div style="text-align:right">Valor Ref.</div>
           </div>
           ${prodRows || `<div style="color:var(--muted);font-size:12px;padding:8px 0;text-align:center">Nenhum produto cadastrado</div>`}
         </div>
-
         ${f.obs?`<div style="background:var(--bg);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted)"><strong>Obs:</strong> ${f.obs}</div>`:''}
-
         <div style="font-size:11px;color:var(--muted);display:flex;gap:12px">
           <span>Criado: ${fmtDate(f.criadoEm)}</span>
           <span>Atualizado: ${fmtDate(f.alteradoEm)}</span>
         </div>
-
-        <!-- botões de ação -->
         <div style="display:flex;gap:8px;padding-top:4px">
           <button onclick="event.stopPropagation();window.gerarPDFFornecedor('${f.id}')"
             style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12px;font-weight:700;flex:1">
@@ -5585,7 +5582,7 @@ window.renderFornecedores = function() {
           </button>
         </div>
       </div>` : ''}
-    </div>`;
+    </div>`
   }).join('');
 };
 
