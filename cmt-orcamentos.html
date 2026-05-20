@@ -3698,7 +3698,7 @@ function renderDespesas() {
       return b[1].total - a[1].total;
     }).map(([cli,{items,total}])=>{
       const cliKey = 'cli_'+cli.replace(/[^a-zA-Z0-9]/g,'_');
-      const expanded = window._cliExpandido[cliKey] !== false; // aberto por padrão
+      const expanded = window._cliExpandido[cliKey] === true; // fechado por padrão
       const orcsCliente = orcsAprov.filter(o=>o.cliente===cli);
       const orcadoOrc   = orcsCliente.reduce((a,o)=>a+(o.custoTotal||0),0);
       const saldoMan    = _saldosClientes[cli]?.valor||0;
