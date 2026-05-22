@@ -476,9 +476,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             oninput="calcParcelas()"
             style="width:100px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);text-align:right;"
             onclick="event.stopPropagation()"/>
-          <!-- Resultado inline -->
-          <div id="pgto-cartao-preview" style="display:none;padding:5px 12px;background:#fff3ec;border-radius:8px;border:1.5px solid #E05C1A;white-space:nowrap;">
-            <span id="pgto-cartao-resultado" style="font-size:13px;font-weight:700;color:#E05C1A;">—</span>
+          <!-- Valor da parcela + badge juros -->
+          <div id="pgto-cartao-preview" style="display:none;display:flex;align-items:center;gap:6px;">
+            <span id="pgto-cartao-parcela" style="font-size:15px;font-weight:800;color:#1C2340;">—</span>
+            <span id="pgto-cartao-resultado" style="font-size:11px;font-weight:700;color:#E05C1A;padding:3px 8px;background:#fff3ec;border-radius:6px;border:1px solid #E05C1A;">—</span>
+          </div>
+        </div>
+      </label>
+
+      <!-- 2x sem juros -->
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 14px;border:2px solid var(--border);border-radius:10px;margin-top:10px;background:var(--surface2);transition:all 0.15s;flex-wrap:wrap;" id="pgto-label-semjuros">
+        <input type="checkbox" id="pgto-semjuros" onchange="syncPgto()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;"/>
+        <span style="font-size:13px;font-weight:600;flex:1;min-width:120px;">✌️ 2x sem juros</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+          <span style="font-size:13px;color:var(--muted);">valor à vista R$</span>
+          <input type="number" id="pgto-semjuros-val" placeholder="0,00" min="0" step="0.01"
+            oninput="calcSemJuros()"
+            style="width:100px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);text-align:right;"
+            onclick="event.stopPropagation()"/>
+          <!-- Resultado -->
+          <div id="pgto-semjuros-preview" style="display:none;align-items:center;gap:6px;">
+            <span id="pgto-semjuros-parcela" style="font-size:15px;font-weight:800;color:#1C2340;">—</span>
+            <span style="font-size:11px;font-weight:700;color:#0F6E56;padding:3px 8px;background:#f0fdf4;border-radius:6px;border:1px solid #0F6E56;">sem juros</span>
           </div>
         </div>
       </label>
@@ -1280,7 +1299,14 @@ window.showTab = async function showTab(tab){
       // Reset pagamento UI
       const ca=document.getElementById('pgto-avista');if(ca)ca.checked=false;
       const cc=document.getElementById('pgto-cartao');if(cc)cc.checked=false;
-      ['avista','cartao'].forEach(t=>{const l=document.getElementById('pgto-label-'+t);if(l){l.style.borderColor='var(--border)';l.style.background='var(--surface2)';}});
+      const cs=document.getElementById('pgto-semjuros');if(cs)cs.checked=false;
+      ['avista','cartao','semjuros'].forEach(t=>{const l=document.getElementById('pgto-label-'+t);if(l){l.style.borderColor='var(--border)';l.style.background='var(--surface2)';}});
+      document.getElementById('pgto-avista-val')?.value && (document.getElementById('pgto-avista-val').value='');
+      document.getElementById('pgto-cartao-total')?.value && (document.getElementById('pgto-cartao-total').value='');
+      document.getElementById('pgto-parcelas') && (document.getElementById('pgto-parcelas').value='1');
+      document.getElementById('pgto-semjuros-val')?.value && (document.getElementById('pgto-semjuros-val').value='');
+      document.getElementById('pgto-cartao-preview') && (document.getElementById('pgto-cartao-preview').style.display='none');
+      document.getElementById('pgto-semjuros-preview') && (document.getElementById('pgto-semjuros-preview').style.display='none');
       const pv=document.getElementById('pgto-avista-val');if(pv)pv.value='';
       const pt=document.getElementById('pgto-cartao-total');if(pt)pt.value='';
       const pp=document.getElementById('pgto-parcelas');if(pp)pp.value='1';
@@ -5989,16 +6015,15 @@ document.getElementById('btn-migrar-datas').onclick = async function() {
 
 // FORMA DE PAGAMENTO
 window.syncPgto = function() {
-  const ativoAvista  = document.getElementById('pgto-avista').checked;
-  const ativoCartao  = document.getElementById('pgto-cartao').checked;
+  const ativoAvista   = document.getElementById('pgto-avista').checked;
+  const ativoCartao   = document.getElementById('pgto-cartao').checked;
+  const ativoSemJuros = document.getElementById('pgto-semjuros')?.checked||false;
 
-  // Destaca borda
-  const la = document.getElementById('pgto-label-avista');
-  const lc = document.getElementById('pgto-label-cartao');
-  if(la){ la.style.borderColor = ativoAvista ? 'var(--brand)' : 'var(--border)'; la.style.background = ativoAvista ? '#fff3ec' : 'var(--surface2)'; }
-  if(lc){ lc.style.borderColor = ativoCartao ? 'var(--brand)' : 'var(--border)'; lc.style.background = ativoCartao ? '#fff3ec' : 'var(--surface2)'; }
+  [['avista',ativoAvista],['cartao',ativoCartao],['semjuros',ativoSemJuros]].forEach(([t,on])=>{
+    const l=document.getElementById('pgto-label-'+t);
+    if(l){l.style.borderColor=on?'var(--brand)':'var(--border)';l.style.background=on?'#fff3ec':'var(--surface2)';}
+  });
 
-  // Monta as partes para o PDF
   const partes = [];
 
   if(ativoAvista) {
@@ -6007,20 +6032,25 @@ window.syncPgto = function() {
   }
 
   if(ativoCartao) {
-    // Recalcula cartão sem chamar calcParcelas (evita loop)
     const parc = parseInt(document.getElementById('pgto-parcelas').value)||1;
     const total = parseFloat(document.getElementById('pgto-cartao-total').value)||0;
     if(total > 0) {
       const juros = parc <= 3 ? 0.05 : 0.17;
       const totalComJuros = parc === 1 ? total : total * (1 + juros);
       const porParcela = totalComJuros / parc;
-      const textoPDF = parc === 1
+      partes.push(parc === 1
         ? `Cartão de crédito: à vista ${fmtMoney(total)}`
-        : `Cartão de crédito: ${parc}x de ${fmtMoney(porParcela)} (total ${fmtMoney(totalComJuros)})`;
-      partes.push(textoPDF);
+        : `Cartão de crédito: ${parc}x de ${fmtMoney(porParcela)} (total ${fmtMoney(totalComJuros)})`);
     } else {
       partes.push(`Cartão de crédito: ${document.getElementById('pgto-parcelas').value}x`);
     }
+  }
+
+  if(ativoSemJuros) {
+    const val = parseFloat(document.getElementById('pgto-semjuros-val')?.value)||0;
+    partes.push(val > 0
+      ? `Cartão de crédito: 2x de ${fmtMoney(val/2)} sem juros`
+      : 'Cartão de crédito: 2x sem juros');
   }
 
   document.getElementById('f-pagamento').value = partes.join('\n');
@@ -6031,21 +6061,37 @@ window.calcParcelas = function() {
   const parc = parseInt(document.getElementById('pgto-parcelas').value)||1;
   const total = parseFloat(document.getElementById('pgto-cartao-total').value)||0;
   const preview = document.getElementById('pgto-cartao-preview');
-  const resultado = document.getElementById('pgto-cartao-resultado');
+  const elParcela = document.getElementById('pgto-cartao-parcela');
+  const elResultado = document.getElementById('pgto-cartao-resultado');
 
   if(total > 0) {
     const juros = parc <= 3 ? 0.05 : 0.17;
     const totalComJuros = parc === 1 ? total : total * (1 + juros);
     const porParcela = totalComJuros / parc;
-
-    if(parc === 1) {
-      resultado.textContent = `${fmtMoney(total)} à vista`;
-    } else {
-      resultado.textContent = `${parc}x ${fmtMoney(porParcela)} (+${juros*100}%)`;
+    if(elParcela) elParcela.textContent = parc === 1 ? fmtMoney(total) : `${parc}x ${fmtMoney(porParcela)}`;
+    if(elResultado) {
+      elResultado.textContent = parc === 1 ? 'sem juros' : `+${juros*100}%`;
+      elResultado.style.color = parc === 1 ? '#0F6E56' : '#E05C1A';
+      elResultado.style.background = parc === 1 ? '#f0fdf4' : '#fff3ec';
+      elResultado.style.borderColor = parc === 1 ? '#0F6E56' : '#E05C1A';
     }
-    preview.style.display = 'block';
+    if(preview) preview.style.display = 'flex';
   } else {
-    preview.style.display = 'none';
+    if(preview) preview.style.display = 'none';
+  }
+  syncPgto();
+};
+
+window.calcSemJuros = function() {
+  document.getElementById('pgto-semjuros').checked = true;
+  const val = parseFloat(document.getElementById('pgto-semjuros-val').value)||0;
+  const preview = document.getElementById('pgto-semjuros-preview');
+  const elParcela = document.getElementById('pgto-semjuros-parcela');
+  if(val > 0) {
+    if(elParcela) elParcela.textContent = `2x ${fmtMoney(val/2)}`;
+    if(preview) preview.style.display = 'flex';
+  } else {
+    if(preview) preview.style.display = 'none';
   }
   syncPgto();
 };
