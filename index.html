@@ -438,6 +438,48 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <h3>Observações</h3>
       <div class="field"><textarea id="f-obs" placeholder="Ex: Prazo de entrega: 15 dias úteis..."></textarea></div>
     </div>
+
+    <!-- FORMA DE PAGAMENTO -->
+    <div class="form-card">
+      <h3>💳 Forma de Pagamento</h3>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Selecione a forma e preencha os valores — aparece no PDF do orçamento.</p>
+
+      <!-- À vista -->
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 14px;border:2px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--surface2);transition:all 0.15s;" id="pgto-label-avista">
+        <input type="radio" name="pgto-tipo" id="pgto-avista" value="avista" onchange="syncPgto()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;"/>
+        <span style="font-size:13px;font-weight:600;flex:1;">💵 À vista</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:13px;color:var(--muted);">R$</span>
+          <input type="number" id="pgto-avista-val" placeholder="0,00" min="0" step="0.01"
+            oninput="syncPgto()"
+            style="width:120px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);text-align:right;"
+            onclick="event.stopPropagation()"/>
+        </div>
+      </label>
+
+      <!-- Cartão de crédito -->
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 14px;border:2px solid var(--border);border-radius:10px;background:var(--surface2);transition:all 0.15s;" id="pgto-label-cartao">
+        <input type="radio" name="pgto-tipo" id="pgto-cartao" value="cartao" onchange="syncPgto()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;"/>
+        <span style="font-size:13px;font-weight:600;flex:1;">💳 Cartão de crédito</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+          <select id="pgto-parcelas" onchange="calcParcelas()" onclick="event.stopPropagation()"
+            style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);cursor:pointer;">
+            ${Array.from({length:18},(_,i)=>`<option value="${i+1}">${i+1}x</option>`).join('')}
+          </select>
+          <span style="font-size:13px;color:var(--muted);">valor total R$</span>
+          <input type="number" id="pgto-cartao-total" placeholder="0,00" min="0" step="0.01"
+            oninput="calcParcelas()"
+            style="width:110px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);text-align:right;"
+            onclick="event.stopPropagation()"/>
+        </div>
+      </label>
+      <!-- Preview resultado cartão -->
+      <div id="pgto-cartao-preview" style="display:none;margin-top:8px;padding:10px 14px;background:#f0fdf4;border-radius:8px;border:1.5px solid #86efac;">
+        <span style="font-size:14px;font-weight:700;color:#166534;" id="pgto-cartao-resultado">—</span>
+      </div>
+
+      <input type="hidden" id="f-pagamento"/>
+    </div>
     <div class="form-card">
       <h3>🛡️ Garantias</h3>
       <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Selecione os itens que se aplicam — apenas os marcados aparecem no PDF.</p>
@@ -971,17 +1013,30 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 <!-- MODAL EDITAR CLIENTE -->
 <div class="modal-bg" id="edit-cliente-bg">
-  <div class="modal" style="max-width:480px;">
+  <div class="modal" style="max-width:520px;">
     <button class="modal-close" id="btn-close-edit-cliente">×</button>
-    <h2>Editar cliente</h2>
+    <h2>✏️ Editar cliente</h2>
     <input type="hidden" id="edit-cliente-id"/>
-    <div class="modal-field"><label>Nome *</label><input type="text" id="edit-nome" placeholder="Nome completo"/></div>
-    <div class="modal-field"><label>Telefone</label><input type="text" id="edit-tel" placeholder="Ex: 16991234567"/></div>
-    <div class="modal-field"><label>CPF ou CNPJ</label><input type="text" id="edit-doc" placeholder="000.000.000-00"/></div>
-    <div class="modal-field"><label>Endereço</label><input type="text" id="edit-end" placeholder="Rua das Flores, 123"/></div>
+    <input type="hidden" id="edit-cliente-nome-original"/>
+    <div class="modal-field"><label>Nome / Razão Social *</label><input type="text" id="edit-nome" placeholder="Nome completo ou razão social"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="modal-field"><label>Telefone</label><input type="text" id="edit-tel" placeholder="Ex: 16991234567"/></div>
+      <div class="modal-field"><label>CPF ou CNPJ</label><input type="text" id="edit-doc" placeholder="000.000.000-00"/></div>
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;">
+      <div class="modal-field"><label>Rua</label><input type="text" id="edit-end-rua" placeholder="Rua das Flores"/></div>
+      <div class="modal-field"><label>Número</label><input type="text" id="edit-end-num" placeholder="123"/></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+      <div class="modal-field"><label>Bairro</label><input type="text" id="edit-end-bairro" placeholder="Centro"/></div>
+      <div class="modal-field"><label>Cidade</label><input type="text" id="edit-end-cidade" placeholder="Franca"/></div>
+      <div class="modal-field"><label>UF</label><input type="text" id="edit-end-uf" placeholder="SP" maxlength="2"/></div>
+    </div>
+    <div class="modal-field"><label>CEP</label><input type="text" id="edit-end-cep" placeholder="14400-000" style="max-width:160px;"/></div>
+    <div id="edit-cliente-aviso" style="font-size:12px;color:#E05C1A;margin-top:6px;display:none;">⚠️ Alterar o nome também atualizará todos os pedidos vinculados a este cliente.</div>
     <div class="modal-actions">
       <button class="btn" id="btn-cancelar-edit-cliente">Cancelar</button>
-      <button class="btn btn-primary" id="btn-salvar-edit-cliente">Salvar</button>
+      <button class="btn btn-primary" id="btn-salvar-edit-cliente">💾 Salvar</button>
     </div>
   </div>
 </div>
@@ -1216,6 +1271,14 @@ window.showTab = async function showTab(tab){
       document.getElementById('f-num').dataset.editId='';
       document.getElementById('f-obs').value='';
       document.getElementById('f-garantias').value='';
+      document.getElementById('f-pagamento').value='';
+      // Reset pagamento UI
+      document.querySelectorAll('input[name="pgto-tipo"]').forEach(r=>r.checked=false);
+      ['avista','cartao'].forEach(t=>{const l=document.getElementById('pgto-label-'+t);if(l){l.style.borderColor='var(--border)';l.style.background='var(--surface2)';}});
+      const pv=document.getElementById('pgto-avista-val');if(pv)pv.value='';
+      const pt=document.getElementById('pgto-cartao-total');if(pt)pt.value='';
+      const pp=document.getElementById('pgto-parcelas');if(pp)pp.value='1';
+      const prev=document.getElementById('pgto-cartao-preview');if(prev)prev.style.display='none';
       // Reset checkboxes
       ['gar-acm','gar-luz','gar-pvc','gar-mdo','gar-acrilico','gar-polialv','gar-policomp','gar-modled','gar-manguled','gar-ledagua'].forEach(id=>{
         const el=document.getElementById(id);
@@ -1355,10 +1418,11 @@ window.renderClientesBD = function() {
           <div style="font-size:14px;font-weight:600;color:var(--text);">${c.nome}</div>
           <div style="font-size:12px;color:var(--muted);">${tels||'Sem telefone'} ${endStr?'· '+endStr:''}</div>
         </div>
-        <div style="display:flex;gap:16px;align-items:center;flex-shrink:0;">
+        <div style="display:flex;gap:10px;align-items:center;flex-shrink:0;">
           ${ativos.length ? `<span style="font-size:11px;background:#fff3ec;color:var(--brand);padding:3px 10px;border-radius:12px;font-weight:600;">${ativos.length} ativo${ativos.length>1?'s':''}</span>` : ''}
           ${fins.length ? `<span style="font-size:11px;background:#f0fdf4;color:var(--green);padding:3px 10px;border-radius:12px;font-weight:600;">${fins.length} finalizado${fins.length>1?'s':''}</span>` : ''}
           <span style="font-size:13px;font-weight:700;color:var(--green);min-width:90px;text-align:right;">${fmtMoney(total)}</span>
+          <button onclick="event.stopPropagation();abrirEditCliente('${encodeURIComponent(c.nome)}')" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--brand);cursor:pointer;font-size:12px;font-weight:600;">✏️</button>
           <span id="${id}-arr" style="color:var(--muted);font-size:12px;transition:transform 0.2s;">▼</span>
         </div>
       </div>
@@ -2531,6 +2595,7 @@ function gerarPDFHTML(){
   const dtv=document.getElementById('f-validade').value;
   const obs=document.getElementById('f-obs').value||'Sem observações.';
   const garantias=document.getElementById('f-garantias').value||'';
+  const pagamento=document.getElementById('f-pagamento').value||'';
   // Captura fotos direto aqui para garantir leitura correta
   const _b64el1=document.getElementById('orcfoto1-b64');
   const _b64el2=document.getElementById('orcfoto2-b64');
@@ -2590,6 +2655,7 @@ function gerarPDFHTML(){
       <div class="pdf-total-final">Total: ${fmtMoney(total)}</div>
     </div>
     <div class="pdf-obs"><strong>Observações:</strong><br/>${obs.replace(/\n/g,'<br/>')}</div>
+    ${pagamento?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>💳 Forma de Pagamento:</strong><br/>${pagamento}</div>`:''}
     ${garantias?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>🛡️ Garantias:</strong><br/>${garantias.replace(/\n/g,'<br/>')}</div>`:''}
     <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${fmtDate(dt)}</span></div>
     <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
@@ -2714,6 +2780,7 @@ document.getElementById('btn-salvar-orc').addEventListener('click',async()=>{
     itens:editingItens,
     obs:document.getElementById('f-obs').value,
     garantias:document.getElementById('f-garantias').value,
+    pagamento:document.getElementById('f-pagamento').value,
     foto1:_foto1salvar,
     foto2:_foto2salvar
   };
@@ -3069,12 +3136,12 @@ document.addEventListener('click',async e=>{
       <tbody>${rows||'<tr><td colspan="2" style="text-align:center;color:#999;">Sem itens registrados</td></tr>'}</tbody></table>
       <div class="pdf-total"><div class="pdf-total-final">Total: ${total}</div></div>
       ${p.orcObs?`<div class="pdf-obs"><strong>Observações:</strong><br/>${(p.orcObs||'').split('\n').join('<br/>')}</div>`:''}
+      ${p.orcPagamento?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>💳 Forma de Pagamento:</strong><br/>${p.orcPagamento}</div>`:''}
       <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
         <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>CMT Projetos e Fachadas</strong><br/>CNPJ: 53.466.209/0001-01</div></div>
         <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>Cliente: ${p.nome}</strong><br/>Assinatura</div></div>
       </div>
       <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Pedido: ${p.codigo}</span></div>`;
-    document.getElementById('modal-bg').classList.remove('open');
     showTab('preview');
     return;
   }
@@ -3134,17 +3201,39 @@ document.addEventListener('click',async e=>{
   }
   if(e.target.id==='btn-close-edit-cliente'||e.target.id==='btn-cancelar-edit-cliente')document.getElementById('edit-cliente-bg').classList.remove('open');
   if(e.target.id==='btn-salvar-edit-cliente'){
-    const id=document.getElementById('edit-cliente-id').value;
-    const nome=document.getElementById('edit-nome').value.trim();
+    const id = document.getElementById('edit-cliente-id').value;
+    const nomeOriginal = document.getElementById('edit-cliente-nome-original').value;
+    const nome = document.getElementById('edit-nome').value.trim();
     if(!nome){alert('Nome é obrigatório.');return;}
-    await updateDoc(doc(db,'clientes',id),{
-      nome,
-      tel:document.getElementById('edit-tel').value.trim(),
-      doc:document.getElementById('edit-doc').value.trim(),
-      end:document.getElementById('edit-end').value.trim()
-    });
+    const tel = document.getElementById('edit-tel').value.trim();
+    const docv = document.getElementById('edit-doc').value.trim();
+    const rua = document.getElementById('edit-end-rua').value.trim();
+    const num = document.getElementById('edit-end-num').value.trim();
+    const bairro = document.getElementById('edit-end-bairro').value.trim();
+    const cidade = document.getElementById('edit-end-cidade').value.trim();
+    const uf = document.getElementById('edit-end-uf').value.trim();
+    const cep = document.getElementById('edit-end-cep').value.trim();
+    const end = [rua,num,bairro,cidade,uf?'–'+uf:'',cep?'CEP:'+cep:''].filter(Boolean).join(', ');
+
+    // Salva/atualiza na coleção clientes
+    if(id) {
+      await updateDoc(doc(db,'clientes',id),{nome,tel,doc:docv,end,rua,num,bairro,cidade,uf,cep});
+    } else {
+      // cliente novo vindo apenas de pedidos — cria registro
+      await addDoc(collection(db,'clientes'),{nome,tel,doc:docv,end,rua,num,bairro,cidade,uf,cep,criadoEm:serverTimestamp()});
+    }
+
+    // Se nome mudou, atualiza todos os pedidos desse cliente
+    if(nome !== nomeOriginal && nomeOriginal) {
+      const pedidosDoCliente = pedidos.filter(p => p.nome && p.nome.trim().toLowerCase() === nomeOriginal.trim().toLowerCase());
+      for(const p of pedidosDoCliente) {
+        await updateDoc(doc(db,'pedidos',p.id),{nome});
+      }
+    }
+
     document.getElementById('edit-cliente-bg').classList.remove('open');
-    showToast('Cliente atualizado!');
+    showToast('✅ Cliente atualizado!');
+    renderClientesBD();
     return;
   }
   if(e.target.id==='btn-close-modal'||e.target.id==='btn-fechar-modal')document.getElementById('modal-bg').classList.remove('open');
@@ -3307,6 +3396,8 @@ document.addEventListener('click',async e=>{
       orcValidade:o.validade||'',
       orcItens:o.itens||[],
       orcObs:o.obs||'',
+      orcGarantias:o.garantias||'',
+      orcPagamento:o.pagamento||'',
       criadoEm:serverTimestamp()
     });
     await deleteDoc(doc(db,'orcamentos',currentOrcId));
@@ -3362,6 +3453,7 @@ window.verPedidoPDF = function(id) {
     <tbody>${rows||'<tr><td colspan="2" style="text-align:center;color:#999;">Sem itens registrados</td></tr>'}</tbody></table>
     <div class="pdf-total"><div class="pdf-total-final">Total: ${total}</div></div>
     ${p.orcObs?`<div class="pdf-obs"><strong>Observações:</strong><br/>${(p.orcObs||'').split('\n').join('<br/>')}</div>`:''}
+    ${p.orcPagamento?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>💳 Forma de Pagamento:</strong><br/>${p.orcPagamento}</div>`:''}
     ${p.orcGarantias?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>🛡️ Garantias:</strong><br/>${(p.orcGarantias||'').split('\n').join('<br/>')}</div>`:''}
     <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
       <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>CMT Projetos e Fachadas</strong><br/>CNPJ: 53.466.209/0001-01</div></div>
@@ -5822,6 +5914,40 @@ document.getElementById('btn-confirmar-baixa-parcial').onclick = async function(
 // Abrir histórico ao clicar na linha (realizadas/recebidas) - integrado no handler principal
 
 
+// Abre modal edição de cliente buscando dados de clientes + pedidos
+window.abrirEditCliente = function(nomeEncoded) {
+  const nome = decodeURIComponent(nomeEncoded);
+
+  // Busca na coleção clientes pelo nome
+  const cadCliente = clientes.find(c => c.nome && c.nome.trim().toLowerCase() === nome.trim().toLowerCase());
+
+  // Busca dados dos pedidos como fallback
+  const pedidosCliente = pedidos.filter(p => p.nome && p.nome.trim().toLowerCase() === nome.trim().toLowerCase());
+  const pRef = pedidosCliente[0] || {};
+  const endRef = pedidosCliente.map(p=>p.enderecoEntrega).find(e=>e&&(e.rua||e.cidade)) || {};
+
+  // Popula modal
+  document.getElementById('edit-cliente-id').value = cadCliente?.id || '';
+  document.getElementById('edit-cliente-nome-original').value = nome;
+  document.getElementById('edit-nome').value = nome;
+  document.getElementById('edit-tel').value = cadCliente?.tel || pRef.tel || '';
+  document.getElementById('edit-doc').value = cadCliente?.doc || pRef.doc || '';
+
+  // Endereço — prioriza campos separados do cadastro, fallback do enderecoEntrega dos pedidos
+  document.getElementById('edit-end-rua').value = cadCliente?.rua || endRef.rua || '';
+  document.getElementById('edit-end-num').value = cadCliente?.num || endRef.num || '';
+  document.getElementById('edit-end-bairro').value = cadCliente?.bairro || endRef.bairro || '';
+  document.getElementById('edit-end-cidade').value = cadCliente?.cidade || endRef.cidade || '';
+  document.getElementById('edit-end-uf').value = cadCliente?.uf || endRef.uf || '';
+  document.getElementById('edit-end-cep').value = cadCliente?.cep || endRef.cep || '';
+
+  // Aviso se vai alterar pedidos
+  const aviso = document.getElementById('edit-cliente-aviso');
+  if(aviso) aviso.style.display = pedidosCliente.length ? 'block' : 'none';
+
+  document.getElementById('edit-cliente-bg').classList.add('open');
+};
+
 // MIGRAÇÃO: preenche dataFinalizacao nos pedidos finalizados sem data
 document.getElementById('btn-migrar-datas').onclick = async function() {
   const semData = pedidos.filter(p =>
@@ -5854,6 +5980,55 @@ document.getElementById('btn-migrar-datas').onclick = async function() {
   showToast(`✅ ${ok} pedido(s) atualizados com data de finalização!`);
 };
 
+
+// FORMA DE PAGAMENTO
+window.syncPgto = function() {
+  const tipo = document.querySelector('input[name="pgto-tipo"]:checked')?.value;
+  // Destaca borda do selecionado
+  ['avista','cartao'].forEach(t => {
+    const lbl = document.getElementById('pgto-label-'+t);
+    if(lbl) lbl.style.borderColor = tipo===t ? 'var(--brand)' : 'var(--border)';
+    if(lbl) lbl.style.background = tipo===t ? '#fff3ec' : 'var(--surface2)';
+  });
+  if(tipo==='avista') {
+    const val = parseFloat(document.getElementById('pgto-avista-val').value)||0;
+    document.getElementById('f-pagamento').value = val>0 ? `À vista: R$ ${fmtMoney(val).replace('R$ ','')}` : 'À vista';
+    document.getElementById('pgto-cartao-preview').style.display='none';
+  } else if(tipo==='cartao') {
+    calcParcelas();
+  } else {
+    document.getElementById('f-pagamento').value='';
+  }
+};
+
+window.calcParcelas = function() {
+  // Seleciona cartão automaticamente ao mexer nos campos
+  document.getElementById('pgto-cartao').checked = true;
+  syncPgto();
+  const parc = parseInt(document.getElementById('pgto-parcelas').value)||1;
+  const total = parseFloat(document.getElementById('pgto-cartao-total').value)||0;
+  const preview = document.getElementById('pgto-cartao-preview');
+  const resultado = document.getElementById('pgto-cartao-resultado');
+  if(total>0) {
+    // Juros: 1-3x = 5%, 4-18x = 17%
+    const juros = parc <= 3 ? 0.05 : 0.17;
+    const totalComJuros = total * (1 + juros);
+    const porParcela = totalComJuros / parc;
+    const pctLabel = parc === 1 ? '' : ` (+${juros*100}% juros)`;
+    const texto = parc === 1
+      ? `Cartão de crédito: 1x de ${fmtMoney(total)} (à vista no cartão)`
+      : `Cartão de crédito: ${parc}x de ${fmtMoney(porParcela)}${pctLabel} — Total com juros: ${fmtMoney(totalComJuros)}`;
+    resultado.innerHTML = parc === 1
+      ? texto
+      : `<span>${parc}x de <strong style="font-size:16px;color:#166534;">${fmtMoney(porParcela)}</strong></span>
+         <span style="font-size:12px;color:#555;margin-left:8px;">+${juros*100}% juros · total ${fmtMoney(totalComJuros)}</span>`;
+    preview.style.display='block';
+    document.getElementById('f-pagamento').value = texto;
+  } else {
+    preview.style.display='none';
+    document.getElementById('f-pagamento').value = `Cartão de crédito: ${parc}x`;
+  }
+};
 
 // Show/hide parcelas field based on tipo
 document.getElementById('fx-ent-tipo').addEventListener('change', function() {
