@@ -3085,7 +3085,11 @@ document.addEventListener('click',async e=>{
         +'<div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:4px;">'
         +'<span style="font-size:13px;font-weight:700;">Total</span>'
         +'<span style="font-size:18px;font-weight:700;color:var(--brand);">'+fmtMoney(o.valor||0)+'</span>'
-        +'</div></div>';
+        +'</div></div>'
+        +(o.pagamento?'<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:10px;">'
+        +'<div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">💳 Forma de Pagamento</div>'
+        +'<div style="font-size:13px;color:var(--text);">'+o.pagamento.replace(/\n/g,'<br/>')+'</div>'
+        +'</div>':'');
       document.getElementById('orc-modal-bg').classList.add('open');
     }
     return;
@@ -3281,6 +3285,18 @@ document.addEventListener('click',async e=>{
       document.getElementById('f-num').value=o.num||'';
       document.getElementById('f-obs').value=o.obs||'';
       document.getElementById('f-garantias').value=o.garantias||'';
+      document.getElementById('f-pagamento').value=o.pagamento||'';
+      // Restaura UI de pagamento
+      if(o.pagamento) {
+        const pg = o.pagamento;
+        const chkAvista = document.getElementById('pgto-avista');
+        const chkCartao = document.getElementById('pgto-cartao');
+        const chkSemJuros = document.getElementById('pgto-semjuros');
+        if(chkAvista) { chkAvista.checked = pg.includes('À vista'); syncPgto && syncPgto(); }
+        if(chkCartao) { chkCartao.checked = pg.includes('Cartão de crédito:') && !pg.includes('sem juros'); }
+        if(chkSemJuros) { chkSemJuros.checked = pg.includes('sem juros'); }
+        if(typeof syncPgto === 'function') syncPgto();
+      }
       // Restore checkboxes from saved text
       const _gText=o.garantias||'';
       [{id:'gar-acm',key:'ACM:'},{id:'gar-luz',key:'Iluminação:'},{id:'gar-pvc',key:'PVC:'},{id:'gar-mdo',key:'Mão de obra:'},{id:'gar-acrilico',key:'Acrílico:'}].forEach(({id,key})=>{
@@ -3346,6 +3362,7 @@ document.addEventListener('click',async e=>{
         <div class="pdf-total-final">Total: ${fmtMoney(o.valor||0)}</div>
       </div>
       ${o.obs?`<div class="pdf-obs"><strong>Observações:</strong><br/>${o.obs.replace(/\n/g,'<br/>')}</div>`:''}
+      ${o.pagamento?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>💳 Forma de Pagamento:</strong><br/>${o.pagamento.replace(/\n/g,'<br/>')}</div>`:''}
       ${o.garantias?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>🛡️ Garantias:</strong><br/>${o.garantias.replace(/\n/g,'<br/>')}</div>`:''}
       <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${o.data||''}</span></div>
       <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
