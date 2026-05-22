@@ -442,11 +442,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <!-- FORMA DE PAGAMENTO -->
     <div class="form-card">
       <h3>💳 Forma de Pagamento</h3>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Selecione a forma e preencha os valores — aparece no PDF do orçamento.</p>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Pode marcar as duas formas — ambas aparecem no PDF do orçamento.</p>
 
       <!-- À vista -->
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 14px;border:2px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--surface2);transition:all 0.15s;" id="pgto-label-avista">
-        <input type="radio" name="pgto-tipo" id="pgto-avista" value="avista" onchange="syncPgto()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;"/>
+        <input type="checkbox" id="pgto-avista" onchange="syncPgto()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;"/>
         <span style="font-size:13px;font-weight:600;flex:1;">💵 À vista</span>
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:13px;color:var(--muted);">R$</span>
@@ -458,9 +458,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </label>
 
       <!-- Cartão de crédito -->
-      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 14px;border:2px solid var(--border);border-radius:10px;background:var(--surface2);transition:all 0.15s;" id="pgto-label-cartao">
-        <input type="radio" name="pgto-tipo" id="pgto-cartao" value="cartao" onchange="syncPgto()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;"/>
-        <span style="font-size:13px;font-weight:600;flex:1;">💳 Cartão de crédito</span>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 14px;border:2px solid var(--border);border-radius:10px;background:var(--surface2);transition:all 0.15s;flex-wrap:wrap;" id="pgto-label-cartao">
+        <input type="checkbox" id="pgto-cartao" onchange="syncPgto()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;"/>
+        <span style="font-size:13px;font-weight:600;flex:1;min-width:120px;">💳 Cartão de crédito</span>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
           <select id="pgto-parcelas" onchange="calcParcelas()" onclick="event.stopPropagation()"
             style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);cursor:pointer;">
@@ -471,17 +471,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             <option value="13">13x</option><option value="14">14x</option><option value="15">15x</option>
             <option value="16">16x</option><option value="17">17x</option><option value="18">18x</option>
           </select>
-          <span style="font-size:13px;color:var(--muted);">valor total R$</span>
+          <span style="font-size:13px;color:var(--muted);">total R$</span>
           <input type="number" id="pgto-cartao-total" placeholder="0,00" min="0" step="0.01"
             oninput="calcParcelas()"
-            style="width:110px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);text-align:right;"
+            style="width:100px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);text-align:right;"
             onclick="event.stopPropagation()"/>
+          <!-- Resultado inline -->
+          <div id="pgto-cartao-preview" style="display:none;padding:5px 12px;background:#fff3ec;border-radius:8px;border:1.5px solid #E05C1A;white-space:nowrap;">
+            <span id="pgto-cartao-resultado" style="font-size:13px;font-weight:700;color:#E05C1A;">—</span>
+          </div>
         </div>
       </label>
-      <!-- Preview resultado cartão -->
-      <div id="pgto-cartao-preview" style="display:none;margin-top:8px;padding:10px 14px;background:#f0fdf4;border-radius:8px;border:1.5px solid #86efac;">
-        <span style="font-size:14px;font-weight:700;color:#166534;" id="pgto-cartao-resultado">—</span>
-      </div>
 
       <input type="hidden" id="f-pagamento"/>
     </div>
@@ -1278,7 +1278,8 @@ window.showTab = async function showTab(tab){
       document.getElementById('f-garantias').value='';
       document.getElementById('f-pagamento').value='';
       // Reset pagamento UI
-      document.querySelectorAll('input[name="pgto-tipo"]').forEach(r=>r.checked=false);
+      const ca=document.getElementById('pgto-avista');if(ca)ca.checked=false;
+      const cc=document.getElementById('pgto-cartao');if(cc)cc.checked=false;
       ['avista','cartao'].forEach(t=>{const l=document.getElementById('pgto-label-'+t);if(l){l.style.borderColor='var(--border)';l.style.background='var(--surface2)';}});
       const pv=document.getElementById('pgto-avista-val');if(pv)pv.value='';
       const pt=document.getElementById('pgto-cartao-total');if(pt)pt.value='';
@@ -5988,54 +5989,65 @@ document.getElementById('btn-migrar-datas').onclick = async function() {
 
 // FORMA DE PAGAMENTO
 window.syncPgto = function() {
-  const tipo = document.querySelector('input[name="pgto-tipo"]:checked')?.value;
-  // Destaca borda do selecionado
-  ['avista','cartao'].forEach(t => {
-    const lbl = document.getElementById('pgto-label-'+t);
-    if(lbl) lbl.style.borderColor = tipo===t ? 'var(--brand)' : 'var(--border)';
-    if(lbl) lbl.style.background = tipo===t ? '#fff3ec' : 'var(--surface2)';
-  });
-  if(tipo==='avista') {
+  const ativoAvista  = document.getElementById('pgto-avista').checked;
+  const ativoCartao  = document.getElementById('pgto-cartao').checked;
+
+  // Destaca borda
+  const la = document.getElementById('pgto-label-avista');
+  const lc = document.getElementById('pgto-label-cartao');
+  if(la){ la.style.borderColor = ativoAvista ? 'var(--brand)' : 'var(--border)'; la.style.background = ativoAvista ? '#fff3ec' : 'var(--surface2)'; }
+  if(lc){ lc.style.borderColor = ativoCartao ? 'var(--brand)' : 'var(--border)'; lc.style.background = ativoCartao ? '#fff3ec' : 'var(--surface2)'; }
+
+  // Monta as partes para o PDF
+  const partes = [];
+
+  if(ativoAvista) {
     const val = parseFloat(document.getElementById('pgto-avista-val').value)||0;
-    document.getElementById('f-pagamento').value = val>0 ? `À vista: R$ ${fmtMoney(val).replace('R$ ','')}` : 'À vista';
-    document.getElementById('pgto-cartao-preview').style.display='none';
-  } else if(tipo==='cartao') {
-    calcParcelas();
-  } else {
-    document.getElementById('f-pagamento').value='';
+    partes.push(val > 0 ? `À vista: ${fmtMoney(val)}` : 'À vista');
   }
+
+  if(ativoCartao) {
+    // Recalcula cartão sem chamar calcParcelas (evita loop)
+    const parc = parseInt(document.getElementById('pgto-parcelas').value)||1;
+    const total = parseFloat(document.getElementById('pgto-cartao-total').value)||0;
+    if(total > 0) {
+      const juros = parc <= 3 ? 0.05 : 0.17;
+      const totalComJuros = parc === 1 ? total : total * (1 + juros);
+      const porParcela = totalComJuros / parc;
+      const textoPDF = parc === 1
+        ? `Cartão de crédito: à vista ${fmtMoney(total)}`
+        : `Cartão de crédito: ${parc}x de ${fmtMoney(porParcela)} (total ${fmtMoney(totalComJuros)})`;
+      partes.push(textoPDF);
+    } else {
+      partes.push(`Cartão de crédito: ${document.getElementById('pgto-parcelas').value}x`);
+    }
+  }
+
+  document.getElementById('f-pagamento').value = partes.join('\n');
 };
 
 window.calcParcelas = function() {
   document.getElementById('pgto-cartao').checked = true;
-  syncPgto();
   const parc = parseInt(document.getElementById('pgto-parcelas').value)||1;
   const total = parseFloat(document.getElementById('pgto-cartao-total').value)||0;
   const preview = document.getElementById('pgto-cartao-preview');
   const resultado = document.getElementById('pgto-cartao-resultado');
-  if(total>0) {
+
+  if(total > 0) {
     const juros = parc <= 3 ? 0.05 : 0.17;
     const totalComJuros = parc === 1 ? total : total * (1 + juros);
     const porParcela = totalComJuros / parc;
 
-    // Exibição na tela (com info de juros para o dono)
     if(parc === 1) {
-      resultado.innerHTML = `1x de <strong style="font-size:16px;color:#166534;">${fmtMoney(total)}</strong> <span style="font-size:11px;color:#888;">(sem juros)</span>`;
+      resultado.textContent = `${fmtMoney(total)} à vista`;
     } else {
-      resultado.innerHTML = `${parc}x de <strong style="font-size:16px;color:#166534;">${fmtMoney(porParcela)}</strong>
-        <span style="font-size:11px;color:#E05C1A;margin-left:6px;">+${juros*100}% juros · total ${fmtMoney(totalComJuros)}</span>`;
+      resultado.textContent = `${parc}x ${fmtMoney(porParcela)} (+${juros*100}%)`;
     }
     preview.style.display = 'block';
-
-    // Texto para PDF — sem mencionar juros, só valores finais
-    const textoPDF = parc === 1
-      ? `Cartão de crédito: à vista ${fmtMoney(total)}`
-      : `Cartão de crédito: ${parc}x de ${fmtMoney(porParcela)} (total ${fmtMoney(totalComJuros)})`;
-    document.getElementById('f-pagamento').value = textoPDF;
   } else {
     preview.style.display = 'none';
-    document.getElementById('f-pagamento').value = `Cartão de crédito: ${parc}x`;
   }
+  syncPgto();
 };
 
 // Show/hide parcelas field based on tipo
