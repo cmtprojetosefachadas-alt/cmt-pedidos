@@ -464,7 +464,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
           <select id="pgto-parcelas" onchange="calcParcelas()" onclick="event.stopPropagation()"
             style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);cursor:pointer;">
-            ${Array.from({length:18},(_,i)=>`<option value="${i+1}">${i+1}x</option>`).join('')}
+            <option value="1">1x</option><option value="2">2x</option><option value="3">3x</option>
+            <option value="4">4x</option><option value="5">5x</option><option value="6">6x</option>
+            <option value="7">7x</option><option value="8">8x</option><option value="9">9x</option>
+            <option value="10">10x</option><option value="11">11x</option><option value="12">12x</option>
+            <option value="13">13x</option><option value="14">14x</option><option value="15">15x</option>
+            <option value="16">16x</option><option value="17">17x</option><option value="18">18x</option>
           </select>
           <span style="font-size:13px;color:var(--muted);">valor total R$</span>
           <input type="number" id="pgto-cartao-total" placeholder="0,00" min="0" step="0.01"
@@ -6002,7 +6007,6 @@ window.syncPgto = function() {
 };
 
 window.calcParcelas = function() {
-  // Seleciona cartão automaticamente ao mexer nos campos
   document.getElementById('pgto-cartao').checked = true;
   syncPgto();
   const parc = parseInt(document.getElementById('pgto-parcelas').value)||1;
@@ -6010,22 +6014,26 @@ window.calcParcelas = function() {
   const preview = document.getElementById('pgto-cartao-preview');
   const resultado = document.getElementById('pgto-cartao-resultado');
   if(total>0) {
-    // Juros: 1-3x = 5%, 4-18x = 17%
     const juros = parc <= 3 ? 0.05 : 0.17;
-    const totalComJuros = total * (1 + juros);
+    const totalComJuros = parc === 1 ? total : total * (1 + juros);
     const porParcela = totalComJuros / parc;
-    const pctLabel = parc === 1 ? '' : ` (+${juros*100}% juros)`;
-    const texto = parc === 1
-      ? `Cartão de crédito: 1x de ${fmtMoney(total)} (à vista no cartão)`
-      : `Cartão de crédito: ${parc}x de ${fmtMoney(porParcela)}${pctLabel} — Total com juros: ${fmtMoney(totalComJuros)}`;
-    resultado.innerHTML = parc === 1
-      ? texto
-      : `<span>${parc}x de <strong style="font-size:16px;color:#166534;">${fmtMoney(porParcela)}</strong></span>
-         <span style="font-size:12px;color:#555;margin-left:8px;">+${juros*100}% juros · total ${fmtMoney(totalComJuros)}</span>`;
-    preview.style.display='block';
-    document.getElementById('f-pagamento').value = texto;
+
+    // Exibição na tela (com info de juros para o dono)
+    if(parc === 1) {
+      resultado.innerHTML = `1x de <strong style="font-size:16px;color:#166534;">${fmtMoney(total)}</strong> <span style="font-size:11px;color:#888;">(sem juros)</span>`;
+    } else {
+      resultado.innerHTML = `${parc}x de <strong style="font-size:16px;color:#166534;">${fmtMoney(porParcela)}</strong>
+        <span style="font-size:11px;color:#E05C1A;margin-left:6px;">+${juros*100}% juros · total ${fmtMoney(totalComJuros)}</span>`;
+    }
+    preview.style.display = 'block';
+
+    // Texto para PDF — sem mencionar juros, só valores finais
+    const textoPDF = parc === 1
+      ? `Cartão de crédito: à vista ${fmtMoney(total)}`
+      : `Cartão de crédito: ${parc}x de ${fmtMoney(porParcela)} (total ${fmtMoney(totalComJuros)})`;
+    document.getElementById('f-pagamento').value = textoPDF;
   } else {
-    preview.style.display='none';
+    preview.style.display = 'none';
     document.getElementById('f-pagamento').value = `Cartão de crédito: ${parc}x`;
   }
 };
