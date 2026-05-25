@@ -1029,6 +1029,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
     <div class="modal-actions">
       <button class="btn" id="btn-cancelar-baixa-parcial">Cancelar</button>
+      <button class="btn" id="btn-gerar-recibo" style="background:#1C2340;border-color:#1C2340;color:#fff;display:none;">🧾 Gerar Recibo</button>
       <button class="btn btn-primary" id="btn-confirmar-baixa-parcial" style="background:#0F6E56;border-color:#0F6E56;">💾 Confirmar pagamento parcial</button>
     </div>
   </div>
@@ -5843,6 +5844,12 @@ window.abrirModalBaixa = function(id, tipo) {
   }
 
   document.getElementById('baixa-parcial-bg').classList.add('open');
+  window._baixaItemAtual = item;
+  window._baixaTipoAtual = tipo;
+
+  // Mostra botão recibo só para entradas que já têm pagamentos
+  const btnRecibo = document.getElementById('btn-gerar-recibo');
+  if(btnRecibo) btnRecibo.style.display = (tipo === 'entrada' && (pagoParcial > 0 || historico.length > 0)) ? 'inline-flex' : 'none';
 
   // Feedback ao digitar
   document.getElementById('baixa-parcial-valor').oninput = function() {
@@ -5866,6 +5873,141 @@ window.abrirModalBaixa = function(id, tipo) {
 document.getElementById('btn-close-baixa-parcial').onclick = () => document.getElementById('baixa-parcial-bg').classList.remove('open');
 document.getElementById('btn-cancelar-baixa-parcial').onclick = () => document.getElementById('baixa-parcial-bg').classList.remove('open');
 document.getElementById('baixa-parcial-bg').addEventListener('click', e => { if(e.target === e.currentTarget) e.currentTarget.classList.remove('open'); });
+
+// Gerar Recibo
+document.getElementById('btn-gerar-recibo').onclick = function() {
+  const item = window._baixaItemAtual;
+  if(!item) return;
+  document.getElementById('baixa-parcial-bg').classList.remove('open');
+  gerarRecibo(item);
+};
+
+window.gerarRecibo = function(item) {
+  const hoje = new Date();
+  const dataHoje = hoje.toLocaleDateString('pt-BR');
+  const nomeCliente = item.clienteNome || item.desc || '—';
+  const valorOriginal = item.valor || 0;
+  const pagoParcial = item.pagoParcial || valorOriginal;
+  const historico = item.historicoPagementos || [];
+  const descricao = item.desc || item.tipo || '—';
+  const pedidoCod = item.pedidoCodigo || item.codigo || '';
+
+  // Busca dados do cliente
+  const cadCliente = clientes.find(c => c.nome && c.nome.trim().toLowerCase() === nomeCliente.trim().toLowerCase());
+  const pedidoRef = pedidos.find(p => p.nome && p.nome.trim().toLowerCase() === nomeCliente.trim().toLowerCase());
+  const docCliente = cadCliente?.doc || pedidoRef?.doc || '';
+  const endCliente = cadCliente?.end || (pedidoRef?.enderecoEntrega
+    ? [pedidoRef.enderecoEntrega.rua, pedidoRef.enderecoEntrega.num, pedidoRef.enderecoEntrega.bairro, pedidoRef.enderecoEntrega.cidade].filter(Boolean).join(', ')
+    : '');
+  const telCliente = cadCliente?.tel || pedidoRef?.tel || item.tel || '';
+
+  // Número do recibo — usa id do item truncado
+  const numRecibo = 'REC-' + (item.id||'').slice(-6).toUpperCase();
+
+  // Linhas do histórico
+  const histRows = historico.length > 0
+    ? historico.map((h,i) => `
+      <tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;">${i+1}º recebimento</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#555;">${h.data ? h.data.split('-').reverse().join('/') : '—'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;font-weight:600;color:#0F6E56;text-align:right;">${fmtMoney(h.valor)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="3" style="padding:10px;text-align:center;color:#999;font-size:13px;">Sem histórico de parcelas</td></tr>`;
+
+  const quitado = pagoParcial >= valorOriginal;
+
+  document.getElementById('pdf-content').innerHTML = `
+    <div style="max-width:700px;margin:0 auto;font-family:'DM Sans',sans-serif;color:#1C2340;padding:32px;">
+
+      <!-- Cabeçalho -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:20px;border-bottom:3px solid #1C2340;">
+        <div>
+          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAFrCAYAAABrILShAAABCGlDQ1BJQ0MgUHJvZmlsZQ" style="height:56px;" onerror="this.style.display='none'"/>
+          <div style="font-size:13px;font-weight:700;color:#1C2340;margin-top:6px;">CMT PROJETOS E FACHADAS</div>
+          <div style="font-size:11px;color:#666;">CNPJ: 53.466.209/0001-01 · Franca, SP</div>
+          <div style="font-size:11px;color:#666;">Comercial: (16) 99649-2182</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="background:#E05C1A;color:#fff;font-size:20px;font-weight:800;padding:6px 18px;border-radius:6px;letter-spacing:1px;">RECIBO</div>
+          <div style="font-size:13px;font-weight:700;color:#E05C1A;margin-top:4px;">Nº ${numRecibo}</div>
+          <div style="font-size:12px;color:#E05C1A;">Data: ${dataHoje}</div>
+        </div>
+      </div>
+
+      <!-- Dados do cliente -->
+      <div style="background:#f8f8f8;border-radius:10px;padding:14px 18px;margin-bottom:20px;border-left:4px solid #E05C1A;">
+        <div style="font-size:11px;font-weight:700;color:#999;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Dados do Recebedor / Cliente</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><span style="font-size:11px;color:#999;">Nome / Razão Social</span><br/><strong style="font-size:14px;">${nomeCliente}</strong></div>
+          ${docCliente ? `<div><span style="font-size:11px;color:#999;">CPF / CNPJ</span><br/><strong style="font-size:13px;">${docCliente}</strong></div>` : ''}
+          ${telCliente ? `<div><span style="font-size:11px;color:#999;">Telefone</span><br/><strong style="font-size:13px;">${telCliente}</strong></div>` : ''}
+          ${endCliente ? `<div style="grid-column:1/-1;"><span style="font-size:11px;color:#999;">Endereço</span><br/><strong style="font-size:13px;">${endCliente}</strong></div>` : ''}
+        </div>
+      </div>
+
+      <!-- Referência -->
+      <div style="background:#fff;border:1.5px solid #e0e0e0;border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+        <div style="font-size:11px;font-weight:700;color:#999;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Referente a</div>
+        <div style="font-size:14px;color:#1C2340;">${descricao}${pedidoCod ? ` &nbsp;·&nbsp; <span style="color:#E05C1A;font-weight:700;">Pedido ${pedidoCod}</span>` : ''}</div>
+      </div>
+
+      <!-- Valores -->
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;border-radius:10px;overflow:hidden;border:1.5px solid #e0e0e0;">
+        <thead>
+          <tr style="background:#1C2340;color:#fff;">
+            <th style="padding:10px 12px;text-align:left;font-size:12px;font-weight:600;">Descrição</th>
+            <th style="padding:10px 12px;text-align:left;font-size:12px;font-weight:600;">Data</th>
+            <th style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;">Valor Recebido</th>
+          </tr>
+        </thead>
+        <tbody>${histRows}</tbody>
+        <tfoot>
+          <tr style="background:#f8f8f8;">
+            <td colspan="2" style="padding:10px 12px;font-size:13px;font-weight:700;">Valor Original do Serviço</td>
+            <td style="padding:10px 12px;font-size:14px;font-weight:700;text-align:right;color:#1C2340;">${fmtMoney(valorOriginal)}</td>
+          </tr>
+          <tr style="background:${quitado?'#f0fdf4':'#fff8f0'};">
+            <td colspan="2" style="padding:10px 12px;font-size:14px;font-weight:800;">Total Recebido</td>
+            <td style="padding:10px 12px;font-size:18px;font-weight:800;text-align:right;color:${quitado?'#0F6E56':'#E05C1A'};">${fmtMoney(pagoParcial)}</td>
+          </tr>
+          ${!quitado ? `<tr style="background:#fff3f3;">
+            <td colspan="2" style="padding:8px 12px;font-size:13px;color:#A32D2D;font-weight:600;">Saldo Pendente</td>
+            <td style="padding:8px 12px;font-size:15px;font-weight:700;text-align:right;color:#A32D2D;">${fmtMoney(Math.max(valorOriginal-pagoParcial,0))}</td>
+          </tr>` : ''}
+        </tfoot>
+      </table>
+
+      <!-- Status -->
+      <div style="text-align:center;margin-bottom:28px;">
+        <span style="display:inline-block;padding:8px 24px;border-radius:20px;font-size:14px;font-weight:800;letter-spacing:.5px;
+          background:${quitado?'#0F6E56':'#E05C1A'};color:#fff;">
+          ${quitado ? '✅ QUITADO' : '⏳ PAGAMENTO PARCIAL'}
+        </span>
+      </div>
+
+      <!-- Assinaturas -->
+      <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:20px;border-top:1px solid #ddd;">
+        <div style="text-align:center;width:44%;">
+          <div style="border-top:1.5px solid #333;padding-top:8px;font-size:11px;color:#555;">
+            <strong>CMT Projetos e Fachadas</strong><br/>CNPJ: 53.466.209/0001-01
+          </div>
+        </div>
+        <div style="text-align:center;width:44%;">
+          <div style="border-top:1.5px solid #333;padding-top:8px;font-size:11px;color:#555;">
+            <strong>Cliente: ${nomeCliente}</strong><br/>Assinatura
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="margin-top:24px;padding-top:12px;border-top:1px solid #eee;display:flex;justify-content:space-between;font-size:10px;color:#999;">
+        <span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182 · CNPJ: 53.466.209/0001-01 · Franca/SP</span>
+        <span>Gerado em ${dataHoje}</span>
+      </div>
+    </div>`;
+
+  showTab('preview');
+};
 
 // Pagar valor total
 document.getElementById('btn-baixa-total').onclick = async function() {
@@ -5892,7 +6034,17 @@ document.getElementById('btn-baixa-total').onclick = async function() {
 
   document.getElementById('baixa-parcial-bg').classList.remove('open');
   await carregarFluxoData();
+  // Atualiza item com novo histórico para recibo
+  const itemAtualizado = tipo === 'saida'
+    ? fluxoSaidas.find(x => x.id === id)
+    : fluxoEntradas.find(x => x.id === id);
+  if(itemAtualizado) window._baixaItemAtual = itemAtualizado;
   showToast('✅ Baixa total confirmada!', 'toast-fluxo');
+  if(tipo === 'entrada') {
+    setTimeout(() => {
+      if(confirm('Deseja gerar o recibo de recebimento agora?')) gerarRecibo(window._baixaItemAtual);
+    }, 400);
+  }
 };
 
 // Confirmar pagamento parcial
