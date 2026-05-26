@@ -448,13 +448,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <!-- À vista -->
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 14px;border:2px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--surface2);transition:all 0.15s;" id="pgto-label-avista">
         <input type="checkbox" id="pgto-avista" onchange="syncPgto()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;"/>
-        <span style="font-size:13px;font-weight:600;flex:1;">💵 À vista</span>
+        <span style="font-size:13px;font-weight:600;flex:1;">💵 À vista <span style="font-size:11px;font-weight:400;color:#0F6E56;">(-5% desconto)</span></span>
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:13px;color:var(--muted);">R$</span>
           <input type="number" id="pgto-avista-val" placeholder="0,00" min="0" step="0.01"
-            oninput="syncPgto()"
+            oninput="calcAvista()"
             style="width:120px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);text-align:right;"
             onclick="event.stopPropagation()"/>
+          <div id="pgto-avista-preview" style="display:none;align-items:center;gap:6px;">
+            <span id="pgto-avista-resultado" style="font-size:14px;font-weight:800;color:#0F6E56;padding:3px 8px;background:#f0fdf4;border-radius:6px;border:1px solid #0F6E56;">—</span>
+          </div>
         </div>
       </label>
 
@@ -1331,7 +1334,8 @@ window.showTab = async function showTab(tab){
       const cc=document.getElementById('pgto-cartao');if(cc)cc.checked=false;
       const cs=document.getElementById('pgto-semjuros');if(cs)cs.checked=false;
       ['avista','cartao','semjuros'].forEach(t=>{const l=document.getElementById('pgto-label-'+t);if(l){l.style.borderColor='var(--border)';l.style.background='var(--surface2)';}});
-      document.getElementById('pgto-avista-val')?.value && (document.getElementById('pgto-avista-val').value='');
+      document.getElementById('pgto-avista-val') && (document.getElementById('pgto-avista-val').value='');
+      document.getElementById('pgto-avista-preview') && (document.getElementById('pgto-avista-preview').style.display='none');
       document.getElementById('pgto-cartao-total')?.value && (document.getElementById('pgto-cartao-total').value='');
       document.getElementById('pgto-parcelas') && (document.getElementById('pgto-parcelas').value='1');
       document.getElementById('pgto-semjuros-val')?.value && (document.getElementById('pgto-semjuros-val').value='');
@@ -6194,6 +6198,14 @@ document.getElementById('btn-migrar-datas').onclick = async function() {
 
 
 // FORMA DE PAGAMENTO
+// Calcula juros do cartão conforme faixa de parcelas
+function getJurosCartao(parc) {
+  if(parc <= 2)  return 0;      // 1x e 2x sem juros
+  if(parc <= 9)  return 0.07;   // 3x a 9x = +7%
+  if(parc <= 12) return 0.12;   // 10x a 12x = +12%
+  return 0.17;                   // 13x a 18x = +17%
+}
+
 window.syncPgto = function() {
   const ativoAvista   = document.getElementById('pgto-avista').checked;
   const ativoCartao   = document.getElementById('pgto-cartao').checked;
@@ -6208,18 +6220,24 @@ window.syncPgto = function() {
 
   if(ativoAvista) {
     const val = parseFloat(document.getElementById('pgto-avista-val').value)||0;
-    partes.push(val > 0 ? `À vista: ${fmtMoney(val)}` : 'À vista');
+    if(val > 0) {
+      const desconto = val * 0.05;
+      const comDesconto = val - desconto;
+      partes.push(`À vista: ${fmtMoney(comDesconto)} (5% desconto)`);
+    } else {
+      partes.push('À vista (5% desconto)');
+    }
   }
 
   if(ativoCartao) {
     const parc = parseInt(document.getElementById('pgto-parcelas').value)||1;
     const total = parseFloat(document.getElementById('pgto-cartao-total').value)||0;
     if(total > 0) {
-      const juros = parc <= 3 ? 0.05 : 0.17;
-      const totalComJuros = parc === 1 ? total : total * (1 + juros);
+      const juros = getJurosCartao(parc);
+      const totalComJuros = juros > 0 ? total * (1 + juros) : total;
       const porParcela = totalComJuros / parc;
-      partes.push(parc === 1
-        ? `Cartão de crédito: à vista ${fmtMoney(total)}`
+      partes.push(juros === 0
+        ? `Cartão de crédito: ${parc}x de ${fmtMoney(porParcela)} sem juros`
         : `Cartão de crédito: ${parc}x de ${fmtMoney(porParcela)} (total ${fmtMoney(totalComJuros)})`);
     } else {
       partes.push(`Cartão de crédito: ${document.getElementById('pgto-parcelas').value}x`);
@@ -6245,19 +6263,43 @@ window.calcParcelas = function() {
   const elResultado = document.getElementById('pgto-cartao-resultado');
 
   if(total > 0) {
-    const juros = parc <= 3 ? 0.05 : 0.17;
-    const totalComJuros = parc === 1 ? total : total * (1 + juros);
+    const juros = getJurosCartao(parc);
+    const totalComJuros = juros > 0 ? total * (1 + juros) : total;
     const porParcela = totalComJuros / parc;
-    if(elParcela) elParcela.textContent = parc === 1 ? fmtMoney(total) : `${parc}x ${fmtMoney(porParcela)}`;
+
+    if(elParcela) elParcela.textContent = `${parc}x ${fmtMoney(porParcela)}`;
     if(elResultado) {
-      elResultado.textContent = parc === 1 ? 'sem juros' : `+${juros*100}%`;
-      elResultado.style.color = parc === 1 ? '#0F6E56' : '#E05C1A';
-      elResultado.style.background = parc === 1 ? '#f0fdf4' : '#fff3ec';
-      elResultado.style.borderColor = parc === 1 ? '#0F6E56' : '#E05C1A';
+      if(juros === 0) {
+        elResultado.textContent = 'sem juros';
+        elResultado.style.color = '#0F6E56';
+        elResultado.style.background = '#f0fdf4';
+        elResultado.style.borderColor = '#0F6E56';
+      } else {
+        elResultado.textContent = `+${juros*100}%`;
+        elResultado.style.color = '#E05C1A';
+        elResultado.style.background = '#fff3ec';
+        elResultado.style.borderColor = '#E05C1A';
+      }
     }
     if(preview) preview.style.display = 'flex';
   } else {
     if(preview) preview.style.display = 'none';
+  }
+  syncPgto();
+};
+
+// Atualiza preview à vista com desconto automático
+window.calcAvista = function() {
+  document.getElementById('pgto-avista').checked = true;
+  const val = parseFloat(document.getElementById('pgto-avista-val').value)||0;
+  const preview = document.getElementById('pgto-avista-preview');
+  const elDesc = document.getElementById('pgto-avista-resultado');
+  if(val > 0 && preview && elDesc) {
+    const comDesconto = val * 0.95;
+    elDesc.textContent = `${fmtMoney(comDesconto)} (-5%)`;
+    preview.style.display = 'flex';
+  } else if(preview) {
+    preview.style.display = 'none';
   }
   syncPgto();
 };
