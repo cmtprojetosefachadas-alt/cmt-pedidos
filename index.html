@@ -448,16 +448,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <!-- À vista -->
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 14px;border:2px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--surface2);transition:all 0.15s;" id="pgto-label-avista">
         <input type="checkbox" id="pgto-avista" onchange="syncPgto()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;"/>
-        <span style="font-size:13px;font-weight:600;flex:1;">💵 À vista <span style="font-size:11px;font-weight:400;color:#0F6E56;">(-5% desconto)</span></span>
+        <span style="font-size:13px;font-weight:600;flex:1;">💵 À vista</span>
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:13px;color:var(--muted);">R$</span>
           <input type="number" id="pgto-avista-val" placeholder="0,00" min="0" step="0.01"
-            oninput="calcAvista()"
+            oninput="syncPgto()"
             style="width:120px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);text-align:right;"
             onclick="event.stopPropagation()"/>
-          <div id="pgto-avista-preview" style="display:none;align-items:center;gap:6px;">
-            <span id="pgto-avista-resultado" style="font-size:14px;font-weight:800;color:#0F6E56;padding:3px 8px;background:#f0fdf4;border-radius:6px;border:1px solid #0F6E56;">—</span>
-          </div>
         </div>
       </label>
 
@@ -605,6 +602,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
     <div class="actions">
       <button class="btn btn-primary" id="btn-pdf">&#128444; Visualizar / Imprimir PDF</button>
+      <button class="btn btn-wpp" id="btn-wpp-orc">&#128172; Enviar por WhatsApp</button>
       <button class="btn" id="btn-salvar-orc">&#128190; Salvar</button>
     </div>
     <div class="toast" id="toast"></div>
@@ -616,6 +614,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div style="display:flex;gap:10px;">
         <button class="btn" id="btn-editar-pdf">← Editar</button>
         <button class="btn btn-primary" id="btn-imprimir">&#128444; Imprimir</button>
+        <button class="btn btn-wpp" id="btn-wpp-pdf">&#128172; WhatsApp</button>
       </div>
     </div>
     <div class="pdf-wrap" id="pdf-content"></div>
@@ -748,8 +747,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
               <option value="4">4x</option><option value="5">5x</option><option value="6">6x</option>
               <option value="7">7x</option><option value="8">8x</option><option value="9">9x</option>
               <option value="10">10x</option><option value="11">11x</option><option value="12">12x</option>
-              <option value="13">13x</option><option value="14">14x</option><option value="15">15x</option>
-              <option value="16">16x</option><option value="17">17x</option><option value="18">18x</option>
             </select>
           </div>
           <div class="field"><label>Data compensação (cheque)</label><input type="date" id="fx-ent-compensacao"/></div>
@@ -803,8 +800,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
               <option value="4">4x</option><option value="5">5x</option><option value="6">6x</option>
               <option value="7">7x</option><option value="8">8x</option><option value="9">9x</option>
               <option value="10">10x</option><option value="11">11x</option><option value="12">12x</option>
-              <option value="13">13x</option><option value="14">14x</option><option value="15">15x</option>
-              <option value="16">16x</option><option value="17">17x</option><option value="18">18x</option>
             </select>
           </div>
         </div>
@@ -1053,6 +1048,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div id="baixa-parcial-feedback" style="font-size:12px;color:var(--muted);margin-top:6px;"></div>
     </div>
 
+    <div class="field" style="margin-bottom:16px;">
+      <label style="font-size:13px;font-weight:600;">📝 Observação <span style="font-size:11px;font-weight:400;color:var(--muted);">(opcional — aparece no recibo e histórico)</span></label>
+      <input type="text" id="baixa-obs" placeholder="Ex: Pago via Pix, cheque nº 1234, entrada do serviço..." style="padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;width:100%;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;background:var(--surface);color:var(--text);"/>
+    </div>
+
     <div class="modal-actions">
       <button class="btn" id="btn-cancelar-baixa-parcial">Cancelar</button>
       <button class="btn" id="btn-gerar-recibo" style="background:#1C2340;border-color:#1C2340;color:#fff;display:none;">🧾 Gerar Recibo</button>
@@ -1220,6 +1220,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="btn" id="btn-fechar-orc">Fechar</button>
       <button class="btn" id="btn-editar-orc">&#9998; Editar</button>
       <button class="btn" id="btn-pdf-orc">&#128444; PDF</button>
+      <button class="btn btn-wpp" id="btn-wpp-orc-modal">&#128172; WhatsApp</button>
       <button class="btn btn-green" id="btn-converter" style="display:none;">&#10003; Converter em Pedido</button>
       <button class="btn btn-primary" id="btn-salvar-orc-status">Salvar</button>
     </div>
@@ -1334,8 +1335,7 @@ window.showTab = async function showTab(tab){
       const cc=document.getElementById('pgto-cartao');if(cc)cc.checked=false;
       const cs=document.getElementById('pgto-semjuros');if(cs)cs.checked=false;
       ['avista','cartao','semjuros'].forEach(t=>{const l=document.getElementById('pgto-label-'+t);if(l){l.style.borderColor='var(--border)';l.style.background='var(--surface2)';}});
-      document.getElementById('pgto-avista-val') && (document.getElementById('pgto-avista-val').value='');
-      document.getElementById('pgto-avista-preview') && (document.getElementById('pgto-avista-preview').style.display='none');
+      document.getElementById('pgto-avista-val')?.value && (document.getElementById('pgto-avista-val').value='');
       document.getElementById('pgto-cartao-total')?.value && (document.getElementById('pgto-cartao-total').value='');
       document.getElementById('pgto-parcelas') && (document.getElementById('pgto-parcelas').value='1');
       document.getElementById('pgto-semjuros-val')?.value && (document.getElementById('pgto-semjuros-val').value='');
@@ -2743,7 +2743,16 @@ function gerarPDFHTML(){
   `;
 }
 
-// EVENT LISTENERS
+function getWppMsg(){
+  const cliente=document.getElementById('f-cliente').value;
+  const num=document.getElementById('f-num').value;
+  const sub=editingItens.reduce(function(s,it){return s+(parseFloat(it.valor)||0);},0);
+  const desc=parseFloat(document.getElementById('desconto').value)||0;
+  const total=sub*(1-desc/100);
+  return encodeURIComponent(`Olá ${cliente}! 🏗️\n\nSegue o orçamento *${num}* da CMT Projetos e Fachadas.\n\nValor total: *${fmtMoney(total)}*\n\nQualquer dúvida estamos à disposição!`);
+}
+
+// EVENT LISTENERS - tudo aqui dentro do module
 document.getElementById('btn-login').addEventListener('click',()=>{
   const user=document.getElementById('login-user').value.trim();
   const senha=document.getElementById('login-senha').value;
@@ -2804,6 +2813,8 @@ document.getElementById('btn-pdf').addEventListener('click',()=>{
   gerarPDFHTML();
   showTab('preview');
 });
+document.getElementById('btn-wpp-orc').addEventListener('click',()=>window.open('https://wa.me/?text='+getWppMsg(),'_blank'));
+document.getElementById('btn-wpp-pdf').addEventListener('click',()=>window.open('https://wa.me/?text='+getWppMsg(),'_blank'));
 
 document.getElementById('btn-salvar-orc').addEventListener('click',async()=>{
   const num=document.getElementById('f-num').value;
@@ -3444,6 +3455,13 @@ document.addEventListener('click',async e=>{
     showToast('Status atualizado!');return;
   }
   // WPP orc modal
+  if(e.target.id==='btn-wpp-orc-modal'){
+    const o=orcamentos.find(x=>x.id===currentOrcId);if(!o)return;
+    const telOrc=o.tel?o.tel.replace(/\D/g,''):'';
+    window.open('https://wa.me/55'+telOrc+'?text='+encodeURIComponent('Olá '+o.nome+'! Segue o orçamento *'+o.num+'* da CMT Projetos e Fachadas.\n\nServiço: '+o.desc+'\nValor: *'+fmtMoney(o.valor||0)+'*\nVálido até: '+o.validade+'\n\nQualquer dúvida estamos à disposição! 🏗️'),'_blank');
+    await updateDoc(doc(db,'orcamentos',currentOrcId),{status:'sent'});
+    document.getElementById('orc-modal-bg').classList.remove('open');return;
+  }
   // Converter pedido
   if(e.target.id==='btn-converter'){
     const o=orcamentos.find(x=>x.id===currentOrcId);if(!o)return;
@@ -5825,6 +5843,8 @@ window.abrirModalBaixa = function(id, tipo) {
     : `✅ Confirmar recebimento total ( <span id="baixa-total-label">${fmtMoney(restante)}</span> )`;
   document.getElementById('btn-confirmar-baixa-parcial').textContent = tipo === 'saida' ? '💾 Confirmar pagamento parcial' : '💾 Confirmar recebimento parcial';
   document.getElementById('baixa-parcial-valor').value = '';
+  const obsField = document.getElementById('baixa-obs');
+  if(obsField) obsField.value = '';
   document.getElementById('baixa-parcial-pago').textContent = fmtMoney(pagoParcial);
   document.getElementById('baixa-parcial-restante').textContent = fmtMoney(restante);
 
@@ -5850,9 +5870,10 @@ window.abrirModalBaixa = function(id, tipo) {
     histDiv.style.display = 'block';
     histLista.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">${tipo==='saida'?'Pagamentos anteriores':'Recebimentos anteriores'}</div>` +
       historico.map(h => `
-      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
-        <span>${h.data ? h.data.split('-').reverse().join('/') : '—'}${h.dataOriginal && h.dataOriginal!==h.data ? ` <span style="color:var(--muted);font-size:10px;">(venc. ${h.dataOriginal.split('-').reverse().join('/')})</span>` : ''}</span>
-        <span style="color:#0F6E56;font-weight:600;">${tipo==='saida'?'Pago':'Recebido'}: ${fmtMoney(h.valor)}</span>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;gap:8px;">
+        <span style="color:var(--muted);">${h.data ? h.data.split('-').reverse().join('/') : '—'}</span>
+        ${h.obs ? `<span style="flex:1;color:var(--text);font-style:italic;">${h.obs}</span>` : '<span style="flex:1;"></span>'}
+        <span style="color:#0F6E56;font-weight:600;white-space:nowrap;">${tipo==='saida'?'Pago':'Recebido'}: ${fmtMoney(h.valor)}</span>
       </div>`).join('');
   } else {
     histDiv.style.display = 'none';
@@ -5925,9 +5946,10 @@ window.gerarRecibo = function(item) {
       <tr>
         <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;">${i+1}º recebimento</td>
         <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#555;">${h.data ? h.data.split('-').reverse().join('/') : '—'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#777;">${h.obs||'—'}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;font-weight:600;color:#0F6E56;text-align:right;">${fmtMoney(h.valor)}</td>
       </tr>`).join('')
-    : `<tr><td colspan="3" style="padding:10px;text-align:center;color:#999;font-size:13px;">Sem histórico de parcelas</td></tr>`;
+    : `<tr><td colspan="4" style="padding:10px;text-align:center;color:#999;font-size:13px;">Sem histórico de parcelas</td></tr>`;
 
   const quitado = pagoParcial >= valorOriginal;
 
@@ -5972,6 +5994,7 @@ window.gerarRecibo = function(item) {
           <tr style="background:#1C2340;color:#fff;">
             <th style="padding:10px 12px;text-align:left;font-size:12px;font-weight:600;">Descrição</th>
             <th style="padding:10px 12px;text-align:left;font-size:12px;font-weight:600;">Data</th>
+            <th style="padding:10px 12px;text-align:left;font-size:12px;font-weight:600;">Observação</th>
             <th style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;">Valor Recebido</th>
           </tr>
         </thead>
@@ -6028,6 +6051,7 @@ window.gerarRecibo = function(item) {
 document.getElementById('btn-baixa-total').onclick = async function() {
   const id = document.getElementById('baixa-parcial-id').value;
   const tipo = document.getElementById('baixa-parcial-tipo').value;
+  const obs = document.getElementById('baixa-obs')?.value.trim() || '';
   const hoje = new Date().toISOString().split('T')[0];
   const mesHoje = hoje.substring(5,7)+'/'+hoje.substring(0,4);
 
@@ -6036,14 +6060,14 @@ document.getElementById('btn-baixa-total').onclick = async function() {
     const hist = item?.historicoPagementos || [];
     const pagoParcial = item?.pagoParcial || 0;
     const restante = Math.max((item?.valor||0) - pagoParcial, 0);
-    hist.push({ data: hoje, valor: restante, dataOriginal: item?.data });
+    hist.push({ data: hoje, valor: restante, obs, dataOriginal: item?.data });
     await updateDoc(doc(db,'fluxo_saidas',id), { futura: false, paga: true, data: hoje, mes: mesHoje, pagoParcial: item?.valor || 0, historicoPagementos: hist });
   } else {
     const item = fluxoEntradas.find(x => x.id === id);
     const hist = item?.historicoPagementos || [];
     const pagoParcial = item?.pagoParcial || 0;
     const restante = Math.max((item?.valor||0) - pagoParcial, 0);
-    hist.push({ data: hoje, valor: restante, dataOriginal: item?.data });
+    hist.push({ data: hoje, valor: restante, obs, dataOriginal: item?.data });
     await updateDoc(doc(db,'fluxo_entradas',id), { recebido: true, data: hoje, mes: mesHoje, pagoParcial: item?.valor || 0, historicoPagementos: hist });
   }
 
@@ -6068,6 +6092,7 @@ document.getElementById('btn-confirmar-baixa-parcial').onclick = async function(
   const tipo = document.getElementById('baixa-parcial-tipo').value;
   const valorPago = parseFloat(document.getElementById('baixa-parcial-valor').value) || 0;
   if(valorPago <= 0) { showToast('Digite um valor válido!', 'toast-fluxo'); return; }
+  const obs = document.getElementById('baixa-obs')?.value.trim() || '';
 
   const hoje = new Date().toISOString().split('T')[0];
   const mesHoje = hoje.substring(5,7)+'/'+hoje.substring(0,4);
@@ -6079,14 +6104,12 @@ document.getElementById('btn-confirmar-baixa-parcial').onclick = async function(
     const pagoParcialAnt = item.pagoParcial || 0;
     const novoPago = pagoParcialAnt + valorPago;
     const total = item.valor || 0;
-    hist.push({ data: hoje, valor: valorPago, dataOriginal: item.data });
+    hist.push({ data: hoje, valor: valorPago, obs, dataOriginal: item.data });
 
     if(novoPago >= total) {
-      // Quitado totalmente — atualiza data e mês para hoje
       await updateDoc(doc(db,'fluxo_saidas',id), { futura: false, paga: true, data: hoje, mes: mesHoje, pagoParcial: total, historicoPagementos: hist });
       showToast('✅ Saída quitada totalmente!', 'toast-fluxo');
     } else {
-      // Parcial — registra pagamento mas mantém data original (ainda tem saldo a pagar)
       const novoValorRestante = total - novoPago;
       await updateDoc(doc(db,'fluxo_saidas',id), {
         futura: true, paga: false,
@@ -6097,21 +6120,18 @@ document.getElementById('btn-confirmar-baixa-parcial').onclick = async function(
       showToast(`💳 R$ ${valorPago.toFixed(2).replace('.',',')} registrado. Saldo restante: ${fmtMoney(novoValorRestante)}`, 'toast-fluxo');
     }
   } else {
-    // Entrada
     const item = fluxoEntradas.find(x => x.id === id);
     if(!item) return;
     const hist = item.historicoPagementos || [];
     const pagoParcialAnt = item.pagoParcial || 0;
     const novoPago = pagoParcialAnt + valorPago;
     const total = item.valor || 0;
-    hist.push({ data: hoje, valor: valorPago, dataOriginal: item.data });
+    hist.push({ data: hoje, valor: valorPago, obs, dataOriginal: item.data });
 
     if(novoPago >= total) {
-      // Quitado totalmente — atualiza data e mês para hoje
       await updateDoc(doc(db,'fluxo_entradas',id), { recebido: true, data: hoje, mes: mesHoje, pagoParcial: total, historicoPagementos: hist });
       showToast('✅ Recebimento quitado totalmente!', 'toast-fluxo');
     } else {
-      // Parcial — mantém data original, ainda tem saldo a receber
       const novoValorRestante = total - novoPago;
       await updateDoc(doc(db,'fluxo_entradas',id), {
         recebido: false,
@@ -6123,6 +6143,7 @@ document.getElementById('btn-confirmar-baixa-parcial').onclick = async function(
     }
   }
 
+  document.getElementById('baixa-obs') && (document.getElementById('baixa-obs').value='');
   document.getElementById('baixa-parcial-bg').classList.remove('open');
   await carregarFluxoData();
 };
@@ -6198,14 +6219,6 @@ document.getElementById('btn-migrar-datas').onclick = async function() {
 
 
 // FORMA DE PAGAMENTO
-// Calcula juros do cartão conforme faixa de parcelas
-function getJurosCartao(parc) {
-  if(parc <= 2)  return 0;      // 1x e 2x sem juros
-  if(parc <= 9)  return 0.07;   // 3x a 9x = +7%
-  if(parc <= 12) return 0.12;   // 10x a 12x = +12%
-  return 0.17;                   // 13x a 18x = +17%
-}
-
 window.syncPgto = function() {
   const ativoAvista   = document.getElementById('pgto-avista').checked;
   const ativoCartao   = document.getElementById('pgto-cartao').checked;
@@ -6220,24 +6233,18 @@ window.syncPgto = function() {
 
   if(ativoAvista) {
     const val = parseFloat(document.getElementById('pgto-avista-val').value)||0;
-    if(val > 0) {
-      const desconto = val * 0.05;
-      const comDesconto = val - desconto;
-      partes.push(`À vista: ${fmtMoney(comDesconto)} (5% desconto)`);
-    } else {
-      partes.push('À vista (5% desconto)');
-    }
+    partes.push(val > 0 ? `À vista: ${fmtMoney(val)}` : 'À vista');
   }
 
   if(ativoCartao) {
     const parc = parseInt(document.getElementById('pgto-parcelas').value)||1;
     const total = parseFloat(document.getElementById('pgto-cartao-total').value)||0;
     if(total > 0) {
-      const juros = getJurosCartao(parc);
-      const totalComJuros = juros > 0 ? total * (1 + juros) : total;
+      const juros = parc <= 3 ? 0.05 : 0.17;
+      const totalComJuros = parc === 1 ? total : total * (1 + juros);
       const porParcela = totalComJuros / parc;
-      partes.push(juros === 0
-        ? `Cartão de crédito: ${parc}x de ${fmtMoney(porParcela)} sem juros`
+      partes.push(parc === 1
+        ? `Cartão de crédito: à vista ${fmtMoney(total)}`
         : `Cartão de crédito: ${parc}x de ${fmtMoney(porParcela)} (total ${fmtMoney(totalComJuros)})`);
     } else {
       partes.push(`Cartão de crédito: ${document.getElementById('pgto-parcelas').value}x`);
@@ -6263,43 +6270,19 @@ window.calcParcelas = function() {
   const elResultado = document.getElementById('pgto-cartao-resultado');
 
   if(total > 0) {
-    const juros = getJurosCartao(parc);
-    const totalComJuros = juros > 0 ? total * (1 + juros) : total;
+    const juros = parc <= 3 ? 0.05 : 0.17;
+    const totalComJuros = parc === 1 ? total : total * (1 + juros);
     const porParcela = totalComJuros / parc;
-
-    if(elParcela) elParcela.textContent = `${parc}x ${fmtMoney(porParcela)}`;
+    if(elParcela) elParcela.textContent = parc === 1 ? fmtMoney(total) : `${parc}x ${fmtMoney(porParcela)}`;
     if(elResultado) {
-      if(juros === 0) {
-        elResultado.textContent = 'sem juros';
-        elResultado.style.color = '#0F6E56';
-        elResultado.style.background = '#f0fdf4';
-        elResultado.style.borderColor = '#0F6E56';
-      } else {
-        elResultado.textContent = `+${juros*100}%`;
-        elResultado.style.color = '#E05C1A';
-        elResultado.style.background = '#fff3ec';
-        elResultado.style.borderColor = '#E05C1A';
-      }
+      elResultado.textContent = parc === 1 ? 'sem juros' : `+${juros*100}%`;
+      elResultado.style.color = parc === 1 ? '#0F6E56' : '#E05C1A';
+      elResultado.style.background = parc === 1 ? '#f0fdf4' : '#fff3ec';
+      elResultado.style.borderColor = parc === 1 ? '#0F6E56' : '#E05C1A';
     }
     if(preview) preview.style.display = 'flex';
   } else {
     if(preview) preview.style.display = 'none';
-  }
-  syncPgto();
-};
-
-// Atualiza preview à vista com desconto automático
-window.calcAvista = function() {
-  document.getElementById('pgto-avista').checked = true;
-  const val = parseFloat(document.getElementById('pgto-avista-val').value)||0;
-  const preview = document.getElementById('pgto-avista-preview');
-  const elDesc = document.getElementById('pgto-avista-resultado');
-  if(val > 0 && preview && elDesc) {
-    const comDesconto = val * 0.95;
-    elDesc.textContent = `${fmtMoney(comDesconto)} (-5%)`;
-    preview.style.display = 'flex';
-  } else if(preview) {
-    preview.style.display = 'none';
   }
   syncPgto();
 };
