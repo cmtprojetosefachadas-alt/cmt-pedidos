@@ -6579,7 +6579,6 @@ function renderTerceirizados(){
 window.renderTerceirizados = renderTerceirizados;
 
 function renderTercServicos(lista){
-  // Agrupa por prestador
   const grupos = {};
   lista.forEach(t=>{
     const k = t.prestador||'Sem nome';
@@ -6587,6 +6586,7 @@ function renderTercServicos(lista){
     grupos[k].itens.push(t);
   });
   const html = Object.entries(grupos).map(([nome,g],gi)=>{
+    const gid = 'tg-'+gi;
     const ini = nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const cores = ['#E6F1FB:#185FA5','#E1F5EE:#0F6E56','#FAEEDA:#633806','#FAECE7:#993C1D','#EEEDFE:#534AB7'];
     const cor = cores[gi%cores.length].split(':');
@@ -6604,25 +6604,20 @@ function renderTercServicos(lista){
       const pagoText = pct>=100
         ? `<span style="font-size:10px;color:var(--green);">Quitado ✓</span>`
         : `<span style="font-size:10px;color:var(--muted);">${tercFmt(pago)} de ${tercFmt(t.valorCombinado||0)}</span>`;
-      return `<div onclick="abrirDetalheTerceiro('${t.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:0.5px solid var(--border);cursor:pointer;gap:12px;transition:background .15s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+      return `<div onclick="abrirDetalheTerceiro('${t.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:0.5px solid var(--border);cursor:pointer;gap:12px;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
         <div style="flex:1;min-width:0;">
           <div style="font-size:12px;font-weight:600;">${t.servico||'—'}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px;">${t.pedido?t.pedido+' · ':''}${t.cliente||'—'}</div>
           <div style="margin-top:4px;">
-            <div style="height:4px;border-radius:2px;background:var(--surface2);overflow:hidden;width:140px;">
-              <div style="height:100%;border-radius:2px;background:${pct>=100?'var(--green)':'#185FA5'};width:${pct}%;"></div>
-            </div>
+            <div style="height:4px;border-radius:2px;background:var(--surface2);overflow:hidden;width:140px;"><div style="height:100%;border-radius:2px;background:${pct>=100?'var(--green)':'#185FA5'};width:${pct}%;"></div></div>
             <div style="margin-top:2px;">${pagoText}</div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          ${statusPill}
-          <span style="font-size:13px;color:var(--muted);">›</span>
-        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">${statusPill}<span style="font-size:16px;color:var(--muted);">›</span></div>
       </div>`;
     }).join('');
     return `<div style="background:var(--surface);border:0.5px solid var(--border2);border-radius:12px;margin-bottom:10px;overflow:hidden;">
-      <div onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.tc-arr').style.transform=this.nextElementSibling.classList.contains('open')?'rotate(180deg)':''" style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+      <div onclick="tercToggle('${gid}')" style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
         <div style="display:flex;align-items:center;gap:10px;">
           <div style="width:36px;height:36px;border-radius:50%;background:${cor[0]};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${cor[1]};flex-shrink:0;">${ini}</div>
           <div>
@@ -6635,19 +6630,28 @@ function renderTercServicos(lista){
             <div style="font-size:12px;font-weight:600;color:var(--green);">${tercFmt(totalPago)} pago</div>
             <div style="font-size:11px;color:${falta>0?'#A32D2D':'var(--green)'};">${falta>0?tercFmt(falta)+' a pagar':'Quitado'}</div>
           </div>
-          <span class="tc-arr" style="font-size:14px;color:var(--muted);transition:transform .2s;">▼</span>
+          <span id="${gid}-arr" style="font-size:12px;color:var(--muted);transition:transform .2s;display:inline-block;">▼</span>
         </div>
       </div>
-      <div style="border-top:0.5px solid var(--border);display:none;" class="">
+      <div id="${gid}-body" style="border-top:0.5px solid var(--border);display:none;">
         ${servRows}
-        <div style="padding:8px 16px;display:flex;justify-content:flex-end;gap:8px;">
-          <button onclick="abrirModalNovoTerceiro('${nome}','${g.espec}','${g.tel}')" class="btn" style="font-size:11px;padding:4px 10px;">+ Adicionar serviço</button>
+        <div style="padding:8px 16px;display:flex;justify-content:flex-end;">
+          <button onclick="abrirModalNovoTerceiro('${nome.replace(/'/g,"\\'")}','${g.espec.replace(/'/g,"\\'")}','${g.tel}')" class="btn" style="font-size:11px;padding:4px 10px;">+ Adicionar serviço</button>
         </div>
       </div>
     </div>`;
   }).join('');
-  document.getElementById('terc-servicos-body').innerHTML = html||`<div style="text-align:center;padding:40px;color:var(--muted);">Nenhum serviço registrado${document.getElementById('terc-mes-sel')?.value!=='todos'?' neste mês':''}</div>`;
+  document.getElementById('terc-servicos-body').innerHTML = html||`<div style="text-align:center;padding:40px;color:var(--muted);">Nenhum serviço registrado. Clique em "+ Novo prestador / serviço" para começar.</div>`;
 }
+
+window.tercToggle = function(gid) {
+  const body = document.getElementById(gid+'-body');
+  const arr = document.getElementById(gid+'-arr');
+  if(!body) return;
+  const open = body.style.display === 'none' || body.style.display === '';
+  body.style.display = open ? 'block' : 'none';
+  if(arr) arr.style.transform = open ? 'rotate(180deg)' : '';
+};
 
 function renderTercPrestadores(lista){
   // Agrupa totais históricos por prestador (todos os meses)
@@ -6670,7 +6674,7 @@ function renderTercPrestadores(lista){
     const pct = Math.min(g.totalPago/maxPago*100,100);
     const mesesStr = [...g.meses].sort().reverse().slice(0,3).join(' · ');
     return `<div style="margin-bottom:18px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;cursor:pointer;" onclick="tercToggle('tp-${i}')">
         <div style="display:flex;align-items:center;gap:8px;">
           <div style="width:30px;height:30px;border-radius:50%;background:${bgCor};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${cores[i%5]};">${ini}</div>
           <div>
@@ -6678,9 +6682,12 @@ function renderTercPrestadores(lista){
             <div style="font-size:11px;color:var(--muted);">${g.espec} · ${g.servicos.length} serviço${g.servicos.length>1?'s':''} no histórico</div>
           </div>
         </div>
-        <div style="text-align:right;">
-          <div style="font-size:15px;font-weight:700;">${tercFmt(g.totalPago)}</div>
-          <div style="font-size:10px;color:var(--muted);">total pago</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="text-align:right;">
+            <div style="font-size:15px;font-weight:700;">${tercFmt(g.totalPago)}</div>
+            <div style="font-size:10px;color:var(--muted);">total pago</div>
+          </div>
+          <span id="tp-${i}-arr" style="font-size:12px;color:var(--muted);display:inline-block;transition:transform .2s;">▼</span>
         </div>
       </div>
       <div style="height:8px;border-radius:4px;background:var(--surface2);overflow:hidden;">
@@ -6690,8 +6697,27 @@ function renderTercPrestadores(lista){
         <span>Em aberto: <strong style="color:${falta>0?'#A32D2D':'var(--green)'};">${falta>0?tercFmt(falta):'Nada'}</strong></span>
         <span>${mesesStr}</span>
       </div>
-      <div style="margin-top:6px;display:flex;justify-content:flex-end;">
-        <button onclick="tercPDFPrestador('${nome}')" class="btn" style="font-size:11px;padding:3px 10px;">📄 Extrato PDF</button>
+      <!-- Serviços do prestador expansível -->
+      <div id="tp-${i}-body" style="display:none;margin-top:10px;border-top:0.5px solid var(--border);padding-top:10px;">
+        ${g.servicos.map(t=>{
+          const pago=(t.pagamentos||[]).reduce((a,p)=>a+(p.valor||0),0);
+          const faltaT=Math.max((t.valorCombinado||0)-pago,0);
+          return `<div onclick="abrirDetalheTerceiro('${t.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;cursor:pointer;margin-bottom:4px;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:600;">${t.servico||'—'}</div>
+              <div style="font-size:11px;color:var(--muted);">${[t.cliente,t.pedido,t.mes].filter(Boolean).join(' · ')}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+              <div style="font-size:12px;font-weight:600;color:var(--green);">${tercFmt(pago)} pago</div>
+              <div style="font-size:11px;color:${faltaT>0?'#A32D2D':'var(--green)'};">${faltaT>0?tercFmt(faltaT)+' a pagar':'Quitado ✓'}</div>
+            </div>
+            <span style="font-size:16px;color:var(--muted);margin-left:8px;">›</span>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="margin-top:8px;display:flex;justify-content:flex-end;gap:6px;">
+        <button onclick="abrirModalNovoTerceiro('${nome.replace(/'/g,"\\'")}','${g.espec.replace(/'/g,"\\'")}','')" class="btn" style="font-size:11px;padding:3px 10px;">+ Serviço</button>
+        <button onclick="tercPDFPrestador('${nome.replace(/'/g,"\\'")}');event.stopPropagation();" class="btn" style="font-size:11px;padding:3px 10px;">📄 Extrato PDF</button>
       </div>
     </div>`;
   }).join('');
