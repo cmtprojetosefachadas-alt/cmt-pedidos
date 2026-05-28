@@ -208,6 +208,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="sidebar-section">Outros</div>
   <button class="side-btn" id="tab-manutencoes"><span class="side-icon">🔧</span> Manutenções <span class="side-badge" id="sb-manutencoes">0</span></button>
   <button class="side-btn" id="tab-cancelados"><span class="side-icon">🚫</span> Cancelados <span class="side-badge red" id="sb-cancelados">0</span></button>
+  <button class="side-btn" id="tab-terceirizados" onclick="showTab('terceirizados')"><span class="side-icon">👷</span> Terceirizados <span class="side-badge" id="sb-terceirizados" style="display:none;background:#185FA5;color:#fff;">0</span></button>
   <button class="side-btn" id="tab-custos" onclick="showTab('custos')"><span class="side-icon">📐</span> Custos & Materiais</button>
 </nav>
 
@@ -969,6 +970,171 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div id="cancelados-grid"></div>
 </div>
 
+<!-- PAINEL TERCEIRIZADOS -->
+<div id="panel-terceirizados" class="panel">
+
+  <!-- Header -->
+  <div class="section-header" style="flex-wrap:wrap;gap:10px;">
+    <span class="section-title">👷 Terceirizados</span>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border-radius:8px;padding:3px;">
+        <button id="terc-tab-servicos" onclick="tercTab('servicos')" style="font-size:12px;padding:5px 12px;border-radius:6px;border:none;cursor:pointer;background:var(--surface);border:0.5px solid var(--border);color:var(--text);">📋 Serviços</button>
+        <button id="terc-tab-prestadores" onclick="tercTab('prestadores')" style="font-size:12px;padding:5px 12px;border-radius:6px;border:none;cursor:pointer;background:transparent;color:var(--muted);">👥 Prestadores</button>
+      </div>
+      <select id="terc-mes-sel" onchange="renderTerceirizados()" style="font-size:12px;padding:5px 10px;border-radius:8px;border:0.5px solid var(--border2);background:var(--surface);color:var(--text);">
+        <option value="todos">Todos os meses</option>
+      </select>
+      <button onclick="abrirModalNovoTerceiro()" class="btn btn-primary" style="font-size:12px;padding:5px 12px;">+ Novo prestador / serviço</button>
+    </div>
+  </div>
+
+  <!-- Resumo -->
+  <div id="terc-resumo" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;"></div>
+
+  <!-- Aba Serviços -->
+  <div id="terc-servicos-body"></div>
+
+  <!-- Aba Prestadores -->
+  <div id="terc-prestadores-body" style="display:none;"></div>
+
+</div>
+
+<!-- MODAL NOVO SERVIÇO TERCEIRIZADO -->
+<div class="modal-bg" id="terc-modal-bg">
+  <div class="modal" style="max-width:540px;">
+    <button class="modal-close" id="terc-modal-close">×</button>
+    <h2 id="terc-modal-titulo">Novo serviço terceirizado</h2>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="modal-field" style="grid-column:1/-1;">
+        <label>Prestador *</label>
+        <input type="text" id="terc-f-prestador" placeholder="Nome do prestador" list="terc-prestadores-list"/>
+        <datalist id="terc-prestadores-list"></datalist>
+      </div>
+      <div class="modal-field">
+        <label>Especialidade</label>
+        <input type="text" id="terc-f-espec" placeholder="Ex: Elétrica, Solda, Pintura..."/>
+      </div>
+      <div class="modal-field">
+        <label>Telefone</label>
+        <input type="text" id="terc-f-tel" placeholder="(16) 99999-0000"/>
+      </div>
+      <div class="modal-field">
+        <label>Cliente</label>
+        <input type="text" id="terc-f-cliente" placeholder="Nome do cliente" list="terc-clientes-list"/>
+        <datalist id="terc-clientes-list"></datalist>
+      </div>
+      <div class="modal-field">
+        <label>Pedido CMT</label>
+        <input type="text" id="terc-f-pedido" placeholder="Ex: CMT-1035" list="terc-pedidos-list"/>
+        <datalist id="terc-pedidos-list"></datalist>
+      </div>
+      <div class="modal-field" style="grid-column:1/-1;">
+        <label>Descrição do serviço *</label>
+        <input type="text" id="terc-f-servico" placeholder="Ex: Instalação elétrica ACM fachada"/>
+      </div>
+      <div class="modal-field">
+        <label>Valor combinado (R$) *</label>
+        <input type="number" id="terc-f-valor" placeholder="0,00" min="0" step="0.01"/>
+      </div>
+      <div class="modal-field">
+        <label>Mês de referência</label>
+        <input type="month" id="terc-f-mes"/>
+      </div>
+      <div class="modal-field" style="grid-column:1/-1;">
+        <label>Observação</label>
+        <textarea id="terc-f-obs" placeholder="Ex: Levar cabo 6mm, aguardar liberação..." rows="2" style="resize:vertical;"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" id="terc-modal-cancelar">Cancelar</button>
+      <button class="btn btn-primary" id="terc-modal-salvar">💾 Salvar serviço</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALHE DO SERVIÇO -->
+<div class="modal-bg" id="terc-detalhe-bg">
+  <div class="modal" style="max-width:580px;max-height:90vh;overflow-y:auto;">
+    <button class="modal-close" id="terc-detalhe-close">×</button>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:16px;font-weight:700;color:var(--navy);" id="td-titulo">—</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px;" id="td-sub">—</div>
+    </div>
+
+    <!-- Info -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div><div style="font-size:10px;color:var(--muted);margin-bottom:2px;">PRESTADOR</div><div style="font-size:13px;font-weight:600;" id="td-prest">—</div></div>
+      <div><div style="font-size:10px;color:var(--muted);margin-bottom:2px;">CLIENTE</div><div style="font-size:13px;font-weight:600;" id="td-cli">—</div></div>
+      <div><div style="font-size:10px;color:var(--muted);margin-bottom:2px;">PEDIDO CMT</div><div style="font-size:13px;font-weight:600;color:var(--brand);" id="td-ped">—</div></div>
+      <div style="grid-column:1/3;"><div style="font-size:10px;color:var(--muted);margin-bottom:2px;">SERVIÇO</div><div style="font-size:13px;font-weight:600;" id="td-svc">—</div></div>
+      <div><div style="font-size:10px;color:var(--muted);margin-bottom:2px;">VALOR COMBINADO</div><div style="font-size:14px;font-weight:700;color:#A32D2D;" id="td-vcomb">—</div></div>
+    </div>
+
+    <!-- Obs -->
+    <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:13px;" id="td-obs">—</div>
+
+    <!-- Status -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Status</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:6px;">
+        <button onclick="tercSetStatus('pendente')" id="tst-p" class="btn" style="font-size:11px;">⏳ Pendente</button>
+        <button onclick="tercSetStatus('instalacao')" id="tst-i" class="btn" style="font-size:11px;">⚙️ Em instalação</button>
+        <button onclick="tercSetStatus('concluido')" id="tst-c" class="btn" style="font-size:11px;">✅ Concluído</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);" id="td-st-info">—</div>
+    </div>
+
+    <!-- Pagamentos -->
+    <div style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Pagamentos ao prestador</div>
+        <div>
+          <span style="font-size:11px;color:var(--muted);">Pago: </span><span style="font-size:13px;font-weight:700;color:var(--green);" id="td-pago">R$ 0</span>
+          <span style="font-size:11px;color:var(--muted);"> · Falta: </span><span style="font-size:13px;font-weight:700;color:#A32D2D;" id="td-falta">—</span>
+        </div>
+      </div>
+      <div style="height:6px;border-radius:3px;background:var(--surface2);overflow:hidden;margin-bottom:10px;">
+        <div id="td-prog" style="height:100%;border-radius:3px;background:#185FA5;transition:width .3s;width:0%;"></div>
+      </div>
+      <div id="td-pgtos" style="margin-bottom:10px;"></div>
+      <!-- Novo pagamento -->
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:8px;">+ Registrar pagamento</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+          <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Data</div><input type="date" id="td-np-data" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text);width:130px;"></div>
+          <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Valor R$</div><input type="number" id="td-np-val" placeholder="0,00" min="0" step="0.01" oninput="tercPreviewPgto()" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text);width:100px;"></div>
+          <div style="flex:1;min-width:100px;"><div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Observação</div><input type="text" id="td-np-obs" placeholder="Entrada, Pix, Cheque..." style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text);width:100%;"></div>
+          <button onclick="tercAddPgto()" class="btn btn-primary" style="font-size:11px;padding:5px 10px;background:var(--green);border-color:var(--green);">+ Adicionar</button>
+        </div>
+        <div id="td-np-preview" style="font-size:11px;margin-top:5px;display:none;"></div>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:12px;display:flex;justify-content:space-between;align-items:center;">
+      <button id="td-btn-excluir" class="btn" style="color:#A32D2D;border-color:#F7C1C1;font-size:11px;">🗑️ Excluir</button>
+      <div style="display:flex;gap:8px;">
+        <button onclick="tercImprimirPDF()" class="btn" style="font-size:11px;">🖨️ Imprimir PDF</button>
+        <button id="td-btn-salvar" class="btn btn-primary" style="font-size:11px;">💾 Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PDF PRESTADOR -->
+<div class="modal-bg" id="terc-pdf-prestador-bg">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" onclick="document.getElementById('terc-pdf-prestador-bg').classList.remove('open')">×</button>
+    <h2 id="tpp-titulo">Extrato do prestador</h2>
+    <div id="tpp-body" style="font-size:13px;"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="document.getElementById('terc-pdf-prestador-bg').classList.remove('open')">Fechar</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir PDF</button>
+    </div>
+  </div>
+</div>
+
 <!-- PAINEL CUSTOS & MATERIAIS -->
 <div id="panel-custos" class="panel" style="padding:0;overflow:hidden;">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--surface);">
@@ -1311,6 +1477,7 @@ window.showTab = async function showTab(tab){
   if(tab==='manutencoes') await renderManutencoes();
   if(tab==='cancelados') await renderCancelados();
   if(tab==='visao')renderVisaoGeral();
+  if(tab==='terceirizados'){renderTerceirizados();populateTercDatalist();}
   if(tab==='custos'){
     // Carrega iframe só quando necessário
     const iframe = document.getElementById('custos-iframe');
@@ -3010,12 +3177,6 @@ document.addEventListener('click',async e=>{
     await deleteDoc(doc(db,'fluxo_entradas',e.target.dataset.id));
     await carregarFluxoData();
     renderFuturos();
-    return;
-  }
-  // Gerar recibo de cobrança para entradas vencidas
-  if(e.target.dataset.type==='cobranca-entrada'){
-    const item = fluxoEntradas.find(x=>x.id===e.target.dataset.id);
-    if(item) gerarReciboCobranca(item);
     return;
   }
   // Desfazer baixa saida - volta para não paga/futura
@@ -5198,13 +5359,10 @@ window.renderEntradasLista = function renderEntradasLista() {
       <td style="padding:9px 8px;"><span style="background:var(--red-bg);color:#A32D2D;padding:2px 8px;border-radius:12px;font-size:11px;">${e.tipo||'Entrada'}</span></td>
       <td style="padding:9px 8px;color:#A32D2D;font-size:12px;">${e.obs||''}</td>
       <td style="padding:9px 8px;text-align:right;font-weight:700;color:#A32D2D;">${fmtMoney(e.valor||0)}</td>
-      <td style="padding:9px 8px;">
-        <div style="display:flex;gap:4px;flex-wrap:wrap;">
-          <button class="btn btn-primary" style="font-size:11px;padding:3px 8px;white-space:nowrap;" data-id="${e.id}" data-recebido="0" data-type="toggle-recebido">✅ Baixa</button>
-          <button class="btn" style="font-size:11px;padding:3px 8px;background:#7C0000;border-color:#7C0000;color:#fff;white-space:nowrap;" data-id="${e.id}" data-type="cobranca-entrada">📋 Cobrança</button>
-          <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-type="edit-entrada">✏️</button>
-          <button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button>
-        </div>
+      <td style="padding:9px 8px;display:flex;gap:4px;">
+        <button class="btn btn-primary" style="font-size:11px;padding:3px 8px;white-space:nowrap;" data-id="${e.id}" data-recebido="0" data-type="toggle-recebido">✅ Baixa</button>
+        <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-type="edit-entrada">✏️</button>
+        <button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button>
       </td>
     </tr>`).join('');
 
@@ -5930,194 +6088,6 @@ document.getElementById('btn-gerar-recibo').onclick = function() {
   gerarRecibo(item);
 };
 
-window.gerarReciboCobranca = function(item) {
-  const hoje = new Date();
-  const dataHoje = hoje.toLocaleDateString('pt-BR');
-  const nomeCliente = item.clienteNome || item.desc || '—';
-
-  // Valores corretos: o item.valor já é o saldo restante após parciais
-  // pagoParcial é o que já foi pago do valor ORIGINAL
-  const pagoParcial = item.pagoParcial || 0;
-  const saldoDevedor = item.valor || 0; // item.valor já é o saldo em aberto
-  const valorOriginal = pagoParcial > 0 ? pagoParcial + saldoDevedor : saldoDevedor;
-
-  const dataVencimento = item.data ? item.data.split('-').reverse().join('/') : '—';
-  const descricao = item.obs || item.tipo || '—';
-
-  // Busca código do pedido CMT via pedidoCodigo salvo ou via pedidoId
-  let pedidoCod = item.pedidoCodigo || '';
-  if(!pedidoCod && item.pedidoId) {
-    const ped = pedidos.find(p => p.id === item.pedidoId);
-    if(ped) pedidoCod = ped.codigo || '';
-  }
-  if(!pedidoCod) {
-    // Fallback: busca pelo nome do cliente
-    const ped = pedidos.find(p => p.nome && p.nome.trim().toLowerCase() === nomeCliente.trim().toLowerCase());
-    if(ped) pedidoCod = ped.codigo || '';
-  }
-
-  // Dias em atraso
-  let diasAtraso = 0;
-  if(item.data) {
-    const venc = new Date(item.data);
-    diasAtraso = Math.floor((hoje - venc) / (1000*60*60*24));
-  }
-
-  // Busca dados do cliente
-  const cadCliente = clientes.find(c => c.nome && c.nome.trim().toLowerCase() === nomeCliente.trim().toLowerCase());
-  const pedidoRef = pedidos.find(p => p.nome && p.nome.trim().toLowerCase() === nomeCliente.trim().toLowerCase());
-  const docCliente = cadCliente?.doc || pedidoRef?.doc || '';
-  const endCliente = cadCliente?.end || (pedidoRef?.enderecoEntrega
-    ? [pedidoRef.enderecoEntrega.rua, pedidoRef.enderecoEntrega.num, pedidoRef.enderecoEntrega.bairro, pedidoRef.enderecoEntrega.cidade, pedidoRef.enderecoEntrega.cep ? 'CEP: '+pedidoRef.enderecoEntrega.cep : ''].filter(Boolean).join(', ')
-    : '');
-  const telCliente = cadCliente?.tel || pedidoRef?.tel || item.tel || '';
-  const cepCliente = cadCliente?.cep || pedidoRef?.enderecoEntrega?.cep || '';
-  const cidadeCliente = cadCliente?.cidade || pedidoRef?.enderecoEntrega?.cidade || 'Franca';
-  const ufCliente = cadCliente?.uf || pedidoRef?.enderecoEntrega?.uf || 'SP';
-
-  const numDoc = 'COB-' + (item.id||'').slice(-6).toUpperCase();
-
-  // Histórico de pagamentos parciais já realizados
-  const historico = item.historicoPagementos || [];
-  const histRows = historico.length > 0
-    ? historico.map((h,i) => `
-      <tr>
-        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:12px;">${i+1}º pagamento</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:12px;color:#555;">${h.data?h.data.split('-').reverse().join('/'):'—'}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:12px;color:#777;">${h.obs||'—'}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:12px;font-weight:600;color:#0F6E56;text-align:right;">${fmtMoney(h.valor)}</td>
-      </tr>`).join('')
-    : '';
-
-  document.getElementById('pdf-content').innerHTML = `
-    <div style="max-width:720px;margin:0 auto;font-family:'DM Sans',sans-serif;color:#1C2340;padding:32px;">
-
-      <!-- Cabeçalho -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:3px solid #7C0000;">
-        <div>
-          <div style="font-size:15px;font-weight:800;color:#1C2340;margin-bottom:4px;">CMT PROJETOS E FACHADAS</div>
-          <div style="font-size:11px;color:#666;">CNPJ: 53.466.209/0001-01</div>
-          <div style="font-size:11px;color:#666;">Franca/SP · Comercial: (16) 99649-2182</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="background:#7C0000;color:#fff;font-size:17px;font-weight:800;padding:6px 18px;border-radius:6px;letter-spacing:1px;">AVISO DE COBRANÇA</div>
-          <div style="font-size:12px;font-weight:700;color:#7C0000;margin-top:4px;">Nº ${numDoc}</div>
-          <div style="font-size:11px;color:#7C0000;">Emitido em: ${dataHoje}</div>
-        </div>
-      </div>
-
-      <!-- Alerta de atraso -->
-      <div style="background:#FEE2E2;border:2px solid #7C0000;border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
-        <span style="font-size:28px;">🚨</span>
-        <div>
-          <div style="font-size:14px;font-weight:800;color:#7C0000;">PAGAMENTO EM ABERTO — ${diasAtraso > 0 ? diasAtraso+' dia'+( diasAtraso>1?'s':'')+' em atraso' : 'VENCIDO'}</div>
-          <div style="font-size:12px;color:#A32D2D;margin-top:2px;">Vencimento original: <strong>${dataVencimento}</strong> · Favor regularizar o pagamento o quanto antes para evitar medidas judiciais.</div>
-        </div>
-      </div>
-
-      <!-- Dados do devedor -->
-      <div style="background:#f8f8f8;border-radius:10px;padding:14px 18px;margin-bottom:16px;border-left:4px solid #7C0000;">
-        <div style="font-size:11px;font-weight:700;color:#999;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;">Dados do Devedor</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div style="grid-column:1/-1;"><span style="font-size:11px;color:#999;">Nome / Razão Social</span><br/><strong style="font-size:16px;color:#7C0000;">${nomeCliente}</strong></div>
-          ${docCliente?`<div><span style="font-size:11px;color:#999;">CPF / CNPJ</span><br/><strong style="font-size:13px;">${docCliente}</strong></div>`:'<div><span style="font-size:11px;color:#999;">CPF / CNPJ</span><br/><span style="font-size:12px;color:#bbb;font-style:italic;">Não informado</span></div>'}
-          ${telCliente?`<div><span style="font-size:11px;color:#999;">Telefone</span><br/><strong style="font-size:13px;">${telCliente}</strong></div>`:''}
-          ${endCliente?`<div style="grid-column:1/-1;"><span style="font-size:11px;color:#999;">Endereço</span><br/><strong style="font-size:13px;">${endCliente}</strong></div>`:''}
-          ${cepCliente?`<div><span style="font-size:11px;color:#999;">CEP</span><br/><strong style="font-size:13px;">${cepCliente}</strong></div>`:''}
-          ${cidadeCliente?`<div><span style="font-size:11px;color:#999;">Cidade/UF</span><br/><strong style="font-size:13px;">${cidadeCliente}${ufCliente?' / '+ufCliente:''}</strong></div>`:''}
-        </div>
-      </div>
-
-      <!-- Dados da dívida -->
-      <div style="background:#fff;border:2px solid #7C0000;border-radius:10px;padding:14px 18px;margin-bottom:16px;">
-        <div style="font-size:11px;font-weight:700;color:#999;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;">Descrição da Dívida</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:10px;">
-          <div>
-            <span style="font-size:11px;color:#999;">Referente a</span><br/>
-            <strong style="font-size:13px;">${descricao}</strong>
-            ${pedidoCod?`<br/><span style="font-size:12px;font-weight:700;color:#E05C1A;">Pedido: ${pedidoCod}</span>`:''}
-          </div>
-          <div>
-            <span style="font-size:11px;color:#999;">Data Vencimento</span><br/>
-            <strong style="font-size:13px;color:#7C0000;">${dataVencimento}</strong>
-          </div>
-          <div>
-            <span style="font-size:11px;color:#999;">Dias em Atraso</span><br/>
-            <strong style="font-size:13px;color:#7C0000;">${diasAtraso > 0 ? diasAtraso+' dia'+(diasAtraso>1?'s':'') : 'Vencido hoje'}</strong>
-          </div>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid #eee;flex-wrap:wrap;gap:8px;">
-          ${pagoParcial > 0 ? `
-          <div style="font-size:13px;color:#555;">
-            Valor total do serviço: <strong>${fmtMoney(valorOriginal)}</strong>
-            &nbsp;·&nbsp; Já pago: <strong style="color:#0F6E56;">${fmtMoney(pagoParcial)}</strong>
-          </div>` : ''}
-          <div style="text-align:right;margin-left:auto;">
-            <div style="font-size:12px;color:#999;">VALOR EM ABERTO</div>
-            <div style="font-size:28px;font-weight:900;color:#7C0000;">${fmtMoney(saldoDevedor)}</div>
-          </div>
-        </div>
-      </div>
-
-      ${histRows ? `
-      <!-- Histórico de pagamentos parciais -->
-      <div style="margin-bottom:16px;">
-        <div style="font-size:11px;font-weight:700;color:#999;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Histórico de Pagamentos Parciais</div>
-        <table style="width:100%;border-collapse:collapse;border:1px solid #eee;border-radius:8px;overflow:hidden;">
-          <thead><tr style="background:#f5f5f5;">
-            <th style="padding:8px 10px;text-align:left;font-size:11px;color:#888;">#</th>
-            <th style="padding:8px 10px;text-align:left;font-size:11px;color:#888;">Data</th>
-            <th style="padding:8px 10px;text-align:left;font-size:11px;color:#888;">Observação</th>
-            <th style="padding:8px 10px;text-align:right;font-size:11px;color:#888;">Valor Pago</th>
-          </tr></thead>
-          <tbody>${histRows}</tbody>
-        </table>
-      </div>` : ''}
-
-      <!-- Dados para pagamento / protesto -->
-      <div style="background:#FFF7ED;border:1.5px solid #E05C1A;border-radius:10px;padding:14px 18px;margin-bottom:20px;">
-        <div style="font-size:11px;font-weight:700;color:#E05C1A;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;">Instruções de Pagamento</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;color:#555;">
-          <div>
-            <strong>PIX / Transferência:</strong><br/>
-            Chave PIX (CNPJ): 60.296.403/0001-51<br/>
-            Beneficiário: TAMARA SHOP
-          </div>
-          <div>
-            <strong>Contato para regularização:</strong><br/>
-            Comercial: (16) 99649-2182<br/>
-            Franca/SP
-          </div>
-        </div>
-        <div style="margin-top:10px;font-size:11px;color:#A32D2D;font-weight:600;">
-          ⚠️ O não pagamento no prazo de 5 dias úteis poderá resultar em registro em órgãos de proteção ao crédito (SPC/Serasa) e protesto em cartório.
-        </div>
-      </div>
-
-      <!-- Assinaturas -->
-      <div style="display:flex;justify-content:space-between;margin-top:32px;padding-top:16px;border-top:1px solid #ddd;">
-        <div style="text-align:center;width:44%;">
-          <div style="border-top:1.5px solid #333;padding-top:8px;font-size:11px;color:#555;">
-            <strong>CMT Projetos e Fachadas</strong><br/>CNPJ: 53.466.209/0001-01
-          </div>
-        </div>
-        <div style="text-align:center;width:44%;">
-          <div style="border-top:1.5px solid #333;padding-top:8px;font-size:11px;color:#555;">
-            <strong>Devedor: ${nomeCliente}</strong><br/>${docCliente||'CPF/CNPJ não informado'}
-          </div>
-        </div>
-      </div>
-
-      <!-- Footer -->
-      <div style="margin-top:20px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999;text-align:center;">
-        CMT Projetos e Fachadas · CNPJ: 53.466.209/0001-01 · Franca/SP · Comercial: (16) 99649-2182<br/>
-        Documento emitido em ${dataHoje} · Nº ${numDoc} · Este documento tem validade como notificação extrajudicial de cobrança.
-      </div>
-    </div>`;
-
-  showTab('preview');
-};
-
 window.gerarRecibo = function(item) {
   const hoje = new Date();
   const dataHoje = hoje.toLocaleDateString('pt-BR');
@@ -6533,6 +6503,525 @@ window.calcSemJuros = function() {
   }
   syncPgto();
 };
+
+// ============================================================
+// TERCEIRIZADOS
+// ============================================================
+let terceirizadosData = [];
+let tercCurrentId = null;
+let tercCurrentTab = 'servicos';
+
+// Listener Firebase
+onSnapshot(collection(db,'terceirizados'), snap => {
+  terceirizadosData = snap.docs.map(d=>({id:d.id,...d.data()}));
+  // Badge
+  const ativos = terceirizadosData.filter(t=>t.status!=='concluido').length;
+  const sb = document.getElementById('sb-terceirizados');
+  if(sb){sb.textContent=ativos;sb.style.display=ativos>0?'inline-flex':'none';}
+  // Re-render se painel visível
+  if(document.getElementById('panel-terceirizados')?.classList.contains('active')) renderTerceirizados();
+});
+
+function tercFmt(v){return'R$ '+(v||0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
+
+function tercTab(t){
+  tercCurrentTab=t;
+  document.getElementById('terc-tab-servicos').style.background = t==='servicos'?'var(--surface)':'transparent';
+  document.getElementById('terc-tab-servicos').style.color = t==='servicos'?'var(--text)':'var(--muted)';
+  document.getElementById('terc-tab-prestadores').style.background = t==='prestadores'?'var(--surface)':'transparent';
+  document.getElementById('terc-tab-prestadores').style.color = t==='prestadores'?'var(--text)':'var(--muted)';
+  document.getElementById('terc-servicos-body').style.display = t==='servicos'?'block':'none';
+  document.getElementById('terc-prestadores-body').style.display = t==='prestadores'?'block':'none';
+  renderTerceirizados();
+}
+window.tercTab = tercTab;
+
+function popularMesesTerc(){
+  const sel = document.getElementById('terc-mes-sel');
+  const meses = [...new Set(terceirizadosData.map(t=>t.mes).filter(Boolean))].sort().reverse();
+  const cur = sel.value;
+  sel.innerHTML = '<option value="todos">Todos os meses</option>' +
+    meses.map(m=>`<option value="${m}">${m}</option>`).join('');
+  if(cur && [...sel.options].find(o=>o.value===cur)) sel.value=cur;
+}
+
+function renderTerceirizados(){
+  popularMesesTerc();
+  const mes = document.getElementById('terc-mes-sel')?.value||'todos';
+  const filtrado = mes==='todos' ? terceirizadosData : terceirizadosData.filter(t=>t.mes===mes);
+
+  // Resumo
+  const totalComb = filtrado.reduce((s,t)=>s+(t.valorCombinado||0),0);
+  const totalPago = filtrado.reduce((s,t)=>s+(t.pagamentos||[]).reduce((a,p)=>a+(p.valor||0),0),0);
+  const totalFalta = Math.max(totalComb-totalPago,0);
+  const ativos = filtrado.filter(t=>t.status==='instalacao').length;
+  document.getElementById('terc-resumo').innerHTML=`
+    <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Total combinado</div>
+      <div style="font-size:18px;font-weight:700;">${tercFmt(totalComb)}</div>
+    </div>
+    <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Já pago</div>
+      <div style="font-size:18px;font-weight:700;color:var(--green);">${tercFmt(totalPago)}</div>
+    </div>
+    <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">A pagar</div>
+      <div style="font-size:18px;font-weight:700;color:#A32D2D;">${tercFmt(totalFalta)}</div>
+    </div>
+    <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Em instalação</div>
+      <div style="font-size:18px;font-weight:700;color:#185FA5;">${ativos}</div>
+    </div>`;
+
+  if(tercCurrentTab==='servicos') renderTercServicos(filtrado);
+  else renderTercPrestadores(filtrado);
+}
+window.renderTerceirizados = renderTerceirizados;
+
+function renderTercServicos(lista){
+  // Agrupa por prestador
+  const grupos = {};
+  lista.forEach(t=>{
+    const k = t.prestador||'Sem nome';
+    if(!grupos[k]) grupos[k]={itens:[],espec:t.especialidade||'',tel:t.telPrestador||''};
+    grupos[k].itens.push(t);
+  });
+  const html = Object.entries(grupos).map(([nome,g],gi)=>{
+    const ini = nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const cores = ['#E6F1FB:#185FA5','#E1F5EE:#0F6E56','#FAEEDA:#633806','#FAECE7:#993C1D','#EEEDFE:#534AB7'];
+    const cor = cores[gi%cores.length].split(':');
+    const totalComb = g.itens.reduce((s,t)=>s+(t.valorCombinado||0),0);
+    const totalPago = g.itens.reduce((s,t)=>s+(t.pagamentos||[]).reduce((a,p)=>a+(p.valor||0),0),0);
+    const falta = Math.max(totalComb-totalPago,0);
+    const servRows = g.itens.map(t=>{
+      const pago = (t.pagamentos||[]).reduce((a,p)=>a+(p.valor||0),0);
+      const pct = Math.min(t.valorCombinado>0?pago/t.valorCombinado*100:0,100);
+      const statusPill = t.status==='concluido'
+        ? `<span style="background:#EAF3DE;color:#27500A;font-size:11px;padding:2px 9px;border-radius:20px;">✅ Concluído</span>`
+        : t.status==='instalacao'
+        ? `<span style="background:#E6F1FB;color:#0C447C;font-size:11px;padding:2px 9px;border-radius:20px;">⚙️ Em instalação</span>`
+        : `<span style="background:#FAEEDA;color:#633806;font-size:11px;padding:2px 9px;border-radius:20px;">⏳ Pendente</span>`;
+      const pagoText = pct>=100
+        ? `<span style="font-size:10px;color:var(--green);">Quitado ✓</span>`
+        : `<span style="font-size:10px;color:var(--muted);">${tercFmt(pago)} de ${tercFmt(t.valorCombinado||0)}</span>`;
+      return `<div onclick="abrirDetalheTerceiro('${t.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:0.5px solid var(--border);cursor:pointer;gap:12px;transition:background .15s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:600;">${t.servico||'—'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">${t.pedido?t.pedido+' · ':''}${t.cliente||'—'}</div>
+          <div style="margin-top:4px;">
+            <div style="height:4px;border-radius:2px;background:var(--surface2);overflow:hidden;width:140px;">
+              <div style="height:100%;border-radius:2px;background:${pct>=100?'var(--green)':'#185FA5'};width:${pct}%;"></div>
+            </div>
+            <div style="margin-top:2px;">${pagoText}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          ${statusPill}
+          <span style="font-size:13px;color:var(--muted);">›</span>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div style="background:var(--surface);border:0.5px solid var(--border2);border-radius:12px;margin-bottom:10px;overflow:hidden;">
+      <div onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.tc-arr').style.transform=this.nextElementSibling.classList.contains('open')?'rotate(180deg)':''" style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:${cor[0]};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${cor[1]};flex-shrink:0;">${ini}</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;">${nome}${g.espec?` — ${g.espec}`:''}</div>
+            <div style="font-size:11px;color:var(--muted);">${g.tel?g.tel+' · ':''}${g.itens.length} serviço${g.itens.length>1?'s':''}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="text-align:right;">
+            <div style="font-size:12px;font-weight:600;color:var(--green);">${tercFmt(totalPago)} pago</div>
+            <div style="font-size:11px;color:${falta>0?'#A32D2D':'var(--green)'};">${falta>0?tercFmt(falta)+' a pagar':'Quitado'}</div>
+          </div>
+          <span class="tc-arr" style="font-size:14px;color:var(--muted);transition:transform .2s;">▼</span>
+        </div>
+      </div>
+      <div style="border-top:0.5px solid var(--border);display:none;" class="">
+        ${servRows}
+        <div style="padding:8px 16px;display:flex;justify-content:flex-end;gap:8px;">
+          <button onclick="abrirModalNovoTerceiro('${nome}','${g.espec}','${g.tel}')" class="btn" style="font-size:11px;padding:4px 10px;">+ Adicionar serviço</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('terc-servicos-body').innerHTML = html||`<div style="text-align:center;padding:40px;color:var(--muted);">Nenhum serviço registrado${document.getElementById('terc-mes-sel')?.value!=='todos'?' neste mês':''}</div>`;
+}
+
+function renderTercPrestadores(lista){
+  // Agrupa totais históricos por prestador (todos os meses)
+  const grupos = {};
+  terceirizadosData.forEach(t=>{
+    const k = t.prestador||'Sem nome';
+    if(!grupos[k]){grupos[k]={espec:t.especialidade||'',totalComb:0,totalPago:0,servicos:[],meses:new Set()};}
+    grupos[k].totalComb += t.valorCombinado||0;
+    grupos[k].totalPago += (t.pagamentos||[]).reduce((a,p)=>a+(p.valor||0),0);
+    grupos[k].servicos.push(t);
+    if(t.mes) grupos[k].meses.add(t.mes);
+  });
+  const sorted = Object.entries(grupos).sort((a,b)=>b[1].totalPago-a[1].totalPago);
+  const maxPago = sorted[0]?.[1]?.totalPago||1;
+  const cores = ['#185FA5','#0F6E56','#BA7517','#534AB7','#993C1D'];
+  const rows = sorted.map(([nome,g],i)=>{
+    const ini = nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const bgCor = ['#E6F1FB','#E1F5EE','#FAEEDA','#EEEDFE','#FAECE7'][i%5];
+    const falta = Math.max(g.totalComb-g.totalPago,0);
+    const pct = Math.min(g.totalPago/maxPago*100,100);
+    const mesesStr = [...g.meses].sort().reverse().slice(0,3).join(' · ');
+    return `<div style="margin-bottom:18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:30px;height:30px;border-radius:50%;background:${bgCor};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${cores[i%5]};">${ini}</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;">${nome}</div>
+            <div style="font-size:11px;color:var(--muted);">${g.espec} · ${g.servicos.length} serviço${g.servicos.length>1?'s':''} no histórico</div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:15px;font-weight:700;">${tercFmt(g.totalPago)}</div>
+          <div style="font-size:10px;color:var(--muted);">total pago</div>
+        </div>
+      </div>
+      <div style="height:8px;border-radius:4px;background:var(--surface2);overflow:hidden;">
+        <div style="height:100%;border-radius:4px;background:${cores[i%5]};width:${pct}%;transition:width .5s;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:3px;">
+        <span>Em aberto: <strong style="color:${falta>0?'#A32D2D':'var(--green)'};">${falta>0?tercFmt(falta):'Nada'}</strong></span>
+        <span>${mesesStr}</span>
+      </div>
+      <div style="margin-top:6px;display:flex;justify-content:flex-end;">
+        <button onclick="tercPDFPrestador('${nome}')" class="btn" style="font-size:11px;padding:3px 10px;">📄 Extrato PDF</button>
+      </div>
+    </div>`;
+  }).join('');
+  const totalGeral = sorted.reduce((s,[,g])=>s+g.totalPago,0);
+  document.getElementById('terc-prestadores-body').innerHTML = `
+    <div style="background:var(--surface);border:0.5px solid var(--border2);border-radius:12px;padding:18px 20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:600;">Ranking — total recebido (histórico completo)</div>
+      </div>
+      ${rows||'<div style="text-align:center;padding:20px;color:var(--muted);">Nenhum prestador cadastrado</div>'}
+      <div style="border-top:0.5px solid var(--border);padding-top:12px;display:flex;justify-content:space-between;">
+        <div style="font-size:12px;color:var(--muted);">Total geral pago a terceirizados</div>
+        <div style="font-size:16px;font-weight:700;color:#A32D2D;">${tercFmt(totalGeral)}</div>
+      </div>
+    </div>`;
+}
+
+function populateTercDatalist(){
+  const dp = document.getElementById('terc-prestadores-list');
+  const dc = document.getElementById('terc-clientes-list');
+  const ded = document.getElementById('terc-pedidos-list');
+  if(dp){const nomes=[...new Set(terceirizadosData.map(t=>t.prestador).filter(Boolean))];dp.innerHTML=nomes.map(n=>`<option value="${n}">`).join('');}
+  if(dc){dc.innerHTML=clientes.map(c=>`<option value="${c.nome}">`).join('');}
+  if(ded){ded.innerHTML=pedidos.map(p=>`<option value="${p.codigo}">`).join('');}
+}
+window.populateTercDatalist = populateTercDatalist;
+
+function abrirModalNovoTerceiro(prestNome='',espec='',tel=''){
+  document.getElementById('terc-f-prestador').value=prestNome;
+  document.getElementById('terc-f-espec').value=espec;
+  document.getElementById('terc-f-tel').value=tel;
+  document.getElementById('terc-f-cliente').value='';
+  document.getElementById('terc-f-pedido').value='';
+  document.getElementById('terc-f-servico').value='';
+  document.getElementById('terc-f-valor').value='';
+  document.getElementById('terc-f-obs').value='';
+  const hoje=new Date();
+  document.getElementById('terc-f-mes').value=`${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('terc-modal-titulo').textContent='Novo serviço terceirizado';
+  document.getElementById('terc-modal-bg').classList.add('open');
+  populateTercDatalist();
+}
+window.abrirModalNovoTerceiro = abrirModalNovoTerceiro;
+
+document.getElementById('terc-modal-close').onclick = ()=>document.getElementById('terc-modal-bg').classList.remove('open');
+document.getElementById('terc-modal-cancelar').onclick = ()=>document.getElementById('terc-modal-bg').classList.remove('open');
+
+document.getElementById('terc-modal-salvar').onclick = async function(){
+  const prestador = document.getElementById('terc-f-prestador').value.trim();
+  const servico = document.getElementById('terc-f-servico').value.trim();
+  const valorStr = document.getElementById('terc-f-valor').value;
+  if(!prestador||!servico||!valorStr){showToast('Preencha os campos obrigatórios!');return;}
+  const mesVal = document.getElementById('terc-f-mes').value;
+  const mesFormatado = mesVal ? mesVal.split('-').reverse().join('/') : '';
+  const dados = {
+    prestador,
+    especialidade: document.getElementById('terc-f-espec').value.trim(),
+    telPrestador: document.getElementById('terc-f-tel').value.trim(),
+    cliente: document.getElementById('terc-f-cliente').value.trim(),
+    pedido: document.getElementById('terc-f-pedido').value.trim(),
+    servico,
+    valorCombinado: parseFloat(valorStr)||0,
+    mes: mesFormatado,
+    obs: document.getElementById('terc-f-obs').value.trim(),
+    status: 'pendente',
+    statusData: new Date().toLocaleDateString('pt-BR'),
+    pagamentos: [],
+    criadoEm: serverTimestamp()
+  };
+  await addDoc(collection(db,'terceirizados'),dados);
+  document.getElementById('terc-modal-bg').classList.remove('open');
+  showToast('✅ Serviço registrado!');
+};
+
+function abrirDetalheTerceiro(id){
+  const t = terceirizadosData.find(x=>x.id===id);
+  if(!t) return;
+  tercCurrentId = id;
+  document.getElementById('td-titulo').textContent = t.servico||'—';
+  document.getElementById('td-sub').textContent = [t.prestador,t.pedido,t.cliente].filter(Boolean).join(' · ');
+  document.getElementById('td-prest').textContent = t.prestador||'—';
+  document.getElementById('td-cli').textContent = t.cliente||'—';
+  document.getElementById('td-ped').textContent = t.pedido||'—';
+  document.getElementById('td-svc').textContent = t.servico||'—';
+  document.getElementById('td-vcomb').textContent = tercFmt(t.valorCombinado||0);
+  document.getElementById('td-obs').textContent = t.obs||'Sem observação';
+  document.getElementById('td-st-info').textContent = (t.statusData?t.statusLabel+' '+t.statusData:'—');
+  tercSetStatusBtn(t.status||'pendente');
+  tercRenderPgtos(t);
+  document.getElementById('td-np-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('td-np-val').value='';
+  document.getElementById('td-np-obs').value='';
+  document.getElementById('td-np-preview').style.display='none';
+  document.getElementById('terc-detalhe-bg').classList.add('open');
+}
+window.abrirDetalheTerceiro = abrirDetalheTerceiro;
+
+document.getElementById('terc-detalhe-close').onclick = ()=>document.getElementById('terc-detalhe-bg').classList.remove('open');
+
+function tercSetStatusBtn(s){
+  [{id:'tst-p',v:'pendente'},{id:'tst-i',v:'instalacao'},{id:'tst-c',v:'concluido'}].forEach(({id,v})=>{
+    const b=document.getElementById(id);
+    b.style.background = s===v?'var(--brand)':'transparent';
+    b.style.color = s===v?'#fff':'var(--text)';
+    b.style.borderColor = s===v?'var(--brand)':'var(--border2)';
+  });
+}
+
+function tercSetStatus(s){
+  tercSetStatusBtn(s);
+  const labels={pendente:'Pendente desde',instalacao:'Em instalação desde',concluido:'Concluído em'};
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  document.getElementById('td-st-info').textContent = labels[s]+' '+hoje;
+}
+window.tercSetStatus = tercSetStatus;
+
+function tercRenderPgtos(t){
+  const pgtos = t.pagamentos||[];
+  const pago = pgtos.reduce((s,p)=>s+(p.valor||0),0);
+  const falta = Math.max((t.valorCombinado||0)-pago,0);
+  const pct = t.valorCombinado>0?Math.min(pago/t.valorCombinado*100,100):0;
+  document.getElementById('td-pago').textContent = tercFmt(pago);
+  document.getElementById('td-falta').textContent = falta>0?tercFmt(falta):'Quitado ✓';
+  document.getElementById('td-falta').style.color = falta>0?'#A32D2D':'var(--green)';
+  document.getElementById('td-prog').style.width = pct+'%';
+  document.getElementById('td-prog').style.background = falta===0?'var(--green)':'#185FA5';
+  document.getElementById('td-pgtos').innerHTML = pgtos.length===0
+    ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0">Nenhum pagamento registrado ainda</div>'
+    : pgtos.map((p,i)=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;margin-bottom:6px;">
+        <div style="width:22px;height:22px;border-radius:50%;background:#E6F1FB;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#185FA5;">${i+1}</div>
+        <div style="flex:1;"><div style="font-size:12px;font-weight:600;">${tercFmt(p.valor)}</div><div style="font-size:10px;color:var(--muted);">${p.obs||'—'}</div></div>
+        <div style="font-size:11px;color:var(--muted);">${p.data||'—'}</div>
+        <button onclick="tercDelPgto(${i})" style="background:none;border:none;cursor:pointer;color:#A32D2D;font-size:13px;padding:2px 4px;">×</button>
+      </div>`).join('');
+}
+
+function tercPreviewPgto(){
+  const val = parseFloat(document.getElementById('td-np-val').value)||0;
+  const t = terceirizadosData.find(x=>x.id===tercCurrentId);
+  if(!t||!val){document.getElementById('td-np-preview').style.display='none';return;}
+  const pago = (t.pagamentos||[]).reduce((s,p)=>s+(p.valor||0),0);
+  const falta = Math.max((t.valorCombinado||0)-pago,0);
+  const novo = Math.max(falta-val,0);
+  const el = document.getElementById('td-np-preview');
+  el.textContent = novo===0?'✅ Vai quitar o saldo restante':'Após este: '+tercFmt(novo)+' restante';
+  el.style.color = novo===0?'var(--green)':'#633806';
+  el.style.display='block';
+}
+window.tercPreviewPgto = tercPreviewPgto;
+
+async function tercAddPgto(){
+  const val = parseFloat(document.getElementById('td-np-val').value)||0;
+  if(!val||!tercCurrentId){showToast('Digite um valor válido!');return;}
+  const data = document.getElementById('td-np-data').value;
+  const br = data?data.split('-').reverse().join('/'):'—';
+  const obs = document.getElementById('td-np-obs').value||'—';
+  const t = terceirizadosData.find(x=>x.id===tercCurrentId);
+  const pgtos = [...(t?.pagamentos||[]),{data:br,valor:val,obs}];
+  await updateDoc(doc(db,'terceirizados',tercCurrentId),{pagamentos:pgtos});
+  document.getElementById('td-np-val').value='';
+  document.getElementById('td-np-obs').value='';
+  document.getElementById('td-np-preview').style.display='none';
+  showToast('✅ Pagamento registrado!');
+}
+window.tercAddPgto = tercAddPgto;
+
+async function tercDelPgto(i){
+  if(!confirm('Remover este pagamento?'))return;
+  const t = terceirizadosData.find(x=>x.id===tercCurrentId);
+  const pgtos = [...(t?.pagamentos||[])];
+  pgtos.splice(i,1);
+  await updateDoc(doc(db,'terceirizados',tercCurrentId),{pagamentos:pgtos});
+}
+window.tercDelPgto = tercDelPgto;
+
+document.getElementById('td-btn-salvar').onclick = async function(){
+  if(!tercCurrentId)return;
+  const statusInfo = document.getElementById('td-st-info').textContent;
+  const status = document.getElementById('tst-c').style.background.includes('var(--brand)')||document.getElementById('tst-c').style.color==='#fff'?'concluido':
+    document.getElementById('tst-i').style.color==='#fff'?'instalacao':'pendente';
+  const labels={pendente:'Pendente desde',instalacao:'Em instalação desde',concluido:'Concluído em'};
+  await updateDoc(doc(db,'terceirizados',tercCurrentId),{
+    status,
+    statusLabel: labels[status],
+    statusData: new Date().toLocaleDateString('pt-BR')
+  });
+  document.getElementById('terc-detalhe-bg').classList.remove('open');
+  showToast('✅ Salvo!');
+};
+
+document.getElementById('td-btn-excluir').onclick = async function(){
+  if(!tercCurrentId||!confirm('Excluir este serviço?'))return;
+  await deleteDoc(doc(db,'terceirizados',tercCurrentId));
+  document.getElementById('terc-detalhe-bg').classList.remove('open');
+  showToast('Serviço removido.');
+};
+
+function tercImprimirPDF(){
+  const t = terceirizadosData.find(x=>x.id===tercCurrentId);
+  if(!t)return;
+  const pgtos = t.pagamentos||[];
+  const pago = pgtos.reduce((s,p)=>s+(p.valor||0),0);
+  const falta = Math.max((t.valorCombinado||0)-pago,0);
+  const histRows = pgtos.length>0 ? pgtos.map((p,i)=>`
+    <tr>
+      <td style="padding:7px 10px;border-bottom:1px solid #eee;font-size:12px;">${i+1}º pagamento</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #eee;font-size:12px;">${p.data||'—'}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #eee;font-size:12px;">${p.obs||'—'}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #eee;font-size:12px;font-weight:600;color:#0F6E56;text-align:right;">${tercFmt(p.valor)}</td>
+    </tr>`).join('')
+    : '<tr><td colspan="4" style="padding:10px;text-align:center;color:#999;font-size:12px;">Nenhum pagamento registrado</td></tr>';
+
+  document.getElementById('pdf-content').innerHTML=`
+    <div style="max-width:700px;margin:0 auto;font-family:'DM Sans',sans-serif;color:#1C2340;padding:32px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #1C2340;">
+        <div>
+          <div style="font-size:15px;font-weight:800;">CMT PROJETOS E FACHADAS</div>
+          <div style="font-size:11px;color:#666;">CNPJ: 53.466.209/0001-01 · Franca/SP · (16) 99649-2182</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="background:#1C2340;color:#fff;font-size:16px;font-weight:800;padding:6px 16px;border-radius:6px;">ORDEM DE SERVIÇO TERCEIRIZADO</div>
+          <div style="font-size:11px;color:#555;margin-top:4px;">Emitido em: ${new Date().toLocaleDateString('pt-BR')}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;background:#f8f8f8;border-radius:10px;padding:14px 18px;margin-bottom:16px;">
+        <div><div style="font-size:10px;color:#999;margin-bottom:2px;">PRESTADOR</div><div style="font-size:14px;font-weight:700;">${t.prestador||'—'}</div>${t.especialidade?`<div style="font-size:11px;color:#666;">${t.especialidade}</div>`:''}</div>
+        <div><div style="font-size:10px;color:#999;margin-bottom:2px;">CLIENTE / OBRA</div><div style="font-size:14px;font-weight:700;">${t.cliente||'—'}</div>${t.pedido?`<div style="font-size:11px;color:#E05C1A;font-weight:700;">Pedido: ${t.pedido}</div>`:''}</div>
+        <div style="grid-column:1/-1;"><div style="font-size:10px;color:#999;margin-bottom:2px;">SERVIÇO</div><div style="font-size:13px;font-weight:600;">${t.servico||'—'}</div></div>
+        ${t.obs?`<div style="grid-column:1/-1;"><div style="font-size:10px;color:#999;margin-bottom:2px;">OBSERVAÇÃO</div><div style="font-size:12px;">${t.obs}</div></div>`:''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div style="background:#fff;border:1.5px solid #e0e0e0;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:10px;color:#999;margin-bottom:4px;">STATUS</div>
+          <div style="font-size:13px;font-weight:700;color:${t.status==='concluido'?'#0F6E56':t.status==='instalacao'?'#185FA5':'#BA7517'};">${t.status==='concluido'?'✅ Concluído':t.status==='instalacao'?'⚙️ Em instalação':'⏳ Pendente'}</div>
+          ${t.statusData?`<div style="font-size:10px;color:#999;margin-top:2px;">${t.statusData}</div>`:''}
+        </div>
+        <div style="background:#fff;border:1.5px solid #e0e0e0;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:10px;color:#999;margin-bottom:4px;">VALOR COMBINADO</div>
+          <div style="font-size:16px;font-weight:800;color:#1C2340;">${tercFmt(t.valorCombinado||0)}</div>
+        </div>
+        <div style="background:#fff;border:1.5px solid ${falta>0?'#F7C1C1':'#9FE1CB'};border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:10px;color:#999;margin-bottom:4px;">${falta>0?'SALDO A PAGAR':'STATUS PGTO'}</div>
+          <div style="font-size:16px;font-weight:800;color:${falta>0?'#A32D2D':'#0F6E56'};">${falta>0?tercFmt(falta):'QUITADO ✓'}</div>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;border:1.5px solid #e0e0e0;border-radius:10px;overflow:hidden;margin-bottom:20px;">
+        <thead><tr style="background:#1C2340;color:#fff;">
+          <th style="padding:9px 10px;text-align:left;font-size:11px;">#</th>
+          <th style="padding:9px 10px;text-align:left;font-size:11px;">Data</th>
+          <th style="padding:9px 10px;text-align:left;font-size:11px;">Observação</th>
+          <th style="padding:9px 10px;text-align:right;font-size:11px;">Valor Pago</th>
+        </tr></thead>
+        <tbody>${histRows}</tbody>
+        <tfoot>
+          <tr style="background:#f0fdf4;">
+            <td colspan="3" style="padding:9px 10px;font-size:13px;font-weight:700;">Total pago</td>
+            <td style="padding:9px 10px;font-size:15px;font-weight:800;text-align:right;color:#0F6E56;">${tercFmt(pago)}</td>
+          </tr>
+        </tfoot>
+      </table>
+      <div style="display:flex;justify-content:space-between;margin-top:32px;padding-top:16px;border-top:1px solid #ddd;">
+        <div style="text-align:center;width:44%;"><div style="border-top:1.5px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>CMT Projetos e Fachadas</strong></div></div>
+        <div style="text-align:center;width:44%;"><div style="border-top:1.5px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>${t.prestador||'Prestador'}</strong><br/>Assinatura</div></div>
+      </div>
+      <div style="margin-top:16px;text-align:center;font-size:10px;color:#999;">CMT Projetos e Fachadas · CNPJ: 53.466.209/0001-01 · Franca/SP · ${new Date().toLocaleDateString('pt-BR')}</div>
+    </div>`;
+  document.getElementById('terc-detalhe-bg').classList.remove('open');
+  showTab('preview');
+}
+window.tercImprimirPDF = tercImprimirPDF;
+
+function tercPDFPrestador(nome){
+  const servicos = terceirizadosData.filter(t=>t.prestador===nome);
+  const totalComb = servicos.reduce((s,t)=>s+(t.valorCombinado||0),0);
+  const totalPago = servicos.reduce((s,t)=>s+(t.pagamentos||[]).reduce((a,p)=>a+(p.valor||0),0),0);
+  const falta = Math.max(totalComb-totalPago,0);
+  const rows = servicos.map(t=>{
+    const pago=(t.pagamentos||[]).reduce((a,p)=>a+(p.valor||0),0);
+    const faltaT=Math.max((t.valorCombinado||0)-pago,0);
+    return `<tr>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;font-size:12px;">${t.servico||'—'}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;font-size:12px;">${t.cliente||'—'}${t.pedido?' · '+t.pedido:''}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;font-size:12px;">${t.mes||'—'}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;font-size:12px;text-align:right;">${tercFmt(t.valorCombinado||0)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;font-size:12px;text-align:right;color:#0F6E56;">${tercFmt(pago)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;font-size:12px;text-align:right;color:${faltaT>0?'#A32D2D':'#0F6E56'};">${faltaT>0?tercFmt(faltaT):'Quitado'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('pdf-content').innerHTML=`
+    <div style="max-width:750px;margin:0 auto;font-family:'DM Sans',sans-serif;color:#1C2340;padding:32px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #1C2340;">
+        <div><div style="font-size:15px;font-weight:800;">CMT PROJETOS E FACHADAS</div><div style="font-size:11px;color:#666;">CNPJ: 53.466.209/0001-01 · Franca/SP</div></div>
+        <div style="text-align:right;"><div style="background:#E05C1A;color:#fff;font-size:15px;font-weight:800;padding:6px 16px;border-radius:6px;">EXTRATO DO PRESTADOR</div><div style="font-size:11px;color:#555;margin-top:4px;">${new Date().toLocaleDateString('pt-BR')}</div></div>
+      </div>
+      <div style="background:#f8f8f8;border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:800;">${nome}</div>
+        <div style="font-size:11px;color:#666;margin-top:3px;">${servicos[0]?.especialidade||''}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+          <div style="text-align:center;"><div style="font-size:10px;color:#999;">Total de serviços</div><div style="font-size:16px;font-weight:700;">${servicos.length}</div></div>
+          <div style="text-align:center;"><div style="font-size:10px;color:#999;">Total pago</div><div style="font-size:16px;font-weight:700;color:#0F6E56;">${tercFmt(totalPago)}</div></div>
+          <div style="text-align:center;"><div style="font-size:10px;color:#999;">Saldo em aberto</div><div style="font-size:16px;font-weight:700;color:${falta>0?'#A32D2D':'#0F6E56'};">${falta>0?tercFmt(falta):'Nada'}</div></div>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;border:1.5px solid #e0e0e0;border-radius:10px;overflow:hidden;margin-bottom:20px;">
+        <thead><tr style="background:#1C2340;color:#fff;">
+          <th style="padding:9px 10px;text-align:left;font-size:11px;">Serviço</th>
+          <th style="padding:9px 10px;text-align:left;font-size:11px;">Cliente / Pedido</th>
+          <th style="padding:9px 10px;text-align:left;font-size:11px;">Mês</th>
+          <th style="padding:9px 10px;text-align:right;font-size:11px;">Combinado</th>
+          <th style="padding:9px 10px;text-align:right;font-size:11px;">Pago</th>
+          <th style="padding:9px 10px;text-align:right;font-size:11px;">Saldo</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr style="background:#f8f8f8;">
+          <td colspan="3" style="padding:9px 10px;font-size:13px;font-weight:700;">TOTAL GERAL</td>
+          <td style="padding:9px 10px;font-size:13px;font-weight:700;text-align:right;">${tercFmt(totalComb)}</td>
+          <td style="padding:9px 10px;font-size:14px;font-weight:800;text-align:right;color:#0F6E56;">${tercFmt(totalPago)}</td>
+          <td style="padding:9px 10px;font-size:14px;font-weight:800;text-align:right;color:${falta>0?'#A32D2D':'#0F6E56'};">${falta>0?tercFmt(falta):'Quitado'}</td>
+        </tr></tfoot>
+      </table>
+      <div style="text-align:center;font-size:10px;color:#999;">CMT Projetos e Fachadas · CNPJ: 53.466.209/0001-01 · Franca/SP · Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+    </div>`;
+  showTab('preview');
+}
+window.tercPDFPrestador = tercPDFPrestador;
+
+// ============================================================
+// FIM TERCEIRIZADOS
+// ============================================================
 
 // Show/hide parcelas field based on tipo
 document.getElementById('fx-ent-tipo').addEventListener('change', function() {
