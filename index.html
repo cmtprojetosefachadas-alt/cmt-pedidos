@@ -3179,6 +3179,12 @@ document.addEventListener('click',async e=>{
     renderFuturos();
     return;
   }
+  // Gerar aviso de cobrança para vencidos
+  if(e.target.dataset.type==='cobranca-entrada'){
+    const item = fluxoEntradas.find(x=>x.id===e.target.dataset.id);
+    if(item) gerarReciboCobranca(item);
+    return;
+  }
   // Desfazer baixa saida - volta para não paga/futura
   if(e.target.dataset.type==='desfazer-baixa-saida'){
     if(!confirm('Desfazer baixa? A saída voltará para "A pagar".'))return;
@@ -5359,10 +5365,13 @@ window.renderEntradasLista = function renderEntradasLista() {
       <td style="padding:9px 8px;"><span style="background:var(--red-bg);color:#A32D2D;padding:2px 8px;border-radius:12px;font-size:11px;">${e.tipo||'Entrada'}</span></td>
       <td style="padding:9px 8px;color:#A32D2D;font-size:12px;">${e.obs||''}</td>
       <td style="padding:9px 8px;text-align:right;font-weight:700;color:#A32D2D;">${fmtMoney(e.valor||0)}</td>
-      <td style="padding:9px 8px;display:flex;gap:4px;">
-        <button class="btn btn-primary" style="font-size:11px;padding:3px 8px;white-space:nowrap;" data-id="${e.id}" data-recebido="0" data-type="toggle-recebido">✅ Baixa</button>
-        <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-type="edit-entrada">✏️</button>
-        <button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button>
+      <td style="padding:9px 8px;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="btn btn-primary" style="font-size:11px;padding:3px 8px;white-space:nowrap;" data-id="${e.id}" data-recebido="0" data-type="toggle-recebido">✅ Baixa</button>
+          <button class="btn" style="font-size:11px;padding:3px 8px;background:#7C0000;border-color:#7C0000;color:#fff;white-space:nowrap;" data-id="${e.id}" data-type="cobranca-entrada">📋 Cobrança</button>
+          <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-type="edit-entrada">✏️</button>
+          <button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button>
+        </div>
       </td>
     </tr>`).join('');
 
@@ -7049,11 +7058,144 @@ window.tercPDFPrestador = tercPDFPrestador;
 // FIM TERCEIRIZADOS
 // ============================================================
 
+// AVISO DE COBRANÇA — inadimplentes
 // Show/hide parcelas field based on tipo
 document.getElementById('fx-ent-tipo').addEventListener('change', function() {
   const wrap = document.getElementById('fx-parcelas-wrap');
   if(wrap) wrap.style.display = this.value==='Parcela' ? 'block' : 'none';
 });
+
+window.gerarReciboCobranca = function(item) {
+  const hoje = new Date();
+  const dataHoje = hoje.toLocaleDateString('pt-BR');
+  const nomeCliente = item.clienteNome || item.desc || '—';
+  const pagoParcial = item.pagoParcial || 0;
+  const saldoDevedor = item.valor || 0;
+  const valorOriginal = pagoParcial > 0 ? pagoParcial + saldoDevedor : saldoDevedor;
+  const dataVencimento = item.data ? item.data.split('-').reverse().join('/') : '—';
+  const descricao = item.obs || item.tipo || '—';
+
+  // Busca código do pedido
+  let pedidoCod = item.pedidoCodigo || '';
+  if(!pedidoCod && item.pedidoId) {
+    const ped = pedidos.find(p=>p.id===item.pedidoId);
+    if(ped) pedidoCod = ped.codigo||'';
+  }
+  if(!pedidoCod) {
+    const ped = pedidos.find(p=>p.nome&&p.nome.trim().toLowerCase()===nomeCliente.trim().toLowerCase());
+    if(ped) pedidoCod = ped.codigo||'';
+  }
+
+  // Dias em atraso
+  let diasAtraso = 0;
+  if(item.data){ const venc=new Date(item.data); diasAtraso=Math.floor((hoje-venc)/(1000*60*60*24)); }
+
+  // Dados do cliente
+  const cadCliente = clientes.find(c=>c.nome&&c.nome.trim().toLowerCase()===nomeCliente.trim().toLowerCase());
+  const pedidoRef = pedidos.find(p=>p.nome&&p.nome.trim().toLowerCase()===nomeCliente.trim().toLowerCase());
+  const docCliente = cadCliente?.doc || pedidoRef?.doc || '';
+  const telCliente = cadCliente?.tel || pedidoRef?.tel || item.tel || '';
+  const endCliente = cadCliente?.end || (pedidoRef?.enderecoEntrega
+    ? [pedidoRef.enderecoEntrega.rua,pedidoRef.enderecoEntrega.num,pedidoRef.enderecoEntrega.bairro,pedidoRef.enderecoEntrega.cidade].filter(Boolean).join(', ')
+    : '');
+  const cepCliente = cadCliente?.cep || pedidoRef?.enderecoEntrega?.cep || '';
+  const cidadeCliente = cadCliente?.cidade || pedidoRef?.enderecoEntrega?.cidade || 'Franca';
+  const ufCliente = cadCliente?.uf || pedidoRef?.enderecoEntrega?.uf || 'SP';
+  const numDoc = 'COB-' + (item.id||'').slice(-6).toUpperCase();
+
+  // Histórico
+  const historico = item.historicoPagementos || [];
+  const histRows = historico.length > 0
+    ? historico.map((h,i)=>`<tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:12px;">${i+1}º pagamento</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:12px;">${h.data?h.data.split('-').reverse().join('/'):'—'}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:12px;">${h.obs||'—'}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:12px;font-weight:600;color:#0F6E56;text-align:right;">${fmtMoney(h.valor)}</td>
+      </tr>`).join('')
+    : '';
+
+  document.getElementById('pdf-content').innerHTML = `
+    <div style="max-width:720px;margin:0 auto;font-family:'DM Sans',sans-serif;color:#1C2340;padding:32px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:3px solid #7C0000;">
+        <div>
+          <div style="font-size:15px;font-weight:800;color:#1C2340;">CMT PROJETOS E FACHADAS</div>
+          <div style="font-size:11px;color:#666;">CNPJ: 53.466.209/0001-01 · Franca/SP · Comercial: (16) 99649-2182</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="background:#7C0000;color:#fff;font-size:17px;font-weight:800;padding:6px 18px;border-radius:6px;">AVISO DE COBRANÇA</div>
+          <div style="font-size:12px;font-weight:700;color:#7C0000;margin-top:4px;">Nº ${numDoc}</div>
+          <div style="font-size:11px;color:#7C0000;">Emitido em: ${dataHoje}</div>
+        </div>
+      </div>
+      <div style="background:#FEE2E2;border:2px solid #7C0000;border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
+        <span style="font-size:28px;">🚨</span>
+        <div>
+          <div style="font-size:14px;font-weight:800;color:#7C0000;">PAGAMENTO EM ABERTO — ${diasAtraso > 0 ? diasAtraso+' dia'+(diasAtraso>1?'s':'')+' em atraso' : 'VENCIDO'}</div>
+          <div style="font-size:12px;color:#A32D2D;margin-top:2px;">Vencimento original: <strong>${dataVencimento}</strong> · Favor regularizar o pagamento o quanto antes para evitar medidas judiciais.</div>
+        </div>
+      </div>
+      <div style="background:#f8f8f8;border-radius:10px;padding:14px 18px;margin-bottom:16px;border-left:4px solid #7C0000;">
+        <div style="font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Dados do Devedor</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div style="grid-column:1/-1;"><span style="font-size:11px;color:#999;">Nome / Razão Social</span><br/><strong style="font-size:16px;color:#7C0000;">${nomeCliente}</strong></div>
+          <div><span style="font-size:11px;color:#999;">CPF / CNPJ</span><br/><strong style="font-size:13px;">${docCliente||'<span style="color:#bbb;font-style:italic;font-weight:400;">Não informado</span>'}</strong></div>
+          ${telCliente?`<div><span style="font-size:11px;color:#999;">Telefone</span><br/><strong style="font-size:13px;">${telCliente}</strong></div>`:''}
+          ${endCliente?`<div style="grid-column:1/-1;"><span style="font-size:11px;color:#999;">Endereço</span><br/><strong style="font-size:13px;">${endCliente}</strong></div>`:''}
+          ${cepCliente?`<div><span style="font-size:11px;color:#999;">CEP</span><br/><strong>${cepCliente}</strong></div>`:''}
+          ${cidadeCliente?`<div><span style="font-size:11px;color:#999;">Cidade/UF</span><br/><strong>${cidadeCliente}${ufCliente?' / '+ufCliente:''}</strong></div>`:''}
+        </div>
+      </div>
+      <div style="background:#fff;border:2px solid #7C0000;border-radius:10px;padding:14px 18px;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Descrição da Dívida</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:10px;">
+          <div>
+            <span style="font-size:11px;color:#999;">Referente a</span><br/>
+            <strong style="font-size:13px;">${descricao}</strong>
+            ${pedidoCod?`<br/><span style="font-size:12px;font-weight:700;color:#E05C1A;">Pedido: ${pedidoCod}</span>`:''}
+          </div>
+          <div><span style="font-size:11px;color:#999;">Data Vencimento</span><br/><strong style="font-size:13px;color:#7C0000;">${dataVencimento}</strong></div>
+          <div><span style="font-size:11px;color:#999;">Dias em Atraso</span><br/><strong style="font-size:13px;color:#7C0000;">${diasAtraso > 0 ? diasAtraso+' dia'+(diasAtraso>1?'s':'') : 'Vencido hoje'}</strong></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid #eee;flex-wrap:wrap;gap:8px;">
+          ${pagoParcial > 0 ? `<div style="font-size:13px;color:#555;">Valor total do serviço: <strong>${fmtMoney(valorOriginal)}</strong> &nbsp;·&nbsp; Já pago: <strong style="color:#0F6E56;">${fmtMoney(pagoParcial)}</strong></div>` : ''}
+          <div style="text-align:right;margin-left:auto;">
+            <div style="font-size:12px;color:#999;">VALOR EM ABERTO</div>
+            <div style="font-size:28px;font-weight:900;color:#7C0000;">${fmtMoney(saldoDevedor)}</div>
+          </div>
+        </div>
+      </div>
+      ${histRows ? `
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Histórico de Pagamentos Parciais</div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #eee;border-radius:8px;overflow:hidden;">
+          <thead><tr style="background:#f5f5f5;">
+            <th style="padding:7px 10px;text-align:left;font-size:11px;color:#888;">#</th>
+            <th style="padding:7px 10px;text-align:left;font-size:11px;color:#888;">Data</th>
+            <th style="padding:7px 10px;text-align:left;font-size:11px;color:#888;">Observação</th>
+            <th style="padding:7px 10px;text-align:right;font-size:11px;color:#888;">Valor Pago</th>
+          </tr></thead>
+          <tbody>${histRows}</tbody>
+        </table>
+      </div>` : ''}
+      <div style="background:#FFF7ED;border:1.5px solid #E05C1A;border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+        <div style="font-size:11px;font-weight:700;color:#E05C1A;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Instruções de Pagamento</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;color:#555;">
+          <div><strong>PIX / Transferência:</strong><br/>Chave PIX (CNPJ): 60.296.403/0001-51<br/>Beneficiário: TAMARA SHOP</div>
+          <div><strong>Contato para regularização:</strong><br/>Comercial: (16) 99649-2182<br/>Franca/SP</div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#A32D2D;font-weight:600;">⚠️ O não pagamento no prazo de 5 dias úteis poderá resultar em registro em órgãos de proteção ao crédito (SPC/Serasa) e protesto em cartório.</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:32px;padding-top:16px;border-top:1px solid #ddd;">
+        <div style="text-align:center;width:44%;"><div style="border-top:1.5px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>CMT Projetos e Fachadas</strong><br/>CNPJ: 53.466.209/0001-01</div></div>
+        <div style="text-align:center;width:44%;"><div style="border-top:1.5px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>Devedor: ${nomeCliente}</strong><br/>${docCliente||'CPF/CNPJ não informado'}</div></div>
+      </div>
+      <div style="margin-top:20px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999;text-align:center;">
+        CMT Projetos e Fachadas · CNPJ: 53.466.209/0001-01 · Franca/SP · Comercial: (16) 99649-2182<br/>
+        Documento emitido em ${dataHoje} · Nº ${numDoc} · Este documento tem validade como notificação extrajudicial de cobrança.
+      </div>
+    </div>`;
+  showTab('preview');
+};
 
 // Load fluxo data on init - sem onSnapshot para evitar duplicatas
 carregarFluxoData();
