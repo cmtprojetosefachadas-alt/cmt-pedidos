@@ -1160,7 +1160,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 <!-- MODAL EDITAR ENTRADA/SAIDA -->
 <div class="modal-bg" id="edit-fluxo-bg">
-  <div class="modal" style="max-width:500px;">
+  <div class="modal" style="max-width:520px;">
     <button class="modal-close" id="btn-close-edit-fluxo">×</button>
     <h2 id="edit-fluxo-title">Editar lançamento</h2>
     <input type="hidden" id="edit-fluxo-id"/>
@@ -1173,6 +1173,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="field"><label>Data compensação (cheque)</label><input type="date" id="edit-fluxo-compensacao"/></div>
       <div class="field" style="grid-column:1/-1;"><label>Observação</label><input type="text" id="edit-fluxo-obs"/></div>
     </div>
+
+    <!-- Motivo obrigatório -->
+    <div style="margin-top:14px;padding:12px 14px;background:#FFF7ED;border:1.5px solid #E05C1A;border-radius:10px;">
+      <label style="font-size:12px;font-weight:700;color:#E05C1A;display:block;margin-bottom:6px;">⚠️ Motivo da alteração <span style="color:#A32D2D;">*</span></label>
+      <input type="text" id="edit-fluxo-motivo" placeholder="Ex: Data lançada errada, valor corrigido, duplicado..." style="width:100%;padding:8px 10px;border:1.5px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);"/>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px;">Obrigatório — fica registrado no histórico de alterações.</div>
+    </div>
+
+    <!-- Histórico de alterações -->
+    <div id="edit-fluxo-historico-wrap" style="margin-top:14px;display:none;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">📋 Histórico de alterações</div>
+      <div id="edit-fluxo-historico-lista" style="max-height:160px;overflow-y:auto;"></div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn" id="btn-cancelar-edit-fluxo">Cancelar</button>
       <button class="btn btn-primary" id="btn-salvar-edit-fluxo">💾 Salvar</button>
@@ -3139,6 +3153,8 @@ document.addEventListener('click',async e=>{
     document.getElementById('edit-fluxo-cat').value = ent.tipo||'';
     document.getElementById('edit-fluxo-obs').value = ent.obs||'';
     document.getElementById('edit-fluxo-compensacao').value = ent.compensacao||'';
+    document.getElementById('edit-fluxo-motivo').value = '';
+    renderHistoricoAlteracoes(ent.historicoAlteracoes||[]);
     document.getElementById('edit-fluxo-bg').classList.add('open');
     return;
   }
@@ -3154,6 +3170,8 @@ document.addEventListener('click',async e=>{
     document.getElementById('edit-fluxo-cliente').value = sai.desc||'';
     document.getElementById('edit-fluxo-cat').value = sai.cat||'';
     document.getElementById('edit-fluxo-obs').value = sai.obs||'';
+    document.getElementById('edit-fluxo-motivo').value = '';
+    renderHistoricoAlteracoes(sai.historicoAlteracoes||[]);
     document.getElementById('edit-fluxo-bg').classList.add('open');
     return;
   }
@@ -3435,14 +3453,44 @@ document.addEventListener('click',async e=>{
     const data = document.getElementById('edit-fluxo-data').value;
     const cat = document.getElementById('edit-fluxo-cat').value;
     const obs = document.getElementById('edit-fluxo-obs').value;
+    const motivo = document.getElementById('edit-fluxo-motivo').value.trim();
     const mes = data ? data.substring(5,7)+'/'+data.substring(0,4) : '';
     const col = tipo==='entrada' ? 'fluxo_entradas' : 'fluxo_saidas';
     const compensacao = document.getElementById('edit-fluxo-compensacao').value||'';
-    const upd = tipo==='entrada' ? {valor,data,mes,tipo:cat,obs,compensacao} : {valor,data,mes,cat,obs};
+
+    if(!motivo){ showToast('⚠️ Informe o motivo da alteração!','toast-fluxo'); return; }
+
+    // Busca registro atual para montar diff
+    const regAtual = tipo==='entrada'
+      ? fluxoEntradas.find(x=>x.id===id)
+      : fluxoSaidas.find(x=>x.id===id);
+
+    // Monta registro de alteração
+    const agora = new Date();
+    const dataHoje = agora.toLocaleDateString('pt-BR');
+    const hora = agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const alteracoes = [];
+    if(regAtual){
+      if(String(regAtual.valor)!==String(valor)) alteracoes.push(`Valor: ${fmtMoney(regAtual.valor||0)} → ${fmtMoney(valor)}`);
+      if((regAtual.data||'')!==data) alteracoes.push(`Data: ${regAtual.data||'—'} → ${data}`);
+      if((regAtual.obs||'')!==obs) alteracoes.push(`Obs: "${regAtual.obs||'—'}" → "${obs}"`);
+    }
+    const logEntry = {
+      dataHora: `${dataHoje} ${hora}`,
+      motivo,
+      alteracoes: alteracoes.length>0 ? alteracoes.join(' | ') : 'Sem alterações detectadas'
+    };
+    const historicoAnterior = regAtual?.historicoAlteracoes || [];
+    const novoHistorico = [logEntry, ...historicoAnterior]; // mais recente primeiro
+
+    const upd = tipo==='entrada'
+      ? {valor, data, mes, tipo:cat, obs, compensacao, historicoAlteracoes: novoHistorico}
+      : {valor, data, mes, cat, obs, historicoAlteracoes: novoHistorico};
+
     await updateDoc(doc(db,col,id), upd);
     await carregarFluxoData();
     document.getElementById('edit-fluxo-bg').classList.remove('open');
-    showToast('✅ Lançamento atualizado!','toast-fluxo');
+    showToast('✅ Lançamento atualizado e alteração registrada!','toast-fluxo');
     return;
   }
   if(e.target.id==='btn-close-edit-cliente'||e.target.id==='btn-cancelar-edit-cliente')document.getElementById('edit-cliente-bg').classList.remove('open');
@@ -7059,6 +7107,23 @@ window.tercPDFPrestador = tercPDFPrestador;
 // ============================================================
 
 // AVISO DE COBRANÇA — inadimplentes
+// Histórico de alterações no modal de edição
+function renderHistoricoAlteracoes(historico){
+  const wrap = document.getElementById('edit-fluxo-historico-wrap');
+  const lista = document.getElementById('edit-fluxo-historico-lista');
+  if(!wrap||!lista) return;
+  if(!historico||historico.length===0){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  lista.innerHTML = historico.map((h,i)=>`
+    <div style="padding:8px 10px;background:var(--surface2);border-radius:8px;margin-bottom:6px;border-left:3px solid ${i===0?'var(--brand)':'var(--border2)'};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+        <span style="font-size:12px;font-weight:600;color:var(--text);">${h.motivo}</span>
+        <span style="font-size:10px;color:var(--muted);">${h.dataHora}</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);">${h.alteracoes}</div>
+    </div>`).join('');
+}
+
 // Show/hide parcelas field based on tipo
 document.getElementById('fx-ent-tipo').addEventListener('change', function() {
   const wrap = document.getElementById('fx-parcelas-wrap');
