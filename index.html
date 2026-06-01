@@ -3126,23 +3126,68 @@ document.addEventListener('click',async e=>{
     return;
   }
   // Dar baixa entrada - abre modal de baixa parcial
-  if(e.target.dataset.type==='toggle-recebido' && e.target.dataset.recebido==='0'){
-    abrirModalBaixa(e.target.dataset.id, 'entrada');
-    return;
-  }
-  // Desfazer recebimento entrada
-  if(e.target.dataset.type==='toggle-recebido' && e.target.dataset.recebido==='1'){
-    if(!confirm('Desfazer recebimento? Voltará para pendente.'))return;
-    await updateDoc(doc(db,'fluxo_entradas',e.target.dataset.id),{recebido:false});
+  // Del todas entradas de um cliente
+  if(e.target.id==='btn-del-entradas-cliente'){
+    const nome = document.getElementById('fx-del-cliente-sel').value;
+    if(!nome){ showToast('Selecione um cliente!','toast-fluxo'); return; }
+    const paraApagar = fluxoEntradas.filter(x=>x.clienteNome===nome);
+    if(!paraApagar.length){ showToast('Nenhuma entrada encontrada!','toast-fluxo'); return; }
+    if(!confirm(`Apagar ${paraApagar.length} entrada(s) de "${nome}"?`)) return;
+    for(const e2 of paraApagar){
+      await deleteDoc(doc(db,'fluxo_entradas',e2.id));
+    }
     await carregarFluxoData();
-    renderFluxo();
-    showToast('↩ Marcado como pendente','toast-fluxo');
+    showToast(`🗑️ ${paraApagar.length} entrada(s) removida(s)!`,'toast-fluxo');
     return;
   }
+  // Del entrada fluxo
+  // Pega o elemento correto mesmo quando clica em filho do botão
+  const btn = e.target.closest('[data-type]') || e.target;
+  const btnType = btn.dataset?.type;
+  const btnId = btn.dataset?.id;
 
+  if(btnType==='del-entrada'){
+    if(!confirm('Remover esta entrada?'))return;
+    await deleteDoc(doc(db,'fluxo_entradas',btnId));
+    await carregarFluxoData();
+    renderFuturos();
+    return;
+  }
+  // Gerar aviso de cobrança para vencidos
+  if(btnType==='cobranca-entrada'){
+    const item = fluxoEntradas.find(x=>x.id===btnId);
+    if(item) gerarReciboCobranca(item);
+    return;
+  }
+  // Desfazer baixa saida - volta para não paga/futura
+  if(btnType==='desfazer-baixa-saida'){
+    if(!confirm('Desfazer baixa? A saída voltará para "A pagar".'))return;
+    await updateDoc(doc(db,'fluxo_saidas',btnId),{futura:true, paga:false, pagoParcial:0, historicoPagementos:[]});
+    await carregarFluxoData();
+    showToast('↩ Baixa desfeita — saída voltou para A pagar','toast-fluxo');
+    return;
+  }
+  // Del saida fluxo
+  if(btnType==='del-saida'){
+    if(!confirm('Remover esta saída?'))return;
+    await deleteDoc(doc(db,'fluxo_saidas',btnId));
+    await carregarFluxoData();
+    return;
+  }
+  // Toggle recebido entrada
+  if(btnType==='toggle-recebido' && btn.dataset?.recebido==='0'){
+    abrirModalBaixa(btnId,'entrada');
+    return;
+  }
+  if(btnType==='toggle-recebido' && btn.dataset?.recebido==='1'){
+    if(!confirm('Desfazer recebimento?'))return;
+    await updateDoc(doc(db,'fluxo_entradas',btnId),{recebido:false, pagoParcial:0, historicoPagementos:[]});
+    await carregarFluxoData();
+    return;
+  }
   // Edit entrada
-  if(e.target.dataset.type==='edit-entrada'){
-    const ent = fluxoEntradas.find(x=>x.id===e.target.dataset.id);
+  if(btnType==='edit-entrada'){
+    const ent = fluxoEntradas.find(x=>x.id===btnId);
     if(!ent)return;
     document.getElementById('edit-fluxo-id').value = ent.id;
     document.getElementById('edit-fluxo-tipo-reg').value = 'entrada';
@@ -3159,8 +3204,8 @@ document.addEventListener('click',async e=>{
     return;
   }
   // Edit saida
-  if(e.target.dataset.type==='edit-saida'){
-    const sai = fluxoSaidas.find(x=>x.id===e.target.dataset.id);
+  if(btnType==='edit-saida'){
+    const sai = fluxoSaidas.find(x=>x.id===btnId);
     if(!sai)return;
     document.getElementById('edit-fluxo-id').value = sai.id;
     document.getElementById('edit-fluxo-tipo-reg').value = 'saida';
@@ -3173,49 +3218,6 @@ document.addEventListener('click',async e=>{
     document.getElementById('edit-fluxo-motivo').value = '';
     renderHistoricoAlteracoes(sai.historicoAlteracoes||[]);
     document.getElementById('edit-fluxo-bg').classList.add('open');
-    return;
-  }
-  // Del todas entradas de um cliente
-  if(e.target.id==='btn-del-entradas-cliente'){
-    const nome = document.getElementById('fx-del-cliente-sel').value;
-    if(!nome){ showToast('Selecione um cliente!','toast-fluxo'); return; }
-    const paraApagar = fluxoEntradas.filter(x=>x.clienteNome===nome);
-    if(!paraApagar.length){ showToast('Nenhuma entrada encontrada!','toast-fluxo'); return; }
-    if(!confirm(`Apagar ${paraApagar.length} entrada(s) de "${nome}"?`)) return;
-    for(const e2 of paraApagar){
-      await deleteDoc(doc(db,'fluxo_entradas',e2.id));
-    }
-    await carregarFluxoData();
-    showToast(`🗑️ ${paraApagar.length} entrada(s) removida(s)!`,'toast-fluxo');
-    return;
-  }
-  // Del entrada fluxo
-  if(e.target.dataset.type==='del-entrada'){
-    if(!confirm('Remover esta entrada?'))return;
-    await deleteDoc(doc(db,'fluxo_entradas',e.target.dataset.id));
-    await carregarFluxoData();
-    renderFuturos();
-    return;
-  }
-  // Gerar aviso de cobrança para vencidos
-  if(e.target.dataset.type==='cobranca-entrada'){
-    const item = fluxoEntradas.find(x=>x.id===e.target.dataset.id);
-    if(item) gerarReciboCobranca(item);
-    return;
-  }
-  // Desfazer baixa saida - volta para não paga/futura
-  if(e.target.dataset.type==='desfazer-baixa-saida'){
-    if(!confirm('Desfazer baixa? A saída voltará para "A pagar".'))return;
-    await updateDoc(doc(db,'fluxo_saidas',e.target.dataset.id),{futura:true, paga:false, pagoParcial:0, historicoPagementos:[]});
-    await carregarFluxoData();
-    showToast('↩ Baixa desfeita — saída voltou para A pagar','toast-fluxo');
-    return;
-  }
-  // Del saida fluxo
-  if(e.target.dataset.type==='del-saida'){
-    if(!confirm('Remover esta saída?'))return;
-    await deleteDoc(doc(db,'fluxo_saidas',e.target.dataset.id));
-    await carregarFluxoData();
     return;
   }
   // Edit categoria
