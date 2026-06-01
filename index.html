@@ -5389,7 +5389,7 @@ window.renderEntradasLista = function renderEntradasLista() {
         <div style="display:flex;gap:4px;">
           <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-recebido="1" data-type="toggle-recebido">↩</button>
           <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-type="edit-entrada">✏️</button>
-          <button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button>
+          <button class="del-btn" data-id="${e.id}" data-type="del-entrada" style="pointer-events:all;">×</button>
         </div>
       </td>
     </tr>`;}).join('');
@@ -5401,10 +5401,12 @@ window.renderEntradasLista = function renderEntradasLista() {
       <td style="padding:9px 8px;"><span style="background:var(--amber-bg);color:var(--amber-text);padding:2px 8px;border-radius:12px;font-size:11px;">${e.tipo||'Entrada'}</span></td>
       <td style="padding:9px 8px;color:var(--muted);font-size:12px;">${e.obs||''}</td>
       <td style="padding:9px 8px;text-align:right;font-weight:600;color:var(--amber-text);">${fmtMoney(e.valor||0)}</td>
-      <td style="padding:9px 8px;display:flex;gap:4px;">
-        <button class="btn btn-primary" style="font-size:11px;padding:3px 8px;white-space:nowrap;" data-id="${e.id}" data-recebido="0" data-type="toggle-recebido">✅ Baixa</button>
-        <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-type="edit-entrada">✏️</button>
-        <button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button>
+      <td style="padding:9px 8px;">
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-primary" style="font-size:11px;padding:3px 8px;white-space:nowrap;" data-id="${e.id}" data-recebido="0" data-type="toggle-recebido">✅ Baixa</button>
+          <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-type="edit-entrada">✏️</button>
+          <button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button>
+        </div>
       </td>
     </tr>`).join('');
 
@@ -5582,7 +5584,7 @@ function renderSaidasLista(lista) {
       <td style="padding:9px 8px;"><span style="background:var(--red-bg);color:var(--red);padding:2px 8px;border-radius:12px;font-size:11px;">${s.cat||'Outro'}</span></td>
       <td style="padding:9px 8px;color:var(--muted);font-size:12px;">${s.ref||s.obs||''}</td>
       <td style="padding:9px 8px;text-align:right;font-weight:600;color:var(--red);">${fmtMoney(s.valor||0)}</td>
-      <td style="padding:9px 8px;" onclick="event.stopPropagation()">
+      <td style="padding:9px 8px;">
         <div style="display:flex;gap:4px;">
           <button class="btn" style="font-size:11px;padding:3px 8px;white-space:nowrap;border-color:#7C5CBF;color:#7C5CBF;" data-id="${s.id}" data-type="desfazer-baixa-saida">↩</button>
           <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${s.id}" data-type="edit-saida">✏️</button>
