@@ -649,6 +649,10 @@ body {
     <h2>Orçamentos</h2>
     <div id="badges-status" style="display:flex;gap:8px"></div>
     <input class="search-field" placeholder="Buscar cliente ou serviço..." id="search-input" oninput="filtrarOrcamentos()">
+    <!-- Filtro mês -->
+    <select id="filtro-mes-lista" class="field" style="width:160px;padding:7px 12px;font-size:13px" onchange="window.renderListaOrcamentos()">
+      <option value="">Todos os meses</option>
+    </select>
     <!-- Filtro status -->
     <select id="filtro-status" class="field" style="width:140px;padding:7px 12px;font-size:13px" onchange="window.renderListaOrcamentos()">
       <option value="">Todos status</option>
@@ -1655,6 +1659,7 @@ function renderDashboard() {
 
 function renderListaOrcamentos() {
   renderDashboard();
+  window.popularMesesLista && window.popularMesesLista();
   const tb = document.getElementById('lista-tbody');
   if(!tb) return;
   const orcs = window.getOrcamentosFiltrados ? window.getOrcamentosFiltrados() : [...(window._orcamentos||[])];
@@ -1910,16 +1915,42 @@ window.limparOrcamento = function() {
 window.getOrcamentosFiltrados = function() {
   const q      = (document.getElementById('search-input')?.value||'').toLowerCase();
   const status = document.getElementById('filtro-status')?.value||'';
+  const mesSel = document.getElementById('filtro-mes-lista')?.value||'';
   const dataIni= document.getElementById('filtro-data-ini')?.value||'';
   const dataFim= document.getElementById('filtro-data-fim')?.value||'';
   return (window._orcamentos||[]).filter(o=>{
     if(q && !o.cliente.toLowerCase().includes(q) && !(o.desc||'').toLowerCase().includes(q)) return false;
     if(status && o.status!==status) return false;
-    const dataOrc=(o.criadoEm||'').substring(0,10);
+    const dataOrc=(o.criadoEm||o.dataAprovacao||'').substring(0,10);
+    if(mesSel && dataOrc){
+      const [anoFiltro,mesFiltro] = mesSel.split('-');
+      const [anoOrc,mesOrc] = dataOrc.split('-');
+      if(anoFiltro!==anoOrc || mesFiltro!==mesOrc) return false;
+    }
     if(dataIni && dataOrc<dataIni) return false;
     if(dataFim && dataOrc>dataFim) return false;
     return true;
   });
+};
+
+// Popular select de meses na lista de orçamentos
+window.popularMesesLista = function() {
+  const sel = document.getElementById('filtro-mes-lista');
+  if(!sel) return;
+  const cur = sel.value;
+  const mesesSet = new Set();
+  (window._orcamentos||[]).forEach(o=>{
+    const dataRef = (o.criadoEm||o.dataAprovacao||'').substring(0,7);
+    if(dataRef) mesesSet.add(dataRef);
+  });
+  const meses = [...mesesSet].sort((a,b)=>b.localeCompare(a));
+  const nomes = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  sel.innerHTML = '<option value="">Todos os meses</option>' +
+    meses.map(m => {
+      const [ano, mes] = m.split('-');
+      return `<option value="${m}" ${m===cur?'selected':''}>${nomes[parseInt(mes)]} ${ano}</option>`;
+    }).join('');
+  if(cur && mesesSet.has(cur)) sel.value = cur;
 };
 
 window.filtrarOrcamentos = function() { renderListaOrcamentos(); };
@@ -3698,7 +3729,7 @@ function renderDespesas() {
       return b[1].total - a[1].total;
     }).map(([cli,{items,total}])=>{
       const cliKey = 'cli_'+cli.replace(/[^a-zA-Z0-9]/g,'_');
-      const expanded = window._cliExpandido[cliKey] === true; // fechado por padrão
+      const expanded = window._cliExpandido[cliKey] !== false; // aberto por padrão
       const orcsCliente = orcsAprov.filter(o=>o.cliente===cli);
       const orcadoOrc   = orcsCliente.reduce((a,o)=>a+(o.custoTotal||0),0);
       const saldoMan    = _saldosClientes[cli]?.valor||0;
