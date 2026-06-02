@@ -944,6 +944,69 @@ body {
 </div>
 
 <!-- MODAL NOVO LOCAL/PRESTADOR -->
+<!-- MODAL DETALHE ITEM ESTOQUE -->
+<div class="modal-overlay" id="modal-est-detalhe" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box" style="max-width:500px;width:95%">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:var(--text);" id="estd-nome">—</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px;" id="estd-entidade">—</div>
+      </div>
+      <button onclick="document.getElementById('modal-est-detalhe').classList.remove('open')"
+        style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1;">×</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;">
+        <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Categoria</div>
+        <div id="estd-cat" style="font-size:13px;font-weight:600;">—</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;">
+        <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Quantidade</div>
+        <div id="estd-qtd" style="font-size:13px;font-weight:600;">—</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;">
+        <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Valor unitário</div>
+        <div id="estd-unit" style="font-size:13px;font-weight:600;">—</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;">
+        <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Total</div>
+        <div id="estd-total" style="font-size:16px;font-weight:800;color:var(--accent);">—</div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+      <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Observação</div>
+      <div id="estd-obs" style="font-size:13px;">—</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;">
+        <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Cliente destino</div>
+        <div id="estd-cliente" style="font-size:13px;font-weight:600;color:var(--blue);">—</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;">
+        <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Data</div>
+        <div id="estd-data" style="font-size:13px;">—</div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:16px;">
+      <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Status</div>
+      <div id="estd-status" style="font-size:13px;font-weight:600;">—</div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border);">
+      <button onclick="document.getElementById('modal-est-detalhe').classList.remove('open')"
+        style="font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);cursor:pointer;">Fechar</button>
+      <div style="display:flex;gap:8px;">
+        <button id="estd-btn-editar" class="btn-ghost" style="font-size:12px;padding:6px 14px;">✏️ Editar</button>
+        <button id="estd-btn-pdf" class="btn-ghost" style="font-size:12px;padding:6px 14px;background:#E6F1FB;color:#185FA5;border-color:#185FA5;">📄 Imprimir PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-est-entidade" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:420px">
     <h3 id="modal-est-entidade-title">Adicionar</h3>
@@ -2728,13 +2791,127 @@ window.abrirModal = function(id) {
 
     <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
       <div style="font-size:12px;color:var(--muted)">Status: <span class="badge ${badgeClass(o.status)}">${o.status}</span></div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="window.gerarPDFOrcamento('${id}')">📄 PDF</button>
+        <button class="btn-ghost" style="font-size:11px;padding:5px 12px;background:#E6F1FB;color:#185FA5;border-color:#185FA5;" onclick="window.gerarListaMateriais('${id}')">📋 Lista de Materiais</button>
         <button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="abrirEdicaoOrcamento('${id}')">✏️ Editar itens</button>
       </div>
     </div>
   `;
   document.getElementById('modal-overlay').classList.add('open');
+};
+
+window.gerarListaMateriais = function(id) {
+  const o = window._orcamentos.find(x=>x.id===id);
+  if(!o) return;
+  const itens = o.itens||[];
+  const moVal = Math.round((o.moVal||0)*100)/100;
+  const moPct = o.moPct||25;
+  const hoje  = new Date().toLocaleDateString('pt-BR');
+  const nomeCliente = o.cliente||'—';
+  const descServico = o.desc||'—';
+  const dataOrc = fmtData(o.criadoEm);
+  const pagLabels = {'dinheiro':'Dinheiro/PIX','boleto':'Boleto','cartao_debito':'Cartão débito','cartao_credito':'Cartão crédito','cheque':'Cheque','transferencia':'Transferência'};
+  const pagLabel = pagLabels[o.pagamento]||'—';
+
+  // Dados do cliente (avulso ou sistema)
+  const clienteInfo = [];
+  if(o.avulso?.tel) clienteInfo.push(`Tel: ${o.avulso.tel}`);
+  if(o.avulso?.email) clienteInfo.push(`E-mail: ${o.avulso.email}`);
+  if(o.avulso?.end) clienteInfo.push(`Endereço: ${o.avulso.end}`);
+
+  const linhasMat = itens.map((it,i)=>`
+    <tr>
+      <td style="padding:9px 12px;border-bottom:1px solid #eee;font-size:13px;font-weight:600;">${i+1}</td>
+      <td style="padding:9px 12px;border-bottom:1px solid #eee;font-size:13px;">${it.nome||'—'}</td>
+      <td style="padding:9px 12px;border-bottom:1px solid #eee;font-size:13px;text-align:center;">${(it.qty||1)} ${it.unit||''}</td>
+      <td style="padding:9px 12px;border-bottom:1px solid #eee;font-size:12px;color:#666;">${it.cat||'—'}</td>
+      <td style="padding:9px 12px;border-bottom:1px solid #eee;text-align:center;">
+        <div style="width:18px;height:18px;border:2px solid #333;border-radius:3px;margin:auto;"></div>
+      </td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head>
+  <meta charset="UTF-8">
+  <title>Lista de Materiais — ${o.numero} — ${nomeCliente}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;color:#1a1a1a;background:#fff;font-size:13px;padding:32px}
+    @media print{body{padding:20px}}
+    h1{font-size:20px;font-weight:800;margin-bottom:4px}
+    table{width:100%;border-collapse:collapse}
+    th{background:#1C2340;color:#fff;padding:10px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+    th:last-child{text-align:center}
+    .footer{margin-top:40px;display:flex;justify-content:space-between;padding-top:16px;border-top:2px solid #1C2340}
+    .sig{text-align:center;width:44%}
+    .sig-line{border-top:1.5px solid #333;padding-top:8px;font-size:11px;color:#555;margin-top:40px}
+  </style>
+  </head><body>
+
+  <!-- Cabeçalho -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #1C2340;">
+    <div>
+      <div style="font-size:16px;font-weight:800;color:#1C2340;">CMT PROJETOS E FACHADAS</div>
+      <div style="font-size:11px;color:#666;margin-top:2px;">CNPJ: 53.466.209/0001-01 · Franca/SP · (16) 99649-2182</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="background:#1C2340;color:#fff;font-size:15px;font-weight:800;padding:6px 16px;border-radius:6px;">LISTA DE MATERIAIS</div>
+      <div style="font-size:11px;color:#555;margin-top:4px;">Orçamento: <strong>${o.numero}</strong> · ${dataOrc}</div>
+      <div style="font-size:11px;color:#555;">Emitido em: ${hoje}</div>
+    </div>
+  </div>
+
+  <!-- Dados do cliente -->
+  <div style="background:#f8f8f8;border-radius:8px;padding:12px 16px;margin-bottom:20px;border-left:4px solid #E05C1A;">
+    <div style="font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Cliente / Obra</div>
+    <div style="font-size:16px;font-weight:800;color:#1C2340;">${nomeCliente}</div>
+    <div style="font-size:12px;color:#555;margin-top:2px;">${descServico}</div>
+    ${clienteInfo.length ? `<div style="font-size:11px;color:#777;margin-top:4px;">${clienteInfo.join(' · ')}</div>` : ''}
+    <div style="font-size:11px;color:#777;margin-top:4px;">Pagamento: ${pagLabel}</div>
+  </div>
+
+  <!-- Tabela de materiais -->
+  <table style="margin-bottom:20px;">
+    <thead><tr>
+      <th style="width:40px">#</th>
+      <th>Material / Descrição</th>
+      <th style="width:100px;text-align:center">Qtd / Unid.</th>
+      <th style="width:120px">Categoria</th>
+      <th style="width:60px;text-align:center">✓</th>
+    </tr></thead>
+    <tbody>${linhasMat}</tbody>
+  </table>
+
+  <!-- Mão de obra separada com valor -->
+  <div style="background:#f0f0f8;border-radius:8px;padding:12px 16px;margin-bottom:24px;border-left:4px solid #7C5CBF;">
+    <div style="font-size:10px;font-weight:700;color:#7C5CBF;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Mão de Obra</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:13px;">${moPct}% da venda — Instalação e montagem</span>
+      <span style="font-size:16px;font-weight:800;color:#7C5CBF;">${fmt(moVal)}</span>
+    </div>
+    ${o.moResponsavel ? `<div style="font-size:12px;color:#555;margin-top:4px;">Responsável: <strong>${o.moResponsavel}</strong></div>` : ''}
+  </div>
+
+  <!-- Assinaturas -->
+  <div class="footer">
+    <div class="sig">
+      <div class="sig-line"><strong>CMT Projetos e Fachadas</strong><br/>Responsável técnico</div>
+    </div>
+    <div class="sig">
+      <div class="sig-line"><strong>${nomeCliente}</strong><br/>Cliente / Conferência</div>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;text-align:center;font-size:10px;color:#999;">
+    CMT Projetos e Fachadas · CNPJ: 53.466.209/0001-01 · Franca/SP · Gerado em ${hoje}
+  </div>
+
+  <script>window.onload=()=>window.print();<\/script>
+  </body></html>`;
+
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
 };
 
 window.fecharModal = function(e) {
@@ -4540,6 +4717,69 @@ async function carregarEstoque() {
   } catch(e){ window._estoqueEntidades=[]; window._estoqueItens=[]; }
 }
 
+window.verDetalheEstoque = function(itemId, entidadeId) {
+  // Busca o item no estoque
+  const ent = (window._estoque||[]).find(e=>e.id===entidadeId);
+  if(!ent) return;
+  const it = (ent.itens||[]).find(i=>i.id===itemId);
+  if(!it) return;
+
+  document.getElementById('estd-nome').textContent = it.nome||'—';
+  document.getElementById('estd-entidade').textContent = `${ent.tipo==='local'?'📍 Local':'👷 Prestador'} · ${ent.nome}`;
+  document.getElementById('estd-cat').textContent = it.cat||'—';
+  document.getElementById('estd-qtd').textContent = `${(it.qtd||1).toLocaleString('pt-BR',{maximumFractionDigits:2})} ${it.unit||''}`;
+  document.getElementById('estd-unit').textContent = fmt(it.valorUnit||0);
+  document.getElementById('estd-total').textContent = fmt(it.total||0);
+  document.getElementById('estd-obs').textContent = it.obs||'Sem observação';
+  document.getElementById('estd-cliente').textContent = it.cliente||'—';
+  document.getElementById('estd-data').textContent = fmtData(it.data||it.criadoEm);
+  document.getElementById('estd-status').innerHTML = it.usado
+    ? '<span style="color:var(--muted)">✅ Utilizado</span>'
+    : '<span style="color:var(--green)">🟢 Disponível</span>';
+
+  // Botão editar
+  document.getElementById('estd-btn-editar').onclick = function() {
+    document.getElementById('modal-est-detalhe').classList.remove('open');
+    window.editarEstoqueItem(itemId);
+  };
+
+  // Botão PDF
+  document.getElementById('estd-btn-pdf').onclick = function() {
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    const html = `<!DOCTYPE html><html lang="pt-BR"><head>
+    <meta charset="UTF-8"><title>Item Estoque — ${it.nome}</title>
+    <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;color:#1a1a1a;padding:32px;font-size:13px}</style>
+    </head><body>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #1C2340;">
+      <div><div style="font-size:16px;font-weight:800;color:#1C2340;">CMT PROJETOS E FACHADAS</div>
+      <div style="font-size:11px;color:#666;">CNPJ: 53.466.209/0001-01 · Franca/SP</div></div>
+      <div style="text-align:right;"><div style="background:#1C2340;color:#fff;font-size:14px;font-weight:800;padding:5px 14px;border-radius:6px;">ITEM DE ESTOQUE</div>
+      <div style="font-size:11px;color:#555;margin-top:4px;">Emitido em: ${hoje}</div></div>
+    </div>
+    <div style="background:#f8f8f8;border-radius:8px;padding:14px 18px;margin-bottom:16px;border-left:4px solid #E05C1A;">
+      <div style="font-size:10px;color:#999;font-weight:700;text-transform:uppercase;margin-bottom:4px;">${ent.tipo==='local'?'Local':'Prestador'}</div>
+      <div style="font-size:14px;font-weight:700;">${ent.nome}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;border:1.5px solid #e0e0e0;border-radius:8px;overflow:hidden;margin-bottom:20px;">
+      ${[['Material',it.nome||'—'],['Categoria',it.cat||'—'],['Quantidade',`${(it.qtd||1)} ${it.unit||''}`],['Valor unitário',fmt(it.valorUnit||0)],['Total',fmt(it.total||0)],['Observação',it.obs||'—'],['Cliente destino',it.cliente||'—'],['Data',fmtData(it.data||it.criadoEm)],['Status',it.usado?'Utilizado':'Disponível']].map(([k,v],i)=>`
+        <tr style="background:${i%2===0?'#fff':'#f9f9f9'}">
+          <td style="padding:10px 14px;font-size:12px;color:#666;font-weight:700;width:40%;">${k}</td>
+          <td style="padding:10px 14px;font-size:13px;font-weight:600;">${v}</td>
+        </tr>`).join('')}
+    </table>
+    <div style="text-align:center;font-size:10px;color:#999;padding-top:12px;border-top:1px solid #eee;">
+      CMT Projetos e Fachadas · CNPJ: 53.466.209/0001-01 · Franca/SP · ${hoje}
+    </div>
+    <script>window.onload=()=>window.print();<\/script>
+    </body></html>`;
+    const w = window.open('','_blank');
+    w.document.write(html);
+    w.document.close();
+  };
+
+  document.getElementById('modal-est-detalhe').classList.add('open');
+};
+
 function iniciarEstoque() { renderEstoque(); }
 
 window.abrirModalEstoqueLocal = function() {
@@ -4768,8 +5008,8 @@ function renderEstoque() {
                 </tr></thead>
                 <tbody>
                   ${itens.map(it=>`
-                    <tr style="${it.usado?'opacity:.5;':''}">
-                      <td style="padding:8px;border-bottom:1px solid var(--border);text-align:center">
+                    <tr style="${it.usado?'opacity:.5;':''}cursor:pointer;" onclick="window.verDetalheEstoque('${it.id}','${ent.id}')" title="Clique para ver detalhes">
+                      <td style="padding:8px;border-bottom:1px solid var(--border);text-align:center" onclick="event.stopPropagation()">
                         <input type="checkbox" ${it.usado?'checked':''} onchange="window.toggleEstoqueUsado('${it.id}',this.checked)"
                           style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer">
                       </td>
@@ -4781,7 +5021,7 @@ function renderEstoque() {
                       <td style="padding:8px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.obs||'—'}</td>
                       <td style="padding:8px;border-bottom:1px solid var(--border);font-size:12px;font-weight:${it.cliente?'600':'400'};color:${it.cliente?'var(--blue)':'var(--muted2)'};white-space:nowrap">${it.cliente||'—'}</td>
                       <td style="padding:8px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);white-space:nowrap">${fmtData(it.data||it.criadoEm)}</td>
-                      <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center">
+                      <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center" onclick="event.stopPropagation()">
                         <span style="cursor:pointer;color:var(--blue);font-size:13px;padding:2px 4px" onclick="window.editarEstoqueItem('${it.id}')" title="Editar">✏️</span>
                         <span style="cursor:pointer;color:var(--muted2);font-size:16px" onclick="window.deletarEstoqueItem('${it.id}')" title="Remover">×</span>
                       </td>
