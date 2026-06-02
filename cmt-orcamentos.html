@@ -2882,12 +2882,12 @@ window.gerarListaMateriais = function(id) {
     <tbody>${linhasMat}</tbody>
   </table>
 
-  <!-- Mão de obra separada com valor -->
+  <!-- Mão de obra como item sem valor -->
   <div style="background:#f0f0f8;border-radius:8px;padding:12px 16px;margin-bottom:24px;border-left:4px solid #7C5CBF;">
     <div style="font-size:10px;font-weight:700;color:#7C5CBF;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Mão de Obra</div>
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <span style="font-size:13px;">${moPct}% da venda — Instalação e montagem</span>
-      <span style="font-size:16px;font-weight:800;color:#7C5CBF;">${fmt(moVal)}</span>
+      <div style="width:18px;height:18px;border:2px solid #7C5CBF;border-radius:3px;"></div>
     </div>
     ${o.moResponsavel ? `<div style="font-size:12px;color:#555;margin-top:4px;">Responsável: <strong>${o.moResponsavel}</strong></div>` : ''}
   </div>
@@ -2898,7 +2898,7 @@ window.gerarListaMateriais = function(id) {
       <div class="sig-line"><strong>CMT Projetos e Fachadas</strong><br/>Responsável técnico</div>
     </div>
     <div class="sig">
-      <div class="sig-line"><strong>${nomeCliente}</strong><br/>Cliente / Conferência</div>
+      <div class="sig-line"><strong>${o.moResponsavel||'Instalador'}</strong><br/>Instalador / Conferência</div>
     </div>
   </div>
 
