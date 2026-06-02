@@ -1613,35 +1613,28 @@ async function carregarOrcamentos() {
     const snap = await getDocs(collection(db,'cmt_orcamentos'));
     window._orcamentos = snap.docs.map(d=>({id:d.id,...d.data()}));
     window._orcamentos.sort((a,b)=>new Date(b.criadoEm)-new Date(a.criadoEm));
-    // Popular select de meses dinamicamente baseado nos orçamentos existentes
+    // Popular select de meses — usa YYYY-MM para precisão
     (function() {
       const nomes = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
       const mesesSet = new Set();
-      // Adiciona mês atual sempre
-      mesesSet.add(new Date().getMonth() + 1);
+      const hoje = new Date();
+      const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
+      mesesSet.add(mesAtual);
       (window._orcamentos||[]).forEach(o => {
-        // Usa dataAprovacao se Aprovado, senão criadoEm
-        const dataRef = (o.status === 'Aprovado' && o.dataAprovacao) ? o.dataAprovacao : o.criadoEm;
-        if(dataRef) mesesSet.add(new Date(dataRef).getMonth() + 1);
-        if(o.mes) mesesSet.add(o.mes);
+        const m = mesDoOrcamento(o);
+        if(m) mesesSet.add(m);
       });
       const sel = document.getElementById('sel-mes');
       if(sel) {
-        const cur = parseInt(sel.value) || (new Date().getMonth() + 1);
-        const meses = [...mesesSet].sort((a,b) => b - a);
-        sel.innerHTML = meses.map(m => `<option value="${m}" ${m===cur?'selected':''}>${nomes[m]} 2026</option>`).join('');
+        const cur = sel.value || mesAtual;
+        const meses = [...mesesSet].sort((a,b)=>b.localeCompare(a));
+        sel.innerHTML = meses.map(m => {
+          const [ano,mes] = m.split('-');
+          return `<option value="${m}" ${m===cur?'selected':''}>${nomes[parseInt(mes)]} ${ano}</option>`;
+        }).join('');
         if(!mesesSet.has(cur)) sel.value = meses[0];
       }
     })();
-    // Corrige dataAprovacao para hora local correta (UTC-3 Brasília)
-    // Se dataAprovacao existe mas cai em dia errado por causa do fuso, ajusta
-    window._orcamentos.forEach(o => {
-      if(o.status === 'Aprovado' && o.dataAprovacao) {
-        const d = new Date(o.dataAprovacao);
-        // Se a data foi salva como meia-noite UTC e fica no dia anterior em BRT, corrige
-        // Nada a fazer aqui — a exibição usa toLocaleDateString que já converte
-      }
-    });
   } catch(e){ window._orcamentos=[]; }
 }
 
@@ -2523,9 +2516,11 @@ window.gerarPDFOrcamento = function(id) {
 
 
 window.gerarPDFRelatorio = function() {
-  const mes    = parseInt(document.getElementById('sel-mes')?.value||3);
+  const mesSel = document.getElementById('sel-mes')?.value||'';
   const nomes  = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const todos  = window._orcamentos.filter(o=>mesDoOrcamento(o)===mes);
+  const [anoSel,numMes] = mesSel ? mesSel.split('-') : [new Date().getFullYear(), String(new Date().getMonth()+1).padStart(2,'0')];
+  const nomeMes = nomes[parseInt(numMes)] + ' ' + anoSel;
+  const todos  = mesSel ? window._orcamentos.filter(o=>mesDoOrcamento(o)===mesSel) : [];
   const orcs   = todos.filter(o=>o.status==='Aprovado');
   const aguard = todos.filter(o=>o.status==='Aguardando');
   const recus  = todos.filter(o=>o.status==='Recusado');
@@ -2557,7 +2552,7 @@ window.gerarPDFRelatorio = function() {
 
   const html = `<!DOCTYPE html><html lang="pt-BR"><head>
   <meta charset="UTF-8">
-  <title>Relatório ${nomes[mes]} 2026 — CMT</title>
+  <title>Relatório ${nomeMes} — CMT</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:Arial,sans-serif;color:#1a1a1a;background:#f0ede8;font-size:12px}
@@ -2588,7 +2583,7 @@ window.gerarPDFRelatorio = function() {
   <div class="header">
     <div>
       <div class="logo">CMT <span>Projetos e Fachadas</span></div>
-      <div style="font-size:14px;font-weight:700;color:#1a2332;margin-top:4px">Relatório de Resultados — ${nomes[mes]} 2026</div>
+      <div style="font-size:14px;font-weight:700;color:#1a2332;margin-top:4px">Relatório de Resultados — ${nomeMes}</div>
       <div style="font-size:11px;color:#888;margin-top:2px">Gerado em ${new Date().toLocaleDateString('pt-BR')} · USO INTERNO</div>
     </div>
     <div style="text-align:right">
@@ -2691,7 +2686,7 @@ window.gerarPDFRelatorio = function() {
   </tbody></table>`:''}
 
   <div class="footer">
-    <span>CMT Projetos e Fachadas — Relatório interno — ${nomes[mes]} 2026</span>
+    <span>CMT Projetos e Fachadas — Relatório interno — ${nomeMes}</span>
     <span>Gerado em ${new Date().toLocaleDateString('pt-BR')}</span>
   </div>
   </div><script>window.onload=()=>window.print()<\/script></body></html>`;
@@ -2965,22 +2960,29 @@ window.atualizarStatus = async function(status) {
 // - Aprovado sem dataAprovacao (registro antigo) → mês atual
 // - Outros status → mês de criação do orçamento
 function mesDoOrcamento(o) {
-  if (o.status === 'Aprovado') {
-    if (o.dataAprovacao) return new Date(o.dataAprovacao).getMonth() + 1;
-    return new Date().getMonth() + 1; // aprovado sem registro de data → mês atual
+  // Retorna 'YYYY-MM' — preciso e único, sem misturar anos
+  if(o.status === 'Aprovado' && o.dataAprovacao) {
+    // Aprovado com data → usa mês da aprovação
+    return new Date(o.dataAprovacao).toISOString().substring(0,7);
   }
-  const dataRef = o.criadoEm;
-  if(dataRef) return new Date(dataRef).getMonth() + 1;
-  return o.mes || new Date().getMonth() + 1;
+  if(o.criadoEm) {
+    // Usa mês de criação (para não aprovados ou aprovados sem dataAprovacao)
+    return new Date(o.criadoEm).toISOString().substring(0,7);
+  }
+  if(o.mes) {
+    // Campo legado numérico → assume 2026
+    return `2026-${String(o.mes).padStart(2,'0')}`;
+  }
+  return null; // sem data válida — não aparece em nenhum mês
 }
 
 // ── RELATÓRIO ──
 window.renderRelatorio = function() {
-  const mes  = parseInt(document.getElementById('sel-mes')?.value||3);
-  const todos = window._orcamentos.filter(o=>mesDoOrcamento(o)===mes);
-  const orcs  = todos.filter(o=>o.status==='Aprovado');
-  const aguard= todos.filter(o=>o.status==='Aguardando');
-  const recus = todos.filter(o=>o.status==='Recusado');
+  const mesSel = document.getElementById('sel-mes')?.value||'';
+  const todos  = mesSel ? window._orcamentos.filter(o=>mesDoOrcamento(o)===mesSel) : [];
+  const orcs   = todos.filter(o=>o.status==='Aprovado');
+  const aguard = todos.filter(o=>o.status==='Aguardando');
+  const recus  = todos.filter(o=>o.status==='Recusado');
 
   const fat       = orcs.reduce((a,o)=>a+o.venda,0);
   const custo     = orcs.reduce((a,o)=>a+o.custoTotal,0);
