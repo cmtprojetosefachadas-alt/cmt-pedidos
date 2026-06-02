@@ -3090,7 +3090,7 @@ setupFotoInput('foto2-input', 'foto2-preview');
 document.addEventListener('click',async e=>{
 
   // Clique em linha de histórico (realizadas/recebidas) - apenas se não clicou em botão
-  if(!e.target.closest('button') && !e.target.closest('.del-btn') && !e.target.closest('[data-type]')) {
+  if(!e.target.closest('button') && !e.target.closest('.del-btn') && !e.target.closest('[data-type]') && !e.target.closest('div[onclick]')) {
     const row = e.target.closest('tr[data-id-hist]');
     if(row) {
       abrirModalBaixa(row.dataset.idHist, row.dataset.tipoHist);
@@ -5385,11 +5385,11 @@ window.renderEntradasLista = function renderEntradasLista() {
       <td style="padding:9px 8px;"><span style="background:var(--green-bg);color:var(--green-text);padding:2px 8px;border-radius:12px;font-size:11px;">${e.tipo||'Entrada'}</span>${e.compensacao?`<br/><span style="font-size:10px;color:var(--muted);">Comp: ${fmtDataBr(e.compensacao)}</span>`:''}</td>
       <td style="padding:9px 8px;color:var(--muted);font-size:12px;">${e.obs||''}</td>
       <td style="padding:9px 8px;text-align:right;font-weight:600;color:var(--green);">${fmtMoney(e.valor||0)}</td>
-      <td style="padding:9px 8px;" onclick="event.stopPropagation()">
-        <div style="display:flex;gap:4px;">
+      <td style="padding:9px 8px;">
+        <div style="display:flex;gap:4px;" onclick="event.stopPropagation()">
           <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-recebido="1" data-type="toggle-recebido">↩</button>
           <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${e.id}" data-type="edit-entrada">✏️</button>
-          <button class="del-btn" data-id="${e.id}" data-type="del-entrada" style="pointer-events:all;">×</button>
+          <button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button>
         </div>
       </td>
     </tr>`;}).join('');
