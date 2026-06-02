@@ -1465,7 +1465,64 @@ const ETAPAS = ['Liberado para expedição','Em montagem','Preparando para final
 
 let pedidos=[], orcamentos=[], clientes=[], currentPedidoId=null, currentOrcId=null, editingItens=[];
 window._setDesc=function(i,v){editingItens[i].desc=v;};
-window._setValor=function(i,v){editingItens[i].valor=parseFloat(v)||0;calcTotal();};
+window._setValor=function(i,v){
+  editingItens[i].valor=parseFloat(v)||0;
+  // Atualiza badge de margem real
+  const custo=parseFloat(editingItens[i].custo)||0;
+  const valor=parseFloat(v)||0;
+  const badge=document.getElementById('item-badge-'+i);
+  const badgeTxt=document.getElementById('item-badge-txt-'+i);
+  if(badge&&badgeTxt){
+    if(custo>0&&valor>0){
+      const m=Math.round((valor-custo)/valor*100);
+      badgeTxt.textContent=m+'% margem';
+      badge.style.display='flex';
+    } else { badge.style.display='none'; }
+  }
+  calcTotal();
+};
+window._setCusto=function(i,v){
+  editingItens[i].custo=parseFloat(v)||0;
+  // Se tem margem definida, recalcula valor de venda
+  const custo=parseFloat(v)||0;
+  const margem=parseFloat(editingItens[i].margem)||0;
+  if(custo>0&&margem>0){
+    const novoValor=custo/(1-margem/100);
+    editingItens[i].valor=Math.round(novoValor*100)/100;
+    const inp=document.getElementById('item-valor-'+i);
+    if(inp) inp.value=editingItens[i].valor.toFixed(2);
+  }
+  // Atualiza badge
+  const valor=parseFloat(editingItens[i].valor)||0;
+  const badge=document.getElementById('item-badge-'+i);
+  const badgeTxt=document.getElementById('item-badge-txt-'+i);
+  if(badge&&badgeTxt&&custo>0&&valor>0){
+    badgeTxt.textContent=Math.round((valor-custo)/valor*100)+'% margem';
+    badge.style.display='flex';
+  }
+  calcTotal();
+};
+window._setMargem=function(i,v){
+  editingItens[i].margem=parseFloat(v)||0;
+  // Se tem custo definido, calcula valor de venda automaticamente
+  const margem=parseFloat(v)||0;
+  const custo=parseFloat(editingItens[i].custo)||0;
+  if(custo>0&&margem>0&&margem<100){
+    const novoValor=custo/(1-margem/100);
+    editingItens[i].valor=Math.round(novoValor*100)/100;
+    const inp=document.getElementById('item-valor-'+i);
+    if(inp) inp.value=editingItens[i].valor.toFixed(2);
+  }
+  // Atualiza badge
+  const valor=parseFloat(editingItens[i].valor)||0;
+  const badge=document.getElementById('item-badge-'+i);
+  const badgeTxt=document.getElementById('item-badge-txt-'+i);
+  if(badge&&badgeTxt&&custo>0&&valor>0){
+    badgeTxt.textContent=Math.round((valor-custo)/valor*100)+'% margem';
+    badge.style.display='flex';
+  }
+  calcTotal();
+};
 
 
 // HELPERS
@@ -2599,21 +2656,73 @@ async function renderPosvenda(pedidoId){
 // ITENS
 function renderItens(){
   document.getElementById('itens-lista').innerHTML=editingItens.map(function(it,i){
-    var d=(it.desc||'').replace(/"/g,'&quot;'), v=parseFloat(it.valor)||0;
-    return '<div class="item-row">'
-      +'<input type="text" value="'+d+'" oninput="window._setDesc('+i+',this.value)" style="flex:1;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);min-width:0;"/>'
-      +'<input type="number" value="'+v+'" min="0" step="0.01" oninput="window._setValor('+i+',this.value)" style="width:120px;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);text-align:right;"/>'
+    var d=(it.desc||'').replace(/"/g,'&quot;');
+    var custo=parseFloat(it.custo)||0;
+    var margem=parseFloat(it.margem)||0;
+    var valor=parseFloat(it.valor)||0;
+    return '<div class="item-row" style="flex-direction:column;align-items:stretch;gap:6px;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">'
+      // Linha 1: descrição + botão excluir
+      +'<div style="display:flex;gap:8px;align-items:center;">'
+      +'<input type="text" value="'+d+'" placeholder="Descrição do serviço/item" oninput="window._setDesc('+i+',this.value)" style="flex:1;border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);"/>'
       +'<button class="del-btn" data-idx="'+i+'" data-type="delitem">×</button>'
+      +'</div>'
+      // Linha 2: custo + margem → valor de venda
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+      +'<div style="display:flex;align-items:center;gap:4px;">'
+      +'<span style="font-size:11px;color:var(--muted);white-space:nowrap;">💰 Custo R$</span>'
+      +'<input type="number" value="'+(custo||'')+'" min="0" step="0.01" placeholder="0,00" oninput="window._setCusto('+i+',this.value)" style="width:100px;border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:12px;background:var(--surface);color:var(--text);text-align:right;"/>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:4px;">'
+      +'<span style="font-size:11px;color:var(--muted);white-space:nowrap;">📈 Margem %</span>'
+      +'<input type="number" value="'+(margem||'')+'" min="0" max="100" step="1" placeholder="0" oninput="window._setMargem('+i+',this.value)" style="width:70px;border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:12px;background:var(--surface);color:var(--text);text-align:right;"/>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:4px;margin-left:auto;">'
+      +'<span style="font-size:11px;color:var(--muted);white-space:nowrap;">💵 Venda R$</span>'
+      +'<input type="number" value="'+valor+'" min="0" step="0.01" oninput="window._setValor('+i+',this.value)" id="item-valor-'+i+'" style="width:110px;border:1.5px solid var(--brand);border-radius:6px;padding:5px 8px;font-size:13px;font-weight:600;background:var(--surface);color:var(--brand);text-align:right;"/>'
+      +'</div>'
+      // Badge margem real
+      +'<div id="item-badge-'+i+'" style="'+(custo>0&&valor>0?'display:flex':'display:none')+';align-items:center;">'
+      +'<span style="font-size:11px;padding:2px 8px;border-radius:12px;font-weight:600;background:#E6F1FB;color:#185FA5;" id="item-badge-txt-'+i+'">'
+      +(custo>0&&valor>0 ? Math.round((valor-custo)/valor*100)+'% margem' : '')
+      +'</span>'
+      +'</div>'
+      +'</div>'
       +'</div>';
   }).join('');
   calcTotal();
 }
 function calcTotal(){
   const sub=editingItens.reduce(function(s,it){return s+(parseFloat(it.valor)||0);},0);
+  const totalCusto=editingItens.reduce(function(s,it){return s+(parseFloat(it.custo)||0);},0);
   const desc=parseFloat(document.getElementById('desconto').value)||0;
   const total=sub*(1-desc/100);
   document.getElementById('subtotal').textContent=fmtMoney(sub);
   document.getElementById('total-final').textContent=fmtMoney(total);
+
+  // Exibe resumo interno de custo/margem se houver custo preenchido
+  let resumoEl = document.getElementById('resumo-custo-margem');
+  if(!resumoEl){
+    resumoEl = document.createElement('div');
+    resumoEl.id = 'resumo-custo-margem';
+    const totalRow = document.getElementById('total-final')?.closest('.total-row')?.parentElement;
+    if(totalRow) totalRow.appendChild(resumoEl);
+  }
+  if(totalCusto > 0){
+    const lucro = total - totalCusto;
+    const margemReal = total > 0 ? Math.round(lucro/total*100) : 0;
+    resumoEl.innerHTML = `
+      <div style="margin-top:8px;padding:10px 14px;background:#f0fdf4;border-radius:8px;border:1px solid #86efac;">
+        <div style="font-size:11px;font-weight:700;color:#0F6E56;margin-bottom:6px;">📊 Resumo interno (não aparece no PDF do cliente)</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;">
+          <span>💰 Custo total: <strong>${fmtMoney(totalCusto)}</strong></span>
+          <span>💵 Venda: <strong>${fmtMoney(total)}</strong></span>
+          <span>✅ Lucro: <strong style="color:#0F6E56;">${fmtMoney(lucro)}</strong></span>
+          <span>📈 Margem média: <strong style="color:#185FA5;">${margemReal}%</strong></span>
+        </div>
+      </div>`;
+  } else {
+    resumoEl.innerHTML='';
+  }
 }
 
 function renderCadLista(){
@@ -3329,7 +3438,7 @@ document.addEventListener('click',async e=>{
     const desc=document.getElementById('i-desc').value.trim();
     const valor=parseFloat(document.getElementById('i-valor').value)||0;
     if(!desc||valor<=0){alert('Preencha a descrição e o valor.');return;}
-    editingItens.push({desc,valor});
+    editingItens.push({desc,valor,custo:0,margem:0});
     document.getElementById('i-desc').value='';
     document.getElementById('i-valor').value='';
     renderItens();return;
@@ -3573,7 +3682,7 @@ document.addEventListener('click',async e=>{
         const partes=o.validade.split('/');
         if(partes.length===3) document.getElementById('f-validade').value=`${partes[2]}-${partes[1]}-${partes[0]}`;
       }
-      editingItens=[...(o.itens||[])];
+      editingItens=(o.itens||[]).map(it=>({desc:it.desc||'',valor:it.valor||0,custo:it.custo||0,margem:it.margem||0}));
       renderItens();
       const sel=document.getElementById('f-cliente');
       for(let i=0;i<sel.options.length;i++){
