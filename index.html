@@ -1777,10 +1777,10 @@ async function renderFinalizados(){
 
   el.style.display='block';
 
-  // Agrupar por mês
+  // Agrupar por mês de conversão (quando virou pedido)
   const grupos={};
   fins.forEach(p=>{
-    const mes=p.mes||(p.dataConversao?extraiMes(p.dataConversao):'Sem data');
+    const mes = p.dataConversao ? extraiMes(p.dataConversao) : 'Sem data';
     if(!grupos[mes])grupos[mes]={pedidos:[],total:0};
     grupos[mes].pedidos.push(p);
     grupos[mes].total+=(p.valor||0);
@@ -1854,10 +1854,10 @@ function renderFaturamento(){
 
   const MESES=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
-  // Agrupar pedidos por mês
+  // Agrupar pedidos por mês de conversão (quando virou pedido — não quando finalizou)
   const grupos={};
   pedidos.forEach(p=>{
-    const mes=p.mes||(p.dataConversao?extraiMes(p.dataConversao):'Sem data');
+    const mes = p.dataConversao ? extraiMes(p.dataConversao) : 'Sem data';
     if(!grupos[mes])grupos[mes]={pedidos:[],total:0};
     grupos[mes].pedidos.push(p);
     grupos[mes].total+=(p.valor||0);
