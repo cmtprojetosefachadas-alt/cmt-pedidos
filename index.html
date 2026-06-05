@@ -4824,10 +4824,8 @@ function atualizarMeta() {
 
   const sel = document.getElementById('visao-mes-sel');
   const mesNum = sel && sel.value ? normalizaMes(sel.value) : normalizaMes(new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
-  const fatMes = pedidos.filter(p => normalizaMes(p.mes) === mesNum || extraiMes(p.dataConversao) === mesNum);
+  const fatMes = pedidos.filter(p => extraiMes(p.dataConversao) === mesNum);
   const fatVal = fatMes.reduce((s,p)=>s+(p.valor||0),0);
-
-  const pct = meta > 0 ? Math.min(Math.round((fatVal/meta)*100),100) : 0;
   const falta = meta > 0 ? Math.max(meta-fatVal,0) : 0;
 
   // Dias úteis restantes no mês (seg-sex, sem feriados nacionais BR)
@@ -4906,7 +4904,6 @@ function popularMeses() {
     meses.add(normalizaMes(d.toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'})));
   }
   pedidos.forEach(p=>{
-    if(p.mes) meses.add(normalizaMes(p.mes));
     if(p.dataConversao) meses.add(extraiMes(p.dataConversao));
   });
   orcamentos.forEach(o=>{
@@ -5111,8 +5108,8 @@ window.renderVisaoGeral = function renderVisaoGeral() {
   const elAndQtd = document.getElementById('vg-and-qtd');
   if(elAndQtd) elAndQtd.textContent = emAnd.length;
 
-  // ---- FATURADOS NO MÊS ----
-  const pedidosMes = pedidos.filter(p => normalizaMes(p.mes) === mesNum || extraiMes(p.dataConversao) === mesNum);
+  // ---- FATURADOS NO MÊS — usa dataConversao (quando virou pedido), não dataFinalizacao ----
+  const pedidosMes = pedidos.filter(p => extraiMes(p.dataConversao) === mesNum);
   const fatVal = pedidosMes.reduce((s,p)=>s+(p.valor||0),0);
   const elFatVal = document.getElementById('vg-fat-val');
   const elFatQtd = document.getElementById('vg-fat-qtd');
@@ -5166,9 +5163,8 @@ document.getElementById('vg-fat-card').addEventListener('click', () => {
   const sel = document.getElementById('visao-mes-sel');
   const mesNum = normalizaMes(sel && sel.value ? sel.value : new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
   const mesNome = getMesNome(mesNum);
-  const fatMes = pedidos.filter(p => normalizaMes(p.mes) === mesNum || extraiMes(p.dataConversao) === mesNum);
+  const fatMes = pedidos.filter(p => extraiMes(p.dataConversao) === mesNum);
   const fatVal = fatMes.reduce((s,p)=>s+(p.valor||0),0);
-
   document.getElementById('relatorio-title').textContent = 'Relatório — ' + mesNome.charAt(0).toUpperCase()+mesNome.slice(1);
   const finalizados = (window._fatMes||[]).filter(p=>p.finalizado===true||Number(p.etapa||0)>=ETAPAS.length-1);
   const emAndRel = (window._fatMes||[]).filter(p=>!p.finalizado&&Number(p.etapa||0)<ETAPAS.length-1);
