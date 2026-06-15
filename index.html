@@ -1780,7 +1780,8 @@ async function renderFinalizados(){
   // Agrupar por mês de conversão (quando virou pedido)
   const grupos={};
   fins.forEach(p=>{
-    const mes = p.dataConversao ? extraiMes(p.dataConversao) : 'Sem data';
+    const mConv = extraiMes(p.dataConversao);
+    const mes = mConv || normalizaMes(p.mes) || 'Sem data';
     if(!grupos[mes])grupos[mes]={pedidos:[],total:0};
     grupos[mes].pedidos.push(p);
     grupos[mes].total+=(p.valor||0);
@@ -1857,7 +1858,8 @@ function renderFaturamento(){
   // Agrupar pedidos por mês de conversão (quando virou pedido — não quando finalizou)
   const grupos={};
   pedidos.forEach(p=>{
-    const mes = p.dataConversao ? extraiMes(p.dataConversao) : 'Sem data';
+    const mConv = extraiMes(p.dataConversao);
+    const mes = mConv || normalizaMes(p.mes) || 'Sem data';
     if(!grupos[mes])grupos[mes]={pedidos:[],total:0};
     grupos[mes].pedidos.push(p);
     grupos[mes].total+=(p.valor||0);
@@ -4823,8 +4825,12 @@ function atualizarMeta() {
   const meta = parseFloat(raw) || 0;
 
   const sel = document.getElementById('visao-mes-sel');
-  const mesNum = sel && sel.value ? normalizaMes(sel.value) : normalizaMes(new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
-  const fatMes = pedidos.filter(p => extraiMes(p.dataConversao) === mesNum);
+  const mesNum = sel && sel.value ? sel.value : normalizaMes(new Date().toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'}));
+  const fatMes = pedidos.filter(p => {
+    const mConv = extraiMes(p.dataConversao);
+    if(mConv) return mConv === mesNum;
+    return normalizaMes(p.mes) === mesNum;
+  });
   const fatVal = fatMes.reduce((s,p)=>s+(p.valor||0),0);
   const falta = meta > 0 ? Math.max(meta-fatVal,0) : 0;
 
@@ -5108,8 +5114,15 @@ window.renderVisaoGeral = function renderVisaoGeral() {
   const elAndQtd = document.getElementById('vg-and-qtd');
   if(elAndQtd) elAndQtd.textContent = emAnd.length;
 
-  // ---- FATURADOS NO MÊS — usa dataConversao (quando virou pedido), não dataFinalizacao ----
-  const pedidosMes = pedidos.filter(p => extraiMes(p.dataConversao) === mesNum);
+  // ---- FATURADOS NO MÊS — usa dataConversao (quando virou pedido) ----
+  // Fallback: se não tem dataConversao, usa p.mes (campo legado)
+  const pedidosMes = pedidos.filter(p => {
+    const mConv = extraiMes(p.dataConversao);
+    if(mConv) return mConv === mesNum;
+    // fallback para pedidos sem dataConversao
+    const mLeg = normalizaMes(p.mes);
+    return mLeg === mesNum;
+  });
   const fatVal = pedidosMes.reduce((s,p)=>s+(p.valor||0),0);
   const elFatVal = document.getElementById('vg-fat-val');
   const elFatQtd = document.getElementById('vg-fat-qtd');
