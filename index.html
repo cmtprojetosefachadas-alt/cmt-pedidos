@@ -4808,14 +4808,15 @@ async function carregarTodasMetas() {
 }
 
 window.carregarMetaDoMes = function(mesNum) {
-  if(!window._metaCacheCarregado) return;
   const mes = normalizaMes(mesNum);
-  const val = window._metaCache[mes] || '';
   const input = document.getElementById('meta-input');
   if(input && document.activeElement !== input) {
-    input.value = val;
+    // Se o cache já carregou usa ele, senão deixa o input como está
+    if(window._metaCacheCarregado) {
+      input.value = window._metaCache[mes] || '';
+    }
   }
-  atualizarMeta();
+  atualizarMeta(); // sempre atualiza o faturado, independente do cache de meta
 }
 
 function atualizarMeta() {
