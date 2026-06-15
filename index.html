@@ -4833,6 +4833,7 @@ function atualizarMeta() {
     return normalizaMes(p.mes) === mesNum;
   });
   const fatVal = fatMes.reduce((s,p)=>s+(p.valor||0),0);
+  const pct = meta > 0 ? Math.min(Math.round((fatVal/meta)*100), 100) : 0;
   const falta = meta > 0 ? Math.max(meta-fatVal,0) : 0;
 
   // Dias úteis restantes no mês (seg-sex, sem feriados nacionais BR)
