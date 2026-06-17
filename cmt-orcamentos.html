@@ -1240,6 +1240,16 @@ body {
 <div class="modal-overlay" id="modal-editar-orc" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:680px;max-height:92vh;overflow-y:auto">
     <h3 id="edit-orc-title">Editar orçamento</h3>
+
+    <!-- Aviso de grupos -->
+    <div id="edit-grupos-aviso" style="display:none;background:#FFF7ED;border:1px solid #E05C1A;border-radius:8px;padding:8px 12px;font-size:12px;color:#633806;margin-bottom:12px;"></div>
+
+    <!-- Abas de grupos -->
+    <div id="edit-grupos-tabs" style="display:none;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Grupos de serviço</div>
+      <div id="edit-grupos-tabs-list" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+    </div>
+
     <!-- Margem + MO + Pagamento -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px">
       <div>
@@ -3012,41 +3022,33 @@ window.renderRelatorio = function() {
 // ── EDITAR ORÇAMENTO ──
 let _editItens = [];
 
+window._editGrupoIdx = 0; // índice do grupo sendo editado
+
 window.abrirEdicaoOrcamento = function(id) {
   const o = window._orcamentos.find(x=>x.id===id);
   if(!o) return;
   window._modalOrcId = id;
+  window._editGrupoIdx = 0;
   document.getElementById('modal-overlay').classList.remove('open');
   document.getElementById('edit-orc-title').textContent = `Editar ${o.numero} — ${o.cliente}`;
 
-  // Carrega itens — prefere grupos salvos, fallback para itens planos
-  if(o.grupos && o.grupos.length>0) {
-    _editItens = JSON.parse(JSON.stringify(o.grupos[0].itens||[]));
-    // Pré-seleciona margem do primeiro grupo
-    document.getElementById('edit-margem').value = o.grupos[0].margem||o.margemPct||30;
-    document.getElementById('edit-mo-pct').value = o.grupos[0].moPct||o.moPct||25;
+  // Abas de grupos
+  const temGrupos = o.grupos && o.grupos.length > 1;
+  const tabsWrap  = document.getElementById('edit-grupos-tabs');
+  const tabsList  = document.getElementById('edit-grupos-tabs-list');
+  const aviso     = document.getElementById('edit-grupos-aviso');
+
+  if(temGrupos) {
+    tabsWrap.style.display = 'block';
+    window.renderEditGruposTabs(o);
+    aviso.style.display = 'block';
+    aviso.innerHTML = `⚠️ Este orçamento tem <strong>${o.grupos.length} grupos de serviço</strong>. Clique nas abas acima para editar cada grupo. O total é a soma de todos.`;
   } else {
-    _editItens = JSON.parse(JSON.stringify(o.itens||[]));
-    document.getElementById('edit-margem').value = o.margemPct||30;
-    document.getElementById('edit-mo-pct').value = o.moPct||25;
+    tabsWrap.style.display = 'none';
+    aviso.style.display = 'none';
   }
 
-  document.getElementById('edit-margem-preview').textContent = (document.getElementById('edit-margem').value||30)+'%';
-  document.getElementById('edit-margem-slider').value = document.getElementById('edit-margem').value||30;
-  document.getElementById('edit-mo-preview').textContent = (document.getElementById('edit-mo-pct').value||25)+'%';
-  document.getElementById('edit-mo-slider').value = document.getElementById('edit-mo-pct').value||25;
-
-  // Aviso de grupos múltiplos
-  const gruposAviso = document.getElementById('edit-grupos-aviso');
-  if(o.grupos && o.grupos.length>1) {
-    if(!gruposAviso) {
-      const aviso = document.createElement('div');
-      aviso.id='edit-grupos-aviso';
-      aviso.style.cssText='background:#FFF7ED;border:1px solid #E05C1A;border-radius:8px;padding:8px 12px;font-size:12px;color:#633806;margin-bottom:12px;';
-      aviso.innerHTML=`⚠️ Este orçamento tem <strong>${o.grupos.length} grupos de serviço</strong>. Aqui você edita o grupo "${o.grupos[0].nome}" (principal). Os valores totais são recalculados automaticamente.`;
-      document.getElementById('edit-orc-title').after(aviso);
-    }
-  } else if(gruposAviso) gruposAviso.remove();
+  window.carregarGrupoParaEditar(o, 0);
 
   const pag = document.getElementById('edit-pagamento');
   pag.value = o.pagamento||'dinheiro';
@@ -3062,6 +3064,61 @@ window.abrirEdicaoOrcamento = function(id) {
   renderEditItens();
   atualizarTotaisEdit();
   document.getElementById('modal-editar-orc').classList.add('open');
+};
+
+window.renderEditGruposTabs = function(o) {
+  const tabsList = document.getElementById('edit-grupos-tabs-list');
+  const colors = ['#185FA5','#0F6E56','#BA7517','#534AB7','#993C1D'];
+  tabsList.innerHTML = (o.grupos||[]).map((g,i) => {
+    const ativo = i === window._editGrupoIdx;
+    const cor = colors[i%colors.length];
+    return `<button onclick="window.trocarGrupoEdit(${i})"
+      style="padding:6px 14px;border-radius:8px;border:${ativo?'2px solid '+cor:'1px solid var(--border)'};
+      background:${ativo?cor+'15':'var(--surface2)'};color:${ativo?cor:'var(--muted)'};
+      font-size:12px;font-weight:${ativo?'700':'500'};cursor:pointer;white-space:nowrap;">
+      ${i+1}. ${g.nome}
+      ${(g.itens||[]).length>0?`<span style="margin-left:4px;font-size:10px;">${fmt(g.venda||0)}</span>`:''}
+    </button>`;
+  }).join('');
+};
+
+window.carregarGrupoParaEditar = function(o, idx) {
+  const g = (o.grupos||[])[idx] || o;
+  _editItens = JSON.parse(JSON.stringify(g.itens||o.itens||[]));
+  const margem = g.margem || o.margemPct || 30;
+  const moPct  = g.moPct  || o.moPct    || 25;
+  document.getElementById('edit-margem').value = margem;
+  document.getElementById('edit-margem-preview').textContent = margem+'%';
+  document.getElementById('edit-margem-slider').value = margem;
+  document.getElementById('edit-mo-pct').value = moPct;
+  document.getElementById('edit-mo-preview').textContent = moPct+'%';
+  document.getElementById('edit-mo-slider').value = moPct;
+};
+
+window.trocarGrupoEdit = function(idx) {
+  const o = window._orcamentos.find(x=>x.id===window._modalOrcId);
+  if(!o) return;
+  // Salva o grupo atual antes de trocar
+  window.salvarGrupoAtualEdit(o);
+  window._editGrupoIdx = idx;
+  window.carregarGrupoParaEditar(o, idx);
+  window.renderEditGruposTabs(o);
+  renderEditItens();
+  atualizarTotaisEdit();
+};
+
+window.salvarGrupoAtualEdit = function(o) {
+  const idx = window._editGrupoIdx;
+  if(!o.grupos || !o.grupos[idx]) return;
+  const margem = parseFloat(document.getElementById('edit-margem').value)||30;
+  const moPct  = parseFloat(document.getElementById('edit-mo-pct').value)||25;
+  const subMat = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100,0);
+  const divisor= Math.max(0.01,1-margem/100);
+  const venda  = Math.round(subMat/divisor*100)/100;
+  const moVal  = Math.round(venda*moPct/100*100)/100;
+  const custoTotal = Math.round((subMat+moVal)*100)/100;
+  const lucro  = Math.round((venda-custoTotal)*100)/100;
+  o.grupos[idx] = {...o.grupos[idx], itens:[..._editItens], margem, moPct, subMat, moVal, venda, lucro, custoTotal};
 };
 
 window.toggleTipoCliente = function(tipo) {
@@ -3262,58 +3319,71 @@ window.salvarEdicaoOrcamento = async function() {
   const id = window._modalOrcId;
   const o  = window._orcamentos.find(x=>x.id===id);
   if(!o||!_editItens.length) { showToast('Adicione pelo menos 1 item!'); return; }
-  const margem   = parseFloat(document.getElementById('edit-margem').value)||30;
-  const moPct    = parseFloat(document.getElementById('edit-mo-pct').value)||25;
+
+  // Salva o grupo que está sendo editado no momento
+  window.salvarGrupoAtualEdit(o);
+
+  // Se não tem grupos, cria um com os itens atuais
+  if(!o.grupos || !o.grupos.length) {
+    const margem = parseFloat(document.getElementById('edit-margem').value)||30;
+    const moPct  = parseFloat(document.getElementById('edit-mo-pct').value)||25;
+    const subMat = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100,0);
+    const divisor= Math.max(0.01,1-margem/100);
+    const venda  = Math.round(subMat/divisor*100)/100;
+    const moVal  = Math.round(venda*moPct/100*100)/100;
+    const custoTotal = Math.round((subMat+moVal)*100)/100;
+    const lucro  = Math.round((venda-custoTotal)*100)/100;
+    o.grupos = [{id:'g1',nome:'Serviço 1',margem,moPct,itens:[..._editItens],subMat,moVal,venda,lucro,custoTotal}];
+  }
+
+  // Soma TODOS os grupos
+  const vendaTotal  = o.grupos.reduce((s,g)=>s+(g.venda||0),0);
+  const custoFinal  = o.grupos.reduce((s,g)=>s+(g.custoTotal||0),0);
+  const lucroFinal  = o.grupos.reduce((s,g)=>s+(g.lucro||0),0);
+  const subMatFinal = o.grupos.reduce((s,g)=>s+(g.subMat||0),0);
+  const moFinal     = o.grupos.reduce((s,g)=>s+(g.moVal||0),0);
+  const margemMedia = vendaTotal>0?Math.round(lucroFinal/vendaTotal*100):30;
+  const moPctMedia  = vendaTotal>0?Math.round(moFinal/vendaTotal*100):25;
+
+  // Todos itens combinados (retrocompat)
+  const todosItens  = o.grupos.flatMap(g=>g.itens||[]);
+
   const pag      = document.getElementById('edit-pagamento').value||'dinheiro';
   const isCard   = pag==='cartao_debito'||pag==='cartao_credito';
   const taxaCard = isCard?(parseFloat(document.getElementById('edit-taxa-cartao').value)||0):0;
-  const subMat   = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100, 0);
-  const divisor  = Math.max(0.01, 1-margem/100);
-  const vendaBase= subMat/divisor;
-  const taxaVal  = Math.round(vendaBase*taxaCard/100*100)/100;
-  const venda    = Math.round((vendaBase+taxaVal)*100)/100;
-  const moVal    = Math.round(vendaBase*moPct/100*100)/100;
-  const custoTotal = Math.round((subMat+moVal+taxaVal)*100)/100;
-  const lucro    = Math.round((venda-custoTotal)*100)/100;
-
-  // Atualiza grupos preservando os demais
-  let gruposAtualizado = JSON.parse(JSON.stringify(o.grupos||[]));
-  if(gruposAtualizado.length>0) {
-    gruposAtualizado[0]={...gruposAtualizado[0],itens:_editItens,margem,moPct,subMat,moVal,venda,lucro,custoTotal};
-  } else {
-    gruposAtualizado=[{id:'g1',nome:'Serviço 1',margem,moPct,itens:_editItens,subMat,moVal,venda,lucro,custoTotal}];
-  }
-  // Soma TODOS os grupos para o total
-  const vendaTotal  = gruposAtualizado.reduce((s,g)=>s+(g.venda||0),0);
-  const custoFinal  = gruposAtualizado.reduce((s,g)=>s+(g.custoTotal||0),0);
-  const lucroFinal  = gruposAtualizado.reduce((s,g)=>s+(g.lucro||0),0);
-  const subMatFinal = gruposAtualizado.reduce((s,g)=>s+(g.subMat||0),0);
-  const moFinal     = gruposAtualizado.reduce((s,g)=>s+(g.moVal||0),0);
-  const margemMedia = vendaTotal>0?Math.round(lucroFinal/vendaTotal*100):margem;
 
   const agora = new Date().toISOString();
   const hist  = o.historico||[];
   hist.push({data:agora,usuario:_usuarioLogado?.nome||'Sistema',acao:'Editado'});
+
   const updates = {
-    itens:_editItens, grupos:gruposAtualizado,
-    subMat:Math.round(subMatFinal*100)/100, moVal:Math.round(moFinal*100)/100,
-    custoTotal:Math.round(custoFinal*100)/100,
-    venda:Math.round(vendaTotal*100)/100, lucro:Math.round(lucroFinal*100)/100,
-    margemPct:margemMedia, moPct, pagamento:pag, taxaCartao:taxaCard,
-    alteradoEm:agora, alteradoPor:_usuarioLogado?.nome||'Sistema', historico:hist
+    itens: todosItens,
+    grupos: o.grupos,
+    subMat: Math.round(subMatFinal*100)/100,
+    moVal:  Math.round(moFinal*100)/100,
+    custoTotal: Math.round(custoFinal*100)/100,
+    venda: Math.round(vendaTotal*100)/100,
+    lucro: Math.round(lucroFinal*100)/100,
+    margemPct: margemMedia, moPct: moPctMedia,
+    pagamento: pag, taxaCartao: taxaCard,
+    alteradoEm: agora, alteradoPor: _usuarioLogado?.nome||'Sistema',
+    historico: hist
   };
   try{await updateDoc(doc(db,'cmt_orcamentos',id),updates);}catch(e){}
   Object.assign(o,updates);
   document.getElementById('modal-editar-orc').classList.remove('open');
   renderListaOrcamentos(); renderRelatorio();
-  showToast('Orçamento atualizado!');
+  showToast('Orçamento atualizado! ✓');
+  // Atualiza linha na tabela
   const rows=document.querySelectorAll('#lista-tbody tr');
   rows.forEach(row=>{
     if((row.getAttribute('onclick')||'').includes(id)){
       const cells=row.querySelectorAll('td');
       if(cells.length>=7){
-        cells[3].textContent=fmt(custoFinal);cells[4].textContent=fmt(vendaTotal);
-        cells[5].textContent=fmt(lucroFinal);cells[5].className='td-val '+(lucroFinal>=0?'td-green':'td-red');
+        cells[3].textContent=fmt(custoFinal);
+        cells[4].textContent=fmt(vendaTotal);
+        cells[5].textContent=fmt(lucroFinal);
+        cells[5].className='td-val '+(lucroFinal>=0?'td-green':'td-red');
         cells[6].textContent=margemMedia+'%';
       }
     }
