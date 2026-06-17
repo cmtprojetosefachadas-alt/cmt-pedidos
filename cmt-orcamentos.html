@@ -574,17 +574,12 @@ body {
 
     <!-- COLUNA DIREITA -->
     <div>
-      <!-- Grupos de serviço -->
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div class="card-title" style="margin:0"><span class="dot"></span>Itens do orçamento</div>
           <button onclick="window.adicionarGrupo()" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px dashed var(--border);background:transparent;color:var(--muted);cursor:pointer">+ Grupo de serviço</button>
         </div>
-        <div id="grupos-lista">
-          <p style="font-size:13px;color:var(--muted);padding:8px 0">Selecione materiais ao lado →</p>
-        </div>
-
-        <!-- Total geral -->
+        <div id="grupos-lista"></div>
         <div class="total-block" id="total-block" style="display:none">
           <div id="grupos-resumo-geral"></div>
           <hr class="total-divider">
@@ -593,13 +588,10 @@ body {
             <span class="val" id="total-venda">R$ 0</span>
           </div>
           <div class="lucro-bar">
-            <div class="lucro-label">
-              <span>Lucro</span><span id="lucro-pct-label">0%</span>
-            </div>
+            <div class="lucro-label"><span>Lucro</span><span id="lucro-pct-label">0%</span></div>
             <div class="lucro-bar-track"><div class="lucro-bar-fill" id="lucro-bar-fill" style="width:0%"></div></div>
           </div>
         </div>
-
         <button class="btn btn-primary" onclick="window.salvarOrcamento()">Salvar orçamento</button>
         <button class="btn btn-secondary" onclick="window.limparOrcamento()">Limpar</button>
       </div>
@@ -1476,7 +1468,7 @@ window._materiais = [];
 window._clientes = [];
 window._orcamentos = [];
 window._itensSelecionados = {};
-window._itensPorGrupo = { g1: {} };
+window._itensPorGrupo = {g1:{}};
 window._itensSelecionados = window._itensPorGrupo['g1'];
 window._modalOrcId = null;
 
@@ -1692,84 +1684,93 @@ window.toggleMaterial = function(id) {
   renderItens();
 };
 
-// ── ITENS ──
 // ── GRUPOS DE SERVIÇO ──
-window._grupos = [{ id: 'g1', nome: 'Serviço 1', margem: 30, moPct: 25 }];
+window._grupos = [{id:'g1', nome:'Serviço 1', margem:30, moPct:25, aberto:true}];
 window._grupoAtivo = 'g1';
+window._itensSelecionados = {};
+window._itensPorGrupo = {g1:{}};
+window._itensSelecionados = window._itensPorGrupo['g1'];
 
 window.adicionarGrupo = function() {
-  const id = 'g' + Date.now();
-  const n = window._grupos.length + 1;
-  window._grupos.push({ id, nome: 'Serviço ' + n, margem: 30, moPct: 25 });
+  const id = 'g'+Date.now();
+  window._grupos.push({id, nome:'Serviço '+(window._grupos.length+1), margem:30, moPct:25, aberto:true});
   window._grupoAtivo = id;
-  // Itens selecionados agora são por grupo — garante objeto do grupo
-  if(!window._itensPorGrupo) window._itensPorGrupo = {};
   window._itensPorGrupo[id] = {};
-  renderGrupos();
+  window._itensSelecionados = window._itensPorGrupo[id];
+  renderGrupos(); renderCatalogo();
 };
 
 window.removerGrupo = function(id) {
-  if(window._grupos.length <= 1) { showToast('Mantenha pelo menos 1 grupo!'); return; }
-  if(!confirm('Remover este grupo e seus itens?')) return;
-  window._grupos = window._grupos.filter(g => g.id !== id);
-  if(window._itensPorGrupo) delete window._itensPorGrupo[id];
-  if(window._grupoAtivo === id) window._grupoAtivo = window._grupos[0].id;
-  renderGrupos();
-  renderCatalogo();
+  if(window._grupos.length<=1){showToast('Mantenha pelo menos 1 grupo!');return;}
+  if(!confirm('Remover este grupo e seus itens?'))return;
+  window._grupos = window._grupos.filter(g=>g.id!==id);
+  delete window._itensPorGrupo[id];
+  if(window._grupoAtivo===id){
+    window._grupoAtivo = window._grupos[0].id;
+    window._itensSelecionados = window._itensPorGrupo[window._grupoAtivo];
+  }
+  renderGrupos(); renderCatalogo();
 };
 
 window.ativarGrupo = function(id) {
+  // Troca ativo E faz toggle do expand — TODOS ficam abertos simultaneamente
   window._grupoAtivo = id;
-  renderGrupos();
-  renderCatalogo();
+  const g = window._grupos.find(x=>x.id===id);
+  if(g) g.aberto = !g.aberto;
+  window._itensPorGrupo[id] = window._itensPorGrupo[id]||{};
+  window._itensSelecionados = window._itensPorGrupo[id];
+  renderGrupos(); renderCatalogo();
 };
 
 window.renomearGrupo = function(id, val) {
-  const g = window._grupos.find(x => x.id === id);
-  if(g) g.nome = val;
+  const g = window._grupos.find(x=>x.id===id); if(g) g.nome=val;
 };
 
 window.calcGrupo = function(gid) {
-  const itens = Object.values((window._itensPorGrupo||{})[gid] || {});
-  const g = window._grupos.find(x => x.id === gid) || { margem: 30, moPct: 25 };
-  const margem = parseInt(g.margem) || 30;
-  const moPct  = parseFloat(g.moPct) || 25;
-  const subMat = itens.reduce((a,i) => a + (i.custo||0)*i.qty, 0);
-  const divisor = Math.max(0.01, 1 - margem/100);
-  const venda   = subMat / divisor;
-  const moVal   = venda * moPct / 100;
-  const custoTotal = subMat + moVal;
-  const lucro   = (venda * margem/100) - moVal;
-  return { itens, subMat, venda, moVal, custoTotal, lucro, margem, moPct };
+  const itens = Object.values((window._itensPorGrupo||{})[gid]||{});
+  const g = window._grupos.find(x=>x.id===gid)||{margem:30,moPct:25};
+  const margem = parseFloat(g.margem)||30;
+  const moPct  = parseFloat(g.moPct)||25;
+  const subMat = itens.reduce((a,i)=>a+(i.custo||0)*i.qty,0);
+  const divisor= Math.max(0.01,1-margem/100);
+  const venda  = subMat/divisor;
+  const moVal  = venda*moPct/100;
+  const custoTotal = subMat+moVal;
+  const lucro  = (venda*margem/100)-moVal;
+  return {itens,subMat,venda,moVal,custoTotal,lucro,margem,moPct};
+};
+
+window.atualizarGrupo = function(gid, campo, valor) {
+  const g = window._grupos.find(x=>x.id===gid); if(!g)return;
+  g[campo] = parseFloat(valor)||0;
+  renderGrupos(); // recalcula tudo em tempo real
 };
 
 window.renderGrupos = function() {
-  if(!window._itensPorGrupo) window._itensPorGrupo = {};
-  // Garante grupo ativo válido
-  if(!window._grupos.find(g => g.id === window._grupoAtivo)) {
+  if(!window._itensPorGrupo) window._itensPorGrupo={};
+  if(!window._grupos.find(g=>g.id===window._grupoAtivo))
     window._grupoAtivo = window._grupos[0]?.id;
-  }
-  // Sincroniza _itensSelecionados com grupo ativo
-  if(!window._itensPorGrupo[window._grupoAtivo]) window._itensPorGrupo[window._grupoAtivo] = {};
+  if(!window._itensPorGrupo[window._grupoAtivo]) window._itensPorGrupo[window._grupoAtivo]={};
   window._itensSelecionados = window._itensPorGrupo[window._grupoAtivo];
 
-  const totalItens = window._grupos.reduce((s,g) => s + Object.keys((window._itensPorGrupo[g.id]||{})).length, 0);
-  const tb = document.getElementById('total-block');
-  if(tb) tb.style.display = totalItens > 0 ? 'block' : 'none';
+  const totalItens = window._grupos.reduce((s,g)=>s+Object.keys(window._itensPorGrupo[g.id]||{}).length,0);
+  const tb=document.getElementById('total-block');
+  if(tb) tb.style.display=totalItens>0?'block':'none';
 
-  const lista = document.getElementById('grupos-lista');
-  if(!lista) return;
+  const lista=document.getElementById('grupos-lista');
+  if(!lista)return;
 
-  lista.innerHTML = window._grupos.map(g => {
-    const ativo = g.id === window._grupoAtivo;
-    const calc  = window.calcGrupo(g.id);
-    const itens = calc.itens;
-    const colors = ['#185FA5','#0F6E56','#BA7517','#534AB7','#993C1D'];
-    const ci = window._grupos.indexOf(g) % colors.length;
+  const colors=['#185FA5','#0F6E56','#BA7517','#534AB7','#993C1D'];
 
-    const itensHTML = itens.length === 0
-      ? `<div style="font-size:12px;color:var(--muted);padding:8px 0;font-style:italic;">Selecione materiais no catálogo ao lado</div>`
-      : itens.map(it => `
+  lista.innerHTML = window._grupos.map((g,gi)=>{
+    const ativo  = g.id===window._grupoAtivo;
+    const aberto = g.aberto!==false;
+    const calc   = window.calcGrupo(g.id);
+    const cor    = colors[gi%colors.length];
+
+    const itensHTML = calc.itens.length===0
+      ? `<div style="font-size:12px;color:var(--muted);padding:6px 0;font-style:italic;">Selecione materiais no catálogo ao lado</div>`
+      : calc.itens.map(it=>`
         <div class="item-linha">
           <div class="item-linha-top">
             <div class="item-nome">${it.nome}</div>
@@ -1780,278 +1781,211 @@ window.renderGrupos = function() {
             <input class="item-qty" type="number" min="0.01" step="0.01" value="${it.qty}"
               onchange="window.updateQtyGrupo('${g.id}','${it.id}',this.value)">
             ${it.editavel
-              ? `<input class="item-qty" type="number" min="0" step="0.01" value="${it.custo||0}"
-                   style="width:90px;color:var(--accent);font-weight:700"
-                   onchange="window.updateCustoGrupo('${g.id}','${it.id}',this.value)">`
-              : `<div class="item-custo-unit">R$${(it.custo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}/${it.unit}</div>`
-            }
+              ?`<input class="item-qty" type="number" min="0" step="0.01" value="${it.custo||0}"
+                  style="width:90px;color:var(--accent);font-weight:700"
+                  onchange="window.updateCustoGrupo('${g.id}','${it.id}',this.value)">`
+              :`<div class="item-custo-unit">R$${(it.custo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}/${it.unit}</div>`}
             <div class="item-total">R$ ${((it.custo||0)*it.qty).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
           </div>
         </div>`).join('');
 
-    const resumoHTML = itens.length > 0 ? `
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;">
-        <div style="background:var(--surface);border-radius:8px;padding:8px 10px;border:1px solid var(--border);">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">Custo total</div>
-          <div style="font-size:13px;font-weight:600;">${fmt(calc.custoTotal)}</div>
+    const resumoHTML = calc.itens.length>0 ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;">
+        <div style="background:var(--surface);border-radius:7px;padding:7px 9px;border:1px solid var(--border);">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:1px;">Custo total</div>
+          <div style="font-size:12px;font-weight:600;">${fmt(calc.custoTotal)}</div>
         </div>
-        <div style="background:var(--surface);border-radius:8px;padding:8px 10px;border:1px solid var(--border);">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">Margem ${calc.margem}%</div>
-          <div style="font-size:13px;font-weight:600;color:var(--accent);">+ ${fmt(calc.lucro)}</div>
+        <div style="background:var(--surface);border-radius:7px;padding:7px 9px;border:1px solid var(--border);">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:1px;">Margem ${calc.margem}%</div>
+          <div style="font-size:12px;font-weight:600;color:var(--accent);">+${fmt(calc.lucro)}</div>
         </div>
-        <div style="background:#E1F5EE;border-radius:8px;padding:8px 10px;border:1px solid #9FE1CB;">
-          <div style="font-size:10px;color:#085041;margin-bottom:2px;">Venda grupo</div>
-          <div style="font-size:14px;font-weight:700;color:#0F6E56;">${fmt(calc.venda)}</div>
+        <div style="background:#E1F5EE;border-radius:7px;padding:7px 9px;border:1px solid #9FE1CB;">
+          <div style="font-size:10px;color:#085041;margin-bottom:1px;">Venda grupo</div>
+          <div style="font-size:13px;font-weight:700;color:#0F6E56;">${fmt(calc.venda)}</div>
         </div>
       </div>` : '';
 
-    return `
-    <div style="border:${ativo ? '2px solid '+colors[ci] : '1px solid var(--border)'};border-radius:10px;margin-bottom:12px;overflow:hidden;transition:border .15s;">
-      <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:${ativo ? 'rgba(0,0,0,0.03)' : 'var(--surface2)'};cursor:pointer;border-bottom:1px solid var(--border);" onclick="window.ativarGrupo('${g.id}')">
-        <div style="width:24px;height:24px;border-radius:50%;background:${colors[ci]}22;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${colors[ci]};flex-shrink:0;">${window._grupos.indexOf(g)+1}</div>
-        <input value="${g.nome}" onclick="event.stopPropagation()"
-          onchange="window.renomearGrupo('${g.id}',this.value)"
-          style="flex:1;border:none;background:transparent;font-size:13px;font-weight:600;color:var(--text);outline:none;cursor:text;min-width:0;">
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          ${itens.length > 0 ? `<span style="font-size:12px;font-weight:600;color:#0F6E56;">${fmt(calc.venda)}</span>` : ''}
-          ${ativo ? `<span style="font-size:11px;color:${colors[ci]};font-weight:600;">ativo</span>` : ''}
-          ${window._grupos.length > 1 ? `<span onclick="event.stopPropagation();window.removerGrupo('${g.id}')" style="cursor:pointer;color:var(--muted);font-size:16px;padding:0 2px;line-height:1;">×</span>` : ''}
+    return `<div style="border:${ativo?'2px solid '+cor:'1px solid var(--border)'};border-radius:10px;margin-bottom:10px;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:${ativo?cor+'11':'var(--surface2)'};cursor:pointer;${aberto?'border-bottom:1px solid var(--border);':''}"
+           onclick="window.ativarGrupo('${g.id}')">
+        <div style="width:22px;height:22px;border-radius:50%;background:${cor}22;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${cor};flex-shrink:0;">${gi+1}</div>
+        <input value="${g.nome}" onclick="event.stopPropagation()" onchange="window.renomearGrupo('${g.id}',this.value)"
+          style="flex:1;border:none;background:transparent;font-size:13px;font-weight:600;color:var(--text);outline:none;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+          ${calc.itens.length>0?`<span style="font-size:12px;font-weight:600;color:#0F6E56;">${fmt(calc.venda)}</span>`:''}
+          ${ativo?`<span style="font-size:10px;color:${cor};border:1px solid ${cor};border-radius:3px;padding:1px 4px;">ativo</span>`:''}
+          <span style="color:var(--muted);font-size:12px;">${aberto?'▾':'▸'}</span>
+          ${window._grupos.length>1?`<span onclick="event.stopPropagation();window.removerGrupo('${g.id}')"
+            style="cursor:pointer;color:var(--muted);font-size:15px;line-height:1;">×</span>`:''}
         </div>
       </div>
-      ${ativo ? `
-      <div style="padding:10px 12px;">
+      ${aberto?`<div style="padding:10px 12px;">
         ${itensHTML}
         ${resumoHTML}
-        <div style="display:flex;gap:10px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
-          <div style="display:flex;align-items:center;gap:6px;flex:1;">
-            <span style="font-size:11px;color:var(--muted);white-space:nowrap;">MO %</span>
-            <input type="number" min="0" max="100" value="${g.moPct||25}"
-              style="width:60px;padding:4px 7px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);"
-              oninput="window._grupos.find(x=>x.id==='${g.id}').moPct=parseFloat(this.value)||0;window.recalcular();">
-            <span style="font-size:11px;color:var(--muted);white-space:nowrap;">Margem %</span>
-            <input type="number" min="1" max="99" value="${g.margem||30}"
-              style="width:60px;padding:4px 7px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--accent);font-weight:700;"
-              oninput="window._grupos.find(x=>x.id==='${g.id}').margem=parseInt(this.value)||30;window.recalcular();">
-          </div>
-          <span style="font-size:11px;color:var(--muted);">MO: ${fmt(calc.moVal)}</span>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);flex-wrap:wrap;">
+          <span style="font-size:11px;color:var(--muted);">MO %</span>
+          <input type="number" min="0" max="100" step="0.5" value="${g.moPct||25}"
+            style="width:55px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--purple);font-weight:600;"
+            oninput="window.atualizarGrupo('${g.id}','moPct',this.value)">
+          <span style="font-size:11px;color:var(--muted);">Margem %</span>
+          <input type="number" min="1" max="99" step="1" value="${g.margem||30}"
+            style="width:55px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--accent);font-weight:700;"
+            oninput="window.atualizarGrupo('${g.id}','margem',this.value)">
+          <span style="font-size:11px;color:var(--muted);margin-left:auto;">MO: <strong style="color:var(--purple);">${fmt(calc.moVal)}</strong></span>
         </div>
-      </div>` : ''}
+      </div>`:''}
     </div>`;
   }).join('');
 
   // Atualiza total geral
-  window.recalcular();
+  const totais = window._grupos.map(g=>window.calcGrupo(g.id));
+  const vendaTotal = totais.reduce((s,c)=>s+c.venda,0);
+  const lucroTotal = totais.reduce((s,c)=>s+c.lucro,0);
+  const lucroP     = vendaTotal>0?(lucroTotal/vendaTotal*100):0;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('total-venda',fmt(vendaTotal));
+  set('lucro-pct-label',lucroP.toFixed(1)+'%');
+  const bar=document.getElementById('lucro-bar-fill');
+  if(bar){bar.style.width=Math.min(100,lucroP)+'%';bar.style.background=lucroP>20?'var(--green)':lucroP>10?'var(--accent)':'var(--red)';}
+
+  const resEl=document.getElementById('grupos-resumo-geral');
+  if(resEl) resEl.innerHTML=window._grupos.filter(g=>window.calcGrupo(g.id).itens.length>0).map(g=>{
+    const c=window.calcGrupo(g.id);
+    return `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid var(--border);">
+      <span style="color:var(--muted);">${g.nome}</span><span style="font-weight:600;">${fmt(c.venda)}</span></div>`;
+  }).join('');
 };
 
-window.removerItemGrupo = function(gid, iid) {
-  if(window._itensPorGrupo?.[gid]) delete window._itensPorGrupo[gid][iid];
-  if(gid === window._grupoAtivo) window._itensSelecionados = window._itensPorGrupo[gid];
-  renderCatalogo();
-  renderGrupos();
-};
-
-window.updateQtyGrupo = function(gid, iid, val) {
-  if(window._itensPorGrupo?.[gid]?.[iid]) {
-    window._itensPorGrupo[gid][iid].qty = Math.max(0.01, parseFloat(val)||0.01);
-    renderGrupos();
-  }
-};
-
-window.updateCustoGrupo = function(gid, iid, val) {
-  if(window._itensPorGrupo?.[gid]?.[iid]) {
-    window._itensPorGrupo[gid][iid].custo = Math.max(0, parseFloat(val)||0);
-    renderGrupos();
-  }
-};
-
-function renderItens() {
-  // Redireciona para renderGrupos
-  window.renderGrupos();
-}
-window.renderItens = renderItens;
-window.updateQty = function(id,val) {
-  if(window._itensSelecionados[id]) {
-    window._itensSelecionados[id].qty = Math.max(0.01,parseFloat(val)||0.01);
-    renderGrupos();
-  }
-};
-
-window.updateCusto = function(id,val) {
-  if(window._itensSelecionados[id]) {
-    window._itensSelecionados[id].custo = Math.max(0,parseFloat(val)||0);
-    recalcular();
-    const totalEl = document.querySelector(`[onchange="window.updateCusto('${id}',this.value)"]`)?.closest('.item-linha')?.querySelector('.item-total');
-    if(totalEl) { const it=window._itensSelecionados[id]; totalEl.textContent='R$ '+(it.custo*it.qty).toLocaleString('pt-BR',{minimumFractionDigits:2}); }
-  }
-};
+window.recalcular = function() { renderGrupos(); };
 
 window.removerItem = function(id) {
-  // Remove do grupo ativo
-  const gid = window._grupoAtivo;
+  const gid=window._grupoAtivo;
   if(window._itensPorGrupo?.[gid]) delete window._itensPorGrupo[gid][id];
-  if(window._itensSelecionados) delete window._itensSelecionados[id];
-  renderCatalogo();
-  renderGrupos();
+  window._itensSelecionados=window._itensPorGrupo[gid]||{};
+  renderCatalogo(); renderGrupos();
 };
 
-// ── CÁLCULO TOTAL (soma todos os grupos) ──
-window.recalcular = function() {
-  if(!window._grupos) return;
-  const totais = window._grupos.map(g => window.calcGrupo(g.id));
-  const vendaTotal   = totais.reduce((s,c) => s+c.venda, 0);
-  const custoTotal   = totais.reduce((s,c) => s+c.custoTotal, 0);
-  const lucroTotal   = totais.reduce((s,c) => s+c.lucro, 0);
-  const subMatTotal  = totais.reduce((s,c) => s+c.subMat, 0);
-  const moTotal      = totais.reduce((s,c) => s+c.moVal, 0);
-  const lucroP       = vendaTotal > 0 ? (lucroTotal/vendaTotal*100) : 0;
-  const totalItens   = totais.reduce((s,c) => s+c.itens.length, 0);
+window.removerItemGrupo = function(gid,iid) {
+  if(window._itensPorGrupo?.[gid]) delete window._itensPorGrupo[gid][iid];
+  if(gid===window._grupoAtivo) window._itensSelecionados=window._itensPorGrupo[gid];
+  renderCatalogo(); renderGrupos();
+};
 
-  const tb = document.getElementById('total-block');
-  if(tb) tb.style.display = totalItens > 0 ? 'block' : 'none';
-
-  const set = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
-  set('total-venda', fmt(vendaTotal));
-  set('lucro-pct-label', lucroP.toFixed(1)+'%');
-  // Retrocompat com elementos existentes
-  set('sub-mat', fmt(subMatTotal));
-  set('sub-mo',  fmt(moTotal));
-  set('custo-total-display', fmt(custoTotal));
-  set('lucro-display', fmt(lucroTotal));
-  set('mo-val-display', fmt(moTotal));
-
-  // Resumo por grupo
-  const resEl = document.getElementById('grupos-resumo-geral');
-  if(resEl && window._grupos.length > 0) {
-    resEl.innerHTML = window._grupos.map(g => {
-      const c = window.calcGrupo(g.id);
-      if(!c.itens.length) return '';
-      return `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid var(--border);">
-        <span style="color:var(--muted);">${g.nome}</span>
-        <span style="font-weight:600;">${fmt(c.venda)}</span>
-      </div>`;
-    }).join('');
+window.updateQty = function(id,val) {
+  if(window._itensSelecionados?.[id]){
+    window._itensSelecionados[id].qty=Math.max(0.01,parseFloat(val)||0.01);
+    renderGrupos();
   }
-
-  const bar = document.getElementById('lucro-bar-fill');
-  if(bar) { bar.style.width=Math.min(100,lucroP)+'%'; bar.style.background=lucroP>20?'var(--green)':lucroP>10?'var(--accent)':'var(--red)'; }
+};
+window.updateQtyGrupo = function(gid,iid,val) {
+  if(window._itensPorGrupo?.[gid]?.[iid]){
+    window._itensPorGrupo[gid][iid].qty=Math.max(0.01,parseFloat(val)||0.01);
+    renderGrupos();
+  }
+};
+window.updateCusto = function(id,val) {
+  if(window._itensSelecionados?.[id]){
+    window._itensSelecionados[id].custo=Math.max(0,parseFloat(val)||0);
+    renderGrupos();
+  }
+};
+window.updateCustoGrupo = function(gid,iid,val) {
+  if(window._itensPorGrupo?.[gid]?.[iid]){
+    window._itensPorGrupo[gid][iid].custo=Math.max(0,parseFloat(val)||0);
+    renderGrupos();
+  }
 };
 
+function renderItens() { renderGrupos(); }
+window.renderItens = renderItens;
+
+// ── CÁLCULO — delegado para renderGrupos ──
+window.recalcular = function() { renderGrupos(); };
 window.updateMargem = function(v) {
-  const g = window._grupos?.find(x => x.id === window._grupoAtivo);
-  if(g) { g.margem = parseInt(v)||30; }
-  window.recalcular();
+  const g=window._grupos?.find(x=>x.id===window._grupoAtivo);
+  if(g){g.margem=parseInt(v)||30;}
   renderGrupos();
 };
-
 window.updateMargemInput = function(v) {
-  let val = parseInt(v);
-  if(isNaN(val)) return;
-  if(val < 1) val = 1;
-  if(val > 99) val = 99;
-  const g = window._grupos?.find(x => x.id === window._grupoAtivo);
-  if(g) { g.margem = val; }
-  window.recalcular();
+  let val=parseInt(v); if(isNaN(val))return;
+  val=Math.min(99,Math.max(1,val));
+  const g=window._grupos?.find(x=>x.id===window._grupoAtivo);
+  if(g){g.margem=val;}
   renderGrupos();
 };
 
-// ── SALVAR ──
+// ── SALVAR — soma todos os grupos ──
 window.salvarOrcamento = async function() {
-  // Coleta todos itens de todos grupos
-  const todosItens = [];
-  (window._grupos||[]).forEach(g => {
-    Object.values((window._itensPorGrupo||{})[g.id]||{}).forEach(it => todosItens.push({...it, _grupo: g.id, _grupoNome: g.nome}));
+  const todosItens=[];
+  (window._grupos||[]).forEach(g=>{
+    Object.values((window._itensPorGrupo||{})[g.id]||{}).forEach(it=>todosItens.push({...it,_grupo:g.id,_grupoNome:g.nome}));
   });
-  if(!todosItens.length) { showToast('Adicione pelo menos um material!'); return; }
+  if(!todosItens.length){showToast('Adicione pelo menos um material!');return;}
 
-  const tipo = window.getTipoCliente ? window.getTipoCliente() : 'sistema';
-  let cliente = '';
-  let dadosExtra = {};
-
-  if(tipo==='avulso') {
-    const nome = document.getElementById('av-nome')?.value.trim()||document.getElementById('orc-cliente-av')?.value.trim()||'';
-    if(!nome) { showToast('Preencha o nome do cliente!'); return; }
-    cliente = nome;
-    dadosExtra = window.getDadosClienteAvulso ? window.getDadosClienteAvulso() : {};
+  const tipo=window.getTipoCliente?window.getTipoCliente():'sistema';
+  let cliente='',dadosExtra={};
+  if(tipo==='avulso'){
+    const nome=document.getElementById('av-nome')?.value.trim()||document.getElementById('orc-cliente-av')?.value.trim()||'';
+    if(!nome){showToast('Preencha o nome do cliente!');return;}
+    cliente=nome; dadosExtra=window.getDadosClienteAvulso?window.getDadosClienteAvulso():{};
   } else {
-    const sel = document.getElementById('sel-cliente');
-    if(!sel) { showToast('Campo de cliente não encontrado!'); return; }
-    cliente = sel.tagName==='SELECT' ? (sel.options[sel.selectedIndex]?.text||'') : sel.value.trim();
-    if(!cliente || cliente==='Selecione o cliente...') { showToast('Selecione o cliente!'); return; }
+    const sel=document.getElementById('sel-cliente');
+    if(!sel){showToast('Campo de cliente não encontrado!');return;}
+    cliente=sel.tagName==='SELECT'?(sel.options[sel.selectedIndex]?.text||''):sel.value.trim();
+    if(!cliente||cliente==='Selecione o cliente...'){showToast('Selecione o cliente!');return;}
   }
 
-  const desc      = document.getElementById('orc-desc')?.value||'Sem descrição';
-  const pagamento = document.getElementById('orc-pagamento')?.value||document.getElementById('pagamento')?.value||'dinheiro';
-  const taxaCartao= parseFloat(document.getElementById('orc-taxa-cartao')?.value||0);
-  const responsavel = document.getElementById('mo-responsavel')?.value||'';
+  const desc=document.getElementById('orc-desc')?.value||'Sem descrição';
+  const pagamento=document.getElementById('orc-pagamento')?.value||document.getElementById('pagamento')?.value||'dinheiro';
+  const taxaCartao=parseFloat(document.getElementById('orc-taxa-cartao')?.value||0);
+  const responsavel=document.getElementById('mo-responsavel')?.value||'';
+  const numero=(document.getElementById('orc-num')||document.getElementById('orc-num-av'))?.value||'#001';
 
   // Calcula totais somando todos os grupos
-  const totaisGrupos = (window._grupos||[]).map(g => window.calcGrupo(g.id));
-  const vendaTotal   = totaisGrupos.reduce((s,c) => s+c.venda, 0);
-  const custoTotal   = totaisGrupos.reduce((s,c) => s+c.custoTotal, 0);
-  const lucroTotal   = totaisGrupos.reduce((s,c) => s+c.lucro, 0);
-  const subMatTotal  = totaisGrupos.reduce((s,c) => s+c.subMat, 0);
-  const moTotal      = totaisGrupos.reduce((s,c) => s+c.moVal, 0);
-  // Margem ponderada
-  const margemMedia  = vendaTotal > 0 ? Math.round(lucroTotal/vendaTotal*100) : 30;
-  const moPctMedia   = vendaTotal > 0 ? Math.round(moTotal/vendaTotal*100) : 25;
+  const gruposCalc=(window._grupos||[]).map(g=>({g,...window.calcGrupo(g.id)}));
+  const vendaTotal=gruposCalc.reduce((s,c)=>s+c.venda,0);
+  const custoTotal=gruposCalc.reduce((s,c)=>s+c.custoTotal,0);
+  const lucroTotal=gruposCalc.reduce((s,c)=>s+c.lucro,0);
+  const subMatTotal=gruposCalc.reduce((s,c)=>s+c.subMat,0);
+  const moTotal=gruposCalc.reduce((s,c)=>s+c.moVal,0);
+  const margemMedia=vendaTotal>0?Math.round(lucroTotal/vendaTotal*100):30;
+  const moPctMedia=vendaTotal>0?Math.round(moTotal/vendaTotal*100):25;
 
-  const numero = (document.getElementById('orc-num')||document.getElementById('orc-num-av'))?.value||'#001';
-
-  // Salva grupos com seus itens e configurações
-  const gruposData = (window._grupos||[]).map(g => {
-    const c = window.calcGrupo(g.id);
-    return {
-      id: g.id, nome: g.nome, margem: g.margem, moPct: g.moPct,
-      itens: c.itens,
-      subMat: Math.round(c.subMat*100)/100,
-      moVal: Math.round(c.moVal*100)/100,
-      venda: Math.round(c.venda*100)/100,
-      lucro: Math.round(c.lucro*100)/100,
-      custoTotal: Math.round(c.custoTotal*100)/100
-    };
+  // Salva grupos com itens e configs de cada um
+  const gruposData=(window._grupos||[]).map(g=>{
+    const c=window.calcGrupo(g.id);
+    return {id:g.id,nome:g.nome,margem:g.margem,moPct:g.moPct,
+      itens:c.itens,subMat:Math.round(c.subMat*100)/100,
+      moVal:Math.round(c.moVal*100)/100,venda:Math.round(c.venda*100)/100,
+      lucro:Math.round(c.lucro*100)/100,custoTotal:Math.round(c.custoTotal*100)/100};
   });
 
-  const data = {
-    numero, cliente, desc,
-    itens: todosItens,      // retrocompat
-    grupos: gruposData,     // novo campo com grupos
-    subMat: Math.round(subMatTotal*100)/100,
-    moVal:  Math.round(moTotal*100)/100,
-    moPct:  moPctMedia,
-    margemPct: margemMedia,
-    custoTotal: Math.round(custoTotal*100)/100,
-    venda: Math.round(vendaTotal*100)/100,
-    lucro: Math.round(lucroTotal*100)/100,
-    pagamento, taxaCartao, responsavel,
-    status:'Aguardando',
-    criadoEm: new Date().toISOString(),
-    mes: new Date().getMonth()+1,
-    tipo,
-    ...dadosExtra
+  const data={
+    numero,cliente,desc,itens:todosItens,grupos:gruposData,
+    subMat:Math.round(subMatTotal*100)/100,moVal:Math.round(moTotal*100)/100,
+    moPct:moPctMedia,margemPct:margemMedia,
+    custoTotal:Math.round(custoTotal*100)/100,
+    venda:Math.round(vendaTotal*100)/100,lucro:Math.round(lucroTotal*100)/100,
+    pagamento,taxaCartao,responsavel,status:'Aguardando',
+    criadoEm:new Date().toISOString(),mes:new Date().getMonth()+1,tipo,...dadosExtra
   };
-
-  try {
-    await addDoc(collection(db,'cmt_orcamentos'), data);
-  } catch(e){ showToast('Erro ao salvar: '+e.message); return; }
+  try{await addDoc(collection(db,'cmt_orcamentos'),data);}catch(e){showToast('Erro ao salvar: '+e.message);return;}
   window._orcamentos.push({id:'tmp_'+Date.now(),...data});
   showToast('Orçamento salvo! ✓');
   window.limparOrcamento();
-  renderListaOrcamentos();
-  renderRelatorio();
-  atualizarNumeroOrcamento();
+  renderListaOrcamentos();renderRelatorio();atualizarNumeroOrcamento();
 };
 
 window.limparOrcamento = function() {
-  window._grupos = [{ id: 'g1', nome: 'Serviço 1', margem: 30, moPct: 25 }];
-  window._grupoAtivo = 'g1';
-  window._itensPorGrupo = { g1: {} };
-  window._itensSelecionados = window._itensPorGrupo['g1'];
-  renderCatalogo();
-  renderGrupos();
-  const clear = (id,v='') => { const el=document.getElementById(id); if(el) el.value=v; };
-  clear('orc-desc'); clear('av-nome'); clear('orc-cliente-av');
-  clear('orc-telefone'); clear('orc-email'); clear('orc-endereco');
-  const tb = document.getElementById('total-block'); if(tb) tb.style.display='none';
+  window._grupos=[{id:'g1',nome:'Serviço 1',margem:30,moPct:25,aberto:true}];
+  window._grupoAtivo='g1';
+  window._itensPorGrupo={g1:{}};
+  window._itensSelecionados=window._itensPorGrupo['g1'];
+  renderCatalogo();renderGrupos();
+  const clear=(id,v='')=>{const el=document.getElementById(id);if(el)el.value=v;};
+  clear('orc-desc');clear('av-nome');clear('orc-cliente-av');
+  clear('orc-telefone');clear('orc-email');clear('orc-endereco');
+  const tb=document.getElementById('total-block');if(tb)tb.style.display='none';
 };
 
 window.getOrcamentosFiltrados = function() {
@@ -3084,14 +3018,36 @@ window.abrirEdicaoOrcamento = function(id) {
   window._modalOrcId = id;
   document.getElementById('modal-overlay').classList.remove('open');
   document.getElementById('edit-orc-title').textContent = `Editar ${o.numero} — ${o.cliente}`;
-  _editItens = JSON.parse(JSON.stringify(o.itens||[]));
-  // Carrega margem e pagamento existentes
-  document.getElementById('edit-margem').value = o.margemPct||30;
-  document.getElementById('edit-margem-preview').textContent = (o.margemPct||30)+'%';
-  document.getElementById('edit-margem-slider').value = o.margemPct||30;
-  document.getElementById('edit-mo-pct').value = o.moPct||25;
-  document.getElementById('edit-mo-preview').textContent = (o.moPct||25)+'%';
-  document.getElementById('edit-mo-slider').value = o.moPct||25;
+
+  // Carrega itens — prefere grupos salvos, fallback para itens planos
+  if(o.grupos && o.grupos.length>0) {
+    _editItens = JSON.parse(JSON.stringify(o.grupos[0].itens||[]));
+    // Pré-seleciona margem do primeiro grupo
+    document.getElementById('edit-margem').value = o.grupos[0].margem||o.margemPct||30;
+    document.getElementById('edit-mo-pct').value = o.grupos[0].moPct||o.moPct||25;
+  } else {
+    _editItens = JSON.parse(JSON.stringify(o.itens||[]));
+    document.getElementById('edit-margem').value = o.margemPct||30;
+    document.getElementById('edit-mo-pct').value = o.moPct||25;
+  }
+
+  document.getElementById('edit-margem-preview').textContent = (document.getElementById('edit-margem').value||30)+'%';
+  document.getElementById('edit-margem-slider').value = document.getElementById('edit-margem').value||30;
+  document.getElementById('edit-mo-preview').textContent = (document.getElementById('edit-mo-pct').value||25)+'%';
+  document.getElementById('edit-mo-slider').value = document.getElementById('edit-mo-pct').value||25;
+
+  // Aviso de grupos múltiplos
+  const gruposAviso = document.getElementById('edit-grupos-aviso');
+  if(o.grupos && o.grupos.length>1) {
+    if(!gruposAviso) {
+      const aviso = document.createElement('div');
+      aviso.id='edit-grupos-aviso';
+      aviso.style.cssText='background:#FFF7ED;border:1px solid #E05C1A;border-radius:8px;padding:8px 12px;font-size:12px;color:#633806;margin-bottom:12px;';
+      aviso.innerHTML=`⚠️ Este orçamento tem <strong>${o.grupos.length} grupos de serviço</strong>. Aqui você edita o grupo "${o.grupos[0].nome}" (principal). Os valores totais são recalculados automaticamente.`;
+      document.getElementById('edit-orc-title').after(aviso);
+    }
+  } else if(gruposAviso) gruposAviso.remove();
+
   const pag = document.getElementById('edit-pagamento');
   pag.value = o.pagamento||'dinheiro';
   document.getElementById('edit-taxa-cartao').value = o.taxaCartao||2.5;
@@ -3319,22 +3275,49 @@ window.salvarEdicaoOrcamento = async function() {
   const moVal    = Math.round(vendaBase*moPct/100*100)/100;
   const custoTotal = Math.round((subMat+moVal+taxaVal)*100)/100;
   const lucro    = Math.round((venda-custoTotal)*100)/100;
-  // Histórico de alterações
+
+  // Atualiza grupos preservando os demais
+  let gruposAtualizado = JSON.parse(JSON.stringify(o.grupos||[]));
+  if(gruposAtualizado.length>0) {
+    gruposAtualizado[0]={...gruposAtualizado[0],itens:_editItens,margem,moPct,subMat,moVal,venda,lucro,custoTotal};
+  } else {
+    gruposAtualizado=[{id:'g1',nome:'Serviço 1',margem,moPct,itens:_editItens,subMat,moVal,venda,lucro,custoTotal}];
+  }
+  // Soma TODOS os grupos para o total
+  const vendaTotal  = gruposAtualizado.reduce((s,g)=>s+(g.venda||0),0);
+  const custoFinal  = gruposAtualizado.reduce((s,g)=>s+(g.custoTotal||0),0);
+  const lucroFinal  = gruposAtualizado.reduce((s,g)=>s+(g.lucro||0),0);
+  const subMatFinal = gruposAtualizado.reduce((s,g)=>s+(g.subMat||0),0);
+  const moFinal     = gruposAtualizado.reduce((s,g)=>s+(g.moVal||0),0);
+  const margemMedia = vendaTotal>0?Math.round(lucroFinal/vendaTotal*100):margem;
+
   const agora = new Date().toISOString();
   const hist  = o.historico||[];
-  hist.push({ data: agora, usuario: _usuarioLogado?.nome||'Sistema', acao: 'Editado' });
+  hist.push({data:agora,usuario:_usuarioLogado?.nome||'Sistema',acao:'Editado'});
   const updates = {
-    itens:_editItens, subMat, moVal, custoTotal, venda, lucro,
-    margemPct: margem, pagamento: pag, taxaCartao: taxaCard,
-    alteradoEm: agora, alteradoPor: _usuarioLogado?.nome||'Sistema',
-    historico: hist
+    itens:_editItens, grupos:gruposAtualizado,
+    subMat:Math.round(subMatFinal*100)/100, moVal:Math.round(moFinal*100)/100,
+    custoTotal:Math.round(custoFinal*100)/100,
+    venda:Math.round(vendaTotal*100)/100, lucro:Math.round(lucroFinal*100)/100,
+    margemPct:margemMedia, moPct, pagamento:pag, taxaCartao:taxaCard,
+    alteradoEm:agora, alteradoPor:_usuarioLogado?.nome||'Sistema', historico:hist
   };
-  try { await updateDoc(doc(db,'cmt_orcamentos',id),updates); } catch(e){}
+  try{await updateDoc(doc(db,'cmt_orcamentos',id),updates);}catch(e){}
   Object.assign(o,updates);
   document.getElementById('modal-editar-orc').classList.remove('open');
-  renderListaOrcamentos();
-  renderRelatorio();
+  renderListaOrcamentos(); renderRelatorio();
   showToast('Orçamento atualizado!');
+  const rows=document.querySelectorAll('#lista-tbody tr');
+  rows.forEach(row=>{
+    if((row.getAttribute('onclick')||'').includes(id)){
+      const cells=row.querySelectorAll('td');
+      if(cells.length>=7){
+        cells[3].textContent=fmt(custoFinal);cells[4].textContent=fmt(vendaTotal);
+        cells[5].textContent=fmt(lucroFinal);cells[5].className='td-val '+(lucroFinal>=0?'td-green':'td-red');
+        cells[6].textContent=margemMedia+'%';
+      }
+    }
+  });
 };
 
 // ── GESTÃO DE USUÁRIOS ──
