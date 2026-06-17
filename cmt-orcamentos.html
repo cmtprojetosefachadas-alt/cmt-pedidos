@@ -1241,14 +1241,14 @@ body {
   <div class="modal" style="max-width:680px;max-height:92vh;overflow-y:auto">
     <h3 id="edit-orc-title">Editar orçamento</h3>
 
+    <!-- Abas de grupos -->
+    <div id="edit-grupos-tabs" style="display:none;margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Grupos de serviço — clique para editar</div>
+      <div id="edit-grupos-tabs-list" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
+    </div>
+
     <!-- Aviso de grupos -->
     <div id="edit-grupos-aviso" style="display:none;background:#FFF7ED;border:1px solid #E05C1A;border-radius:8px;padding:8px 12px;font-size:12px;color:#633806;margin-bottom:12px;"></div>
-
-    <!-- Abas de grupos -->
-    <div id="edit-grupos-tabs" style="display:none;margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Grupos de serviço</div>
-      <div id="edit-grupos-tabs-list" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-    </div>
 
     <!-- Margem + MO + Pagamento -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px">
@@ -3042,7 +3042,7 @@ window.abrirEdicaoOrcamento = function(id) {
     tabsWrap.style.display = 'block';
     window.renderEditGruposTabs(o);
     aviso.style.display = 'block';
-    aviso.innerHTML = `⚠️ Este orçamento tem <strong>${o.grupos.length} grupos de serviço</strong>. Clique nas abas acima para editar cada grupo. O total é a soma de todos.`;
+    aviso.innerHTML = `Editando: <strong>${o.grupos[window._editGrupoIdx]?.nome||'Serviço 1'}</strong> — total do orçamento é a soma de todos os grupos.`;
   } else {
     tabsWrap.style.display = 'none';
     aviso.style.display = 'none';
@@ -3068,16 +3068,23 @@ window.abrirEdicaoOrcamento = function(id) {
 
 window.renderEditGruposTabs = function(o) {
   const tabsList = document.getElementById('edit-grupos-tabs-list');
+  if(!tabsList || !o.grupos) return;
   const colors = ['#185FA5','#0F6E56','#BA7517','#534AB7','#993C1D'];
-  tabsList.innerHTML = (o.grupos||[]).map((g,i) => {
+  tabsList.innerHTML = (o.grupos).map((g,i) => {
     const ativo = i === window._editGrupoIdx;
-    const cor = colors[i%colors.length];
+    const cor   = colors[i%colors.length];
+    const itensCount = (g.itens||[]).length;
     return `<button onclick="window.trocarGrupoEdit(${i})"
-      style="padding:6px 14px;border-radius:8px;border:${ativo?'2px solid '+cor:'1px solid var(--border)'};
-      background:${ativo?cor+'15':'var(--surface2)'};color:${ativo?cor:'var(--muted)'};
-      font-size:12px;font-weight:${ativo?'700':'500'};cursor:pointer;white-space:nowrap;">
-      ${i+1}. ${g.nome}
-      ${(g.itens||[]).length>0?`<span style="margin-left:4px;font-size:10px;">${fmt(g.venda||0)}</span>`:''}
+      style="padding:8px 16px;border-radius:8px;
+      border:${ativo?'2.5px solid '+cor:'1.5px solid var(--border2)'};
+      background:${ativo?cor:'var(--surface2)'};
+      color:${ativo?'#fff':'var(--text)'};
+      font-size:12px;font-weight:${ativo?'700':'500'};
+      cursor:pointer;white-space:nowrap;
+      box-shadow:${ativo?'0 2px 8px '+cor+'44':'none'};
+      transition:all .15s;">
+      <span style="margin-right:4px;">${i+1}.</span>${g.nome}
+      ${itensCount>0?`<span style="margin-left:6px;font-size:10px;opacity:.85;">(${itensCount} ${itensCount===1?'item':'itens'} · ${fmt(g.venda||0)})</span>`:'<span style="margin-left:6px;font-size:10px;opacity:.6;">(vazio)</span>'}
     </button>`;
   }).join('');
 };
@@ -3103,6 +3110,9 @@ window.trocarGrupoEdit = function(idx) {
   window._editGrupoIdx = idx;
   window.carregarGrupoParaEditar(o, idx);
   window.renderEditGruposTabs(o);
+  // Atualiza aviso
+  const aviso = document.getElementById('edit-grupos-aviso');
+  if(aviso) aviso.innerHTML = `Editando: <strong>${o.grupos[idx]?.nome||'Serviço '+(idx+1)}</strong> — total do orçamento é a soma de todos os grupos.`;
   renderEditItens();
   atualizarTotaisEdit();
 };
