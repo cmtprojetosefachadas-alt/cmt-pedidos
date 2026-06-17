@@ -1314,8 +1314,23 @@ body {
         </div>
       </div>
     </div>
-    <!-- Totais -->
+    <!-- Totais do grupo atual -->
     <div id="edit-orc-totais" style="margin-top:14px;background:var(--bg3);border-radius:8px;padding:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px"></div>
+
+    <!-- TOTAL GERAL EM TEMPO REAL -->
+    <div id="edit-total-geral-wrap" style="display:none;margin-top:12px;background:linear-gradient(135deg,#1C2340 0%,#2a3560 100%);border-radius:12px;padding:14px 18px;">
+      <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">💰 Valor total — todos os serviços</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;">
+          <div id="edit-total-grupos-lista" style="font-size:12px;color:rgba(255,255,255,0.65);"></div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:28px;font-weight:800;color:#4ade80;letter-spacing:-1px;" id="edit-total-geral-val">R$ 0,00</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px;" id="edit-total-geral-info">—</div>
+        </div>
+      </div>
+    </div>
+
     <div class="modal-footer">
       <button class="btn btn-primary" style="flex:1" onclick="salvarEdicaoOrcamento()">Salvar alterações</button>
       <button class="btn btn-secondary" style="flex:1" onclick="document.getElementById('modal-editar-orc').classList.remove('open')">Cancelar</button>
@@ -3292,26 +3307,66 @@ window.atualizarTotaisEdit = function() {
     <div class="mbar" style="grid-column:span ${isCard?1:2}"><div class="mbar-label">Pagamento</div><div class="mbar-val" style="color:var(--blue)">${pagLabel}</div></div>
   `;
 
-  // Atualiza objeto em memória e linha da tabela em tempo real (sem salvar no Firestore)
-  o.venda      = venda;
-  o.lucro      = lucro;
-  o.custoTotal = custoT;
-  o.margemPct  = margem;
-  o.moPct      = moPct;
-  const rows = document.querySelectorAll('#lista-tbody tr');
-  rows.forEach(row => {
-    const oc = row.getAttribute('onclick')||'';
-    if(oc.includes(o.id)) {
-      const cells = row.querySelectorAll('td');
-      if(cells.length >= 7) {
-        cells[3].textContent = fmt(custoT);
-        cells[4].textContent = fmt(venda);
-        cells[5].textContent = fmt(lucro);
-        cells[5].className   = 'td-val ' + (lucro >= 0 ? 'td-green' : 'td-red');
-        cells[6].textContent = margem + '%';
-      }
+  // Atualiza total geral em tempo real (salva grupo atual e soma todos)
+  const oAtual = (window._orcamentos||[]).find(x=>x.id===window._modalOrcId);
+  if(oAtual && oAtual.grupos && oAtual.grupos.length > 1) {
+    // Salva o grupo ativo temporariamente sem persistir no Firebase
+    const idx = window._editGrupoIdx||0;
+    const gAtual = oAtual.grupos[idx];
+    if(gAtual) {
+      const subMatG = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100,0);
+      const divG    = Math.max(0.01,1-margem/100);
+      const vendaG  = Math.round(subMatG/divG*100)/100;
+      const moValG  = Math.round(vendaG*moPct/100*100)/100;
+      const custoG  = Math.round((subMatG+moValG)*100)/100;
+      const lucroG  = Math.round((vendaG-custoG)*100)/100;
+      // Cópia temporária para cálculo sem alterar o original
+      const gruposCopy = oAtual.grupos.map((g,i) => i===idx
+        ? {...g,venda:vendaG,custoTotal:custoG,lucro:lucroG,subMat:subMatG,moVal:moValG}
+        : g);
+      const vendaTotal = gruposCopy.reduce((s,g)=>s+(g.venda||0),0);
+      const custoTotal2= gruposCopy.reduce((s,g)=>s+(g.custoTotal||0),0);
+      const lucroTotal = gruposCopy.reduce((s,g)=>s+(g.lucro||0),0);
+      const margemT    = vendaTotal>0?Math.round(lucroTotal/vendaTotal*100):0;
+
+      const wrap = document.getElementById('edit-total-geral-wrap');
+      if(wrap) wrap.style.display = 'block';
+      const valEl = document.getElementById('edit-total-geral-val');
+      if(valEl) valEl.textContent = fmt(vendaTotal);
+      const infoEl = document.getElementById('edit-total-geral-info');
+      if(infoEl) infoEl.textContent = `Custo total: ${fmt(custoTotal2)} · Lucro: ${fmt(lucroTotal)} · Margem média: ${margemT}%`;
+      const listaEl = document.getElementById('edit-total-grupos-lista');
+      if(listaEl) listaEl.innerHTML = gruposCopy.map((g,i)=>
+        `<span style="color:${i===(window._editGrupoIdx||0)?'#fff':'rgba(255,255,255,0.6)'};font-weight:${i===(window._editGrupoIdx||0)?'600':'400'};">${g.nome}: ${fmt(g.venda||0)}</span>`
+      ).join('<span style="color:rgba(255,255,255,0.3);margin:0 6px;">+</span>');
     }
-  });
+  } else {
+    const wrap = document.getElementById('edit-total-geral-wrap');
+    if(wrap) wrap.style.display = 'none';
+  }
+
+  // Atualiza objeto em memória e linha da tabela em tempo real (sem salvar no Firestore)
+  if(o) {
+    o.venda      = venda;
+    o.lucro      = lucro;
+    o.custoTotal = custoT;
+    o.margemPct  = margem;
+    o.moPct      = moPct;
+    const rows = document.querySelectorAll('#lista-tbody tr');
+    rows.forEach(row => {
+      const oc = row.getAttribute('onclick')||'';
+      if(oc.includes(o.id)) {
+        const cells = row.querySelectorAll('td');
+        if(cells.length >= 7) {
+          cells[3].textContent = fmt(custoT);
+          cells[4].textContent = fmt(venda);
+          cells[5].textContent = fmt(lucro);
+          cells[5].className   = 'td-val ' + (lucro >= 0 ? 'td-green' : 'td-red');
+          cells[6].textContent = margem + '%';
+        }
+      }
+    });
+  }
 }
 
 window.editOrcAddItem = function() {
