@@ -6149,7 +6149,8 @@ window.abrirModalBaixa = function(id, tipo) {
     : fluxoEntradas.find(x => x.id === id);
   if(!item) return;
 
-  const valorOriginal = item.valor || 0;
+  // SEMPRE usa valorOriginal se existir — nunca o valor sobrescrito
+  const valorOriginal = item.valorOriginal || item.valor || 0;
   const pagoParcial = item.pagoParcial || 0;
   const restante = Math.max(valorOriginal - pagoParcial, 0);
   const historico = item.historicoPagementos || [];
@@ -6383,18 +6384,20 @@ document.getElementById('btn-baixa-total').onclick = async function() {
 
   if(tipo === 'saida') {
     const item = fluxoSaidas.find(x => x.id === id);
-    const hist = item?.historicoPagementos || [];
+    const hist = [...(item?.historicoPagementos || [])];
     const pagoParcial = item?.pagoParcial || 0;
-    const restante = Math.max((item?.valor||0) - pagoParcial, 0);
-    hist.push({ data: hoje, valor: restante, obs, dataOriginal: item?.data });
-    await updateDoc(doc(db,'fluxo_saidas',id), { futura: false, paga: true, data: hoje, mes: mesHoje, pagoParcial: item?.valor || 0, historicoPagementos: hist });
+    const valorOriginal = item?.valorOriginal || item?.valor || 0;
+    const restante = Math.max(valorOriginal - pagoParcial, 0);
+    hist.push({ data: hoje, valor: restante, obs });
+    await updateDoc(doc(db,'fluxo_saidas',id), { futura: false, paga: true, data: hoje, mes: mesHoje, pagoParcial: valorOriginal, valorOriginal, historicoPagementos: hist });
   } else {
     const item = fluxoEntradas.find(x => x.id === id);
-    const hist = item?.historicoPagementos || [];
+    const hist = [...(item?.historicoPagementos || [])];
     const pagoParcial = item?.pagoParcial || 0;
-    const restante = Math.max((item?.valor||0) - pagoParcial, 0);
-    hist.push({ data: hoje, valor: restante, obs, dataOriginal: item?.data });
-    await updateDoc(doc(db,'fluxo_entradas',id), { recebido: true, data: hoje, mes: mesHoje, pagoParcial: item?.valor || 0, historicoPagementos: hist });
+    const valorOriginal = item?.valorOriginal || item?.valor || 0;
+    const restante = Math.max(valorOriginal - pagoParcial, 0);
+    hist.push({ data: hoje, valor: restante, obs });
+    await updateDoc(doc(db,'fluxo_entradas',id), { recebido: true, data: hoje, mes: mesHoje, pagoParcial: valorOriginal, valorOriginal, historicoPagementos: hist });
   }
 
   document.getElementById('baixa-parcial-bg').classList.remove('open');
@@ -6426,46 +6429,58 @@ document.getElementById('btn-confirmar-baixa-parcial').onclick = async function(
   if(tipo === 'saida') {
     const item = fluxoSaidas.find(x => x.id === id);
     if(!item) return;
-    const hist = item.historicoPagementos || [];
+    const hist = [...(item.historicoPagementos || [])];
     const pagoParcialAnt = item.pagoParcial || 0;
     const novoPago = pagoParcialAnt + valorPago;
-    const total = item.valor || 0;
-    hist.push({ data: hoje, valor: valorPago, obs, dataOriginal: item.data });
+    // Usa valorOriginal se existir, senão usa valor (primeira vez)
+    const valorOriginal = item.valorOriginal || item.valor || 0;
+    hist.push({ data: hoje, valor: valorPago, obs });
 
-    if(novoPago >= total) {
-      await updateDoc(doc(db,'fluxo_saidas',id), { futura: false, paga: true, data: hoje, mes: mesHoje, pagoParcial: total, historicoPagementos: hist });
+    if(novoPago >= valorOriginal) {
+      await updateDoc(doc(db,'fluxo_saidas',id), {
+        futura: false, paga: true, data: hoje, mes: mesHoje,
+        pagoParcial: valorOriginal,
+        valorOriginal,
+        historicoPagementos: hist
+      });
       showToast('✅ Saída quitada totalmente!', 'toast-fluxo');
     } else {
-      const novoValorRestante = total - novoPago;
       await updateDoc(doc(db,'fluxo_saidas',id), {
         futura: true, paga: false,
-        valor: novoValorRestante,
+        // NUNCA sobrescreve valor — mantém o original
+        valorOriginal,
         pagoParcial: novoPago,
         historicoPagementos: hist
       });
-      showToast(`💳 R$ ${valorPago.toFixed(2).replace('.',',')} registrado. Saldo restante: ${fmtMoney(novoValorRestante)}`, 'toast-fluxo');
+      showToast(`💳 ${fmtMoney(valorPago)} registrado. Saldo restante: ${fmtMoney(valorOriginal - novoPago)}`, 'toast-fluxo');
     }
   } else {
     const item = fluxoEntradas.find(x => x.id === id);
     if(!item) return;
-    const hist = item.historicoPagementos || [];
+    const hist = [...(item.historicoPagementos || [])];
     const pagoParcialAnt = item.pagoParcial || 0;
     const novoPago = pagoParcialAnt + valorPago;
-    const total = item.valor || 0;
-    hist.push({ data: hoje, valor: valorPago, obs, dataOriginal: item.data });
+    // Usa valorOriginal se existir, senão usa valor (primeira vez)
+    const valorOriginal = item.valorOriginal || item.valor || 0;
+    hist.push({ data: hoje, valor: valorPago, obs });
 
-    if(novoPago >= total) {
-      await updateDoc(doc(db,'fluxo_entradas',id), { recebido: true, data: hoje, mes: mesHoje, pagoParcial: total, historicoPagementos: hist });
+    if(novoPago >= valorOriginal) {
+      await updateDoc(doc(db,'fluxo_entradas',id), {
+        recebido: true, data: hoje, mes: mesHoje,
+        pagoParcial: valorOriginal,
+        valorOriginal,
+        historicoPagementos: hist
+      });
       showToast('✅ Recebimento quitado totalmente!', 'toast-fluxo');
     } else {
-      const novoValorRestante = total - novoPago;
       await updateDoc(doc(db,'fluxo_entradas',id), {
         recebido: false,
-        valor: novoValorRestante,
+        // NUNCA sobrescreve valor — mantém o original
+        valorOriginal,
         pagoParcial: novoPago,
         historicoPagementos: hist
       });
-      showToast(`💳 R$ ${valorPago.toFixed(2).replace('.',',')} registrado. Saldo restante: ${fmtMoney(novoValorRestante)}`, 'toast-fluxo');
+      showToast(`💳 ${fmtMoney(valorPago)} registrado. Saldo restante: ${fmtMoney(valorOriginal - novoPago)}`, 'toast-fluxo');
     }
   }
 
@@ -7234,8 +7249,8 @@ window.gerarReciboCobranca = function(item) {
   const dataHoje = hoje.toLocaleDateString('pt-BR');
   const nomeCliente = item.clienteNome || item.desc || '—';
   const pagoParcial = item.pagoParcial || 0;
-  const saldoDevedor = item.valor || 0;
-  const valorOriginal = pagoParcial > 0 ? pagoParcial + saldoDevedor : saldoDevedor;
+  const saldoDevedor = Math.max((item.valorOriginal || item.valor || 0) - pagoParcial, 0);
+  const valorOriginal = item.valorOriginal || item.valor || 0;
   const dataVencimento = item.data ? item.data.split('-').reverse().join('/') : '—';
   const descricao = item.obs || item.tipo || '—';
 
