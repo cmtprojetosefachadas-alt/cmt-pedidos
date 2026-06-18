@@ -1197,6 +1197,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div id="baixa-parcial-historico" style="margin-top:12px;display:none;">
         <div id="baixa-parcial-historico-lista"></div>
       </div>
+
+      <!-- Correção manual do valor original -->
+      <div id="baixa-correcao-wrap" style="display:none;margin-top:12px;padding:10px 12px;background:#FFF7ED;border:1.5px solid #E05C1A;border-radius:8px;">
+        <div style="font-size:11px;font-weight:700;color:#E05C1A;margin-bottom:4px;">⚠️ Valor original incorreto?</div>
+        <div style="font-size:11px;color:#633806;margin-bottom:8px;">Se o valor total do serviço foi diferente do que está acima, corrija aqui. Os pagamentos já feitos serão mantidos.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <label style="font-size:12px;color:var(--muted);white-space:nowrap;">Valor total real (R$)</label>
+          <input type="number" id="baixa-correcao-valor" placeholder="Ex: 5000,00" min="0" step="0.01"
+            style="flex:1;min-width:120px;padding:7px 10px;border:1.5px solid #E05C1A;border-radius:7px;font-size:13px;font-weight:600;background:var(--surface);color:var(--text);outline:none;"/>
+          <button onclick="window.corrigirValorOriginal()" style="padding:7px 14px;border-radius:7px;border:none;background:#E05C1A;color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">✔ Corrigir</button>
+        </div>
+        <div id="baixa-correcao-preview" style="font-size:11px;color:#633806;margin-top:5px;display:none;"></div>
+      </div>
     </div>
 
     <!-- Botão valor total -->
@@ -6207,7 +6220,15 @@ window.abrirModalBaixa = function(id, tipo) {
     histDiv.style.display = 'none';
   }
 
-  document.getElementById('baixa-parcial-bg').classList.add('open');
+  // Mostra campo de correção se tem histórico de parciais (pode estar errado)
+  const corWrap = document.getElementById('baixa-correcao-wrap');
+  const corInput = document.getElementById('baixa-correcao-valor');
+  if(corWrap) {
+    const temParcial = historico.length > 0 || pagoParcial > 0;
+    corWrap.style.display = temParcial ? 'block' : 'none';
+    if(corInput) corInput.value = '';
+    document.getElementById('baixa-correcao-preview').style.display = 'none';
+  }
   window._baixaItemAtual = item;
   window._baixaTipoAtual = tipo;
 
@@ -6231,6 +6252,7 @@ window.abrirModalBaixa = function(id, tipo) {
       fb.style.color = '#E05C1A';
     }
   };
+  document.getElementById('baixa-parcial-bg').classList.add('open');
 };
 
 // Fechar modal baixa parcial
@@ -7223,6 +7245,57 @@ window.tercPDFPrestador = tercPDFPrestador;
 
 // AVISO DE COBRANÇA — inadimplentes
 // Corrige registros com valor sobrescrito por baixas parciais antigas
+window.corrigirValorOriginal = async function() {
+  const id   = document.getElementById('baixa-parcial-id').value;
+  const tipo = document.getElementById('baixa-parcial-tipo').value;
+  const novoValor = parseFloat(document.getElementById('baixa-correcao-valor').value)||0;
+  if(novoValor <= 0) { showToast('Digite o valor correto!', 'toast-fluxo'); return; }
+
+  const item = tipo==='saida'
+    ? fluxoSaidas.find(x=>x.id===id)
+    : fluxoEntradas.find(x=>x.id===id);
+  if(!item) return;
+
+  const pagoParcial = item.pagoParcial||0;
+  if(novoValor < pagoParcial) {
+    showToast(`⚠️ Valor não pode ser menor que o já pago (${fmtMoney(pagoParcial)})!`, 'toast-fluxo');
+    return;
+  }
+
+  const col = tipo==='saida' ? 'fluxo_saidas' : 'fluxo_entradas';
+  await updateDoc(doc(db, col, id), {
+    valor: novoValor,
+    valorOriginal: novoValor
+  });
+
+  // Atualiza o modal em tempo real
+  document.getElementById('baixa-parcial-original').textContent = fmtMoney(novoValor);
+  const novoSaldo = Math.max(novoValor - pagoParcial, 0);
+  document.getElementById('baixa-parcial-restante').textContent = fmtMoney(novoSaldo);
+  document.getElementById('btn-baixa-total').innerHTML = tipo==='saida'
+    ? `✅ Pagar valor total restante ( <span id="baixa-total-label">${fmtMoney(novoSaldo)}</span> )`
+    : `✅ Confirmar recebimento total ( <span id="baixa-total-label">${fmtMoney(novoSaldo)}</span> )`;
+  document.getElementById('baixa-parcial-feedback').textContent = '';
+  document.getElementById('baixa-correcao-valor').value = '';
+
+  showToast(`✅ Valor corrigido para ${fmtMoney(novoValor)}. Saldo: ${fmtMoney(novoSaldo)}`, 'toast-fluxo');
+  await carregarFluxoData();
+};
+
+// Preview da correção em tempo real
+document.getElementById('baixa-correcao-valor')?.addEventListener('input', function() {
+  const novoValor = parseFloat(this.value)||0;
+  const id   = document.getElementById('baixa-parcial-id').value;
+  const tipo = document.getElementById('baixa-parcial-tipo').value;
+  const item = tipo==='saida' ? fluxoSaidas.find(x=>x.id===id) : fluxoEntradas.find(x=>x.id===id);
+  const prev = document.getElementById('baixa-correcao-preview');
+  if(!prev||!item||!novoValor) { if(prev) prev.style.display='none'; return; }
+  const pago = item.pagoParcial||0;
+  const novoSaldo = Math.max(novoValor-pago,0);
+  prev.textContent = `Já pago: ${fmtMoney(pago)} · Novo saldo restante: ${fmtMoney(novoSaldo)}`;
+  prev.style.display = 'block';
+});
+
 window.corrigirValoresParcelados = async function() {
   let corrigidos = 0;
   const problemas = [];
