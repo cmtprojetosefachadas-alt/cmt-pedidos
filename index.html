@@ -5519,13 +5519,21 @@ window.renderEntradasLista = function renderEntradasLista() {
       </td>
     </tr>`).join('');
 
-  const rowVencidas = arr => arr.map(e=>`
+  const rowVencidas = arr => arr.map(e=>{
+    const valorOriginal = e.valorOriginal || e.valor || 0;
+    const pagoParcial = e.pagoParcial || 0;
+    const saldo = Math.max(valorOriginal - pagoParcial, 0);
+    const temParcial = pagoParcial > 0;
+    return `
     <tr style="border-bottom:1px solid #fca5a5;background:#fff5f5;">
       <td style="padding:9px 8px;font-size:13px;color:#A32D2D;font-weight:600;">${fmtDataBr(e.data)}<br/><span style="font-size:10px;font-weight:700;">VENCIDA</span></td>
       <td style="padding:9px 8px;font-size:13px;font-weight:700;color:#A32D2D;">⚠️ ${e.clienteNome||'—'}</td>
       <td style="padding:9px 8px;"><span style="background:var(--red-bg);color:#A32D2D;padding:2px 8px;border-radius:12px;font-size:11px;">${e.tipo||'Entrada'}</span></td>
       <td style="padding:9px 8px;color:#A32D2D;font-size:12px;">${e.obs||''}</td>
-      <td style="padding:9px 8px;text-align:right;font-weight:700;color:#A32D2D;">${fmtMoney(e.valor||0)}</td>
+      <td style="padding:9px 8px;text-align:right;font-weight:700;color:#A32D2D;">
+        ${fmtMoney(saldo)}
+        ${temParcial?`<br/><span style="font-size:10px;color:#888;font-weight:400;">pago: ${fmtMoney(pagoParcial)} / ${fmtMoney(valorOriginal)}</span>`:''}
+      </td>
       <td style="padding:9px 8px;">
         <div style="display:flex;gap:4px;flex-wrap:wrap;">
           <button class="btn btn-primary" style="font-size:11px;padding:3px 8px;white-space:nowrap;" data-id="${e.id}" data-recebido="0" data-type="toggle-recebido">✅ Baixa</button>
@@ -5534,7 +5542,7 @@ window.renderEntradasLista = function renderEntradasLista() {
           <button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button>
         </div>
       </td>
-    </tr>`).join('');
+    </tr>`;}).join('');
 
   el.innerHTML = `
     ${atrasadasOutrosMesesEnt.length ? `
@@ -5716,19 +5724,27 @@ function renderSaidasLista(lista) {
       </td>
     </tr>`).join('');
 
-  const rowVencidas = arr => arr.map(s=>`
+  const rowVencidas = arr => arr.map(s=>{
+    const valorOriginal = s.valorOriginal || s.valor || 0;
+    const pagoParcial = s.pagoParcial || 0;
+    const saldo = Math.max(valorOriginal - pagoParcial, 0);
+    const temParcial = pagoParcial > 0;
+    return `
     <tr style="border-bottom:1px solid #fca5a5;background:#fff5f5;">
       <td style="padding:9px 8px;font-size:13px;color:#A32D2D;font-weight:600;">${fmtDataBr(s.data)}<br/><span style="font-size:10px;font-weight:700;">VENCIDA</span></td>
       <td style="padding:9px 8px;font-size:13px;font-weight:700;color:#A32D2D;">⚠️ ${s.desc||'—'}</td>
       <td style="padding:9px 8px;"><span style="background:var(--red-bg);color:#A32D2D;padding:2px 8px;border-radius:12px;font-size:11px;">${s.cat||'Outro'}</span></td>
       <td style="padding:9px 8px;color:#A32D2D;font-size:12px;">${s.ref||s.obs||''}</td>
-      <td style="padding:9px 8px;text-align:right;font-weight:700;color:#A32D2D;">${fmtMoney(s.valor||0)}</td>
+      <td style="padding:9px 8px;text-align:right;font-weight:700;color:#A32D2D;">
+        ${fmtMoney(saldo)}
+        ${temParcial?`<br/><span style="font-size:10px;color:#888;font-weight:400;">pago: ${fmtMoney(pagoParcial)} / ${fmtMoney(valorOriginal)}</span>`:''}
+      </td>
       <td style="padding:9px 8px;display:flex;gap:4px;">
         <button class="btn btn-red" style="font-size:11px;padding:3px 8px;white-space:nowrap;" data-id="${s.id}" data-type="baixa-saida">✅ Baixa</button>
         <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${s.id}" data-type="edit-saida">✏️</button>
         <button class="del-btn" data-id="${s.id}" data-type="del-saida">×</button>
       </td>
-    </tr>`).join('');
+    </tr>`;}).join('');
 
   el.innerHTML = `
     ${atrasadasOutrosMeses.length ? `
