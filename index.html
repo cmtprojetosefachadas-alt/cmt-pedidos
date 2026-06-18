@@ -709,6 +709,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <span style="font-size:14px;font-weight:700;color:#7C5CBF;">📅 Mês do histórico:</span>
           <select id="ent-hist-mes-sel" style="padding:8px 14px;border:2px solid #7C5CBF;border-radius:8px;font-size:13px;font-weight:600;background:#fff;color:#7C5CBF;font-family:'DM Sans',sans-serif;outline:none;" onchange="renderEntradasLista()">
           </select>
+          <button onclick="corrigirValoresParcelados()" style="margin-left:auto;padding:6px 14px;border-radius:8px;border:1.5px solid #7C0000;background:#fff5f5;color:#7C0000;font-size:12px;font-weight:600;cursor:pointer;" title="Corrige registros com valor sobrescrito por baixas parciais antigas">🔧 Corrigir valores parcelados</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           <span style="font-size:13px;font-weight:600;color:#7C5CBF;">🔍 Buscar por cliente / nome:</span>
@@ -7221,6 +7222,54 @@ window.tercPDFPrestador = tercPDFPrestador;
 // ============================================================
 
 // AVISO DE COBRANÇA — inadimplentes
+// Corrige registros com valor sobrescrito por baixas parciais antigas
+window.corrigirValoresParcelados = async function() {
+  let corrigidos = 0;
+  const problemas = [];
+
+  // Verifica entradas
+  for(const item of fluxoEntradas) {
+    if(!item.valorOriginal && item.pagoParcial > 0 && item.historicoPagementos?.length > 0) {
+      // Reconstrói valor original somando pagoParcial + valor atual (que foi sobrescrito)
+      const somaHist = item.historicoPagementos.reduce((s,h)=>s+(h.valor||0),0);
+      const valorOriginalReconstruido = somaHist + (item.recebido ? 0 : (item.valor||0));
+      if(valorOriginalReconstruido > (item.valor||0)) {
+        problemas.push({ col:'fluxo_entradas', id:item.id, valorOriginal:valorOriginalReconstruido, desc:item.clienteNome||item.obs||'—', atual:item.valor });
+      }
+    }
+  }
+
+  // Verifica saídas
+  for(const item of fluxoSaidas) {
+    if(!item.valorOriginal && item.pagoParcial > 0 && item.historicoPagementos?.length > 0) {
+      const somaHist = item.historicoPagementos.reduce((s,h)=>s+(h.valor||0),0);
+      const valorOriginalReconstruido = somaHist + (item.paga ? 0 : (item.valor||0));
+      if(valorOriginalReconstruido > (item.valor||0)) {
+        problemas.push({ col:'fluxo_saidas', id:item.id, valorOriginal:valorOriginalReconstruido, desc:item.desc||item.obs||'—', atual:item.valor });
+      }
+    }
+  }
+
+  if(problemas.length === 0) {
+    showToast('✅ Nenhum registro com problema encontrado!', 'toast-fluxo');
+    return;
+  }
+
+  const lista = problemas.map(p=>`• ${p.desc}: valor atual ${fmtMoney(p.atual)} → original ${fmtMoney(p.valorOriginal)}`).join('\n');
+  if(!confirm(`Encontrados ${problemas.length} registro(s) com valor incorreto:\n\n${lista}\n\nCorrigir agora?`)) return;
+
+  for(const p of problemas) {
+    await updateDoc(doc(db, p.col, p.id), {
+      valorOriginal: p.valorOriginal,
+      valor: p.valorOriginal // restaura o valor original
+    });
+    corrigidos++;
+  }
+
+  await carregarFluxoData();
+  showToast(`✅ ${corrigidos} registro(s) corrigido(s)!`, 'toast-fluxo');
+};
+
 // Histórico de alterações no modal de edição
 function renderHistoricoAlteracoes(historico){
   const wrap = document.getElementById('edit-fluxo-historico-wrap');
