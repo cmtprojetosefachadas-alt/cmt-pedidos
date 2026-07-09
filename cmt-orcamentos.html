@@ -1540,9 +1540,12 @@ async function carregarOrcamentos() {
       // Adiciona mês atual sempre
       mesesSet.add(new Date().getMonth() + 1);
       (window._orcamentos||[]).forEach(o => {
-        // Usa dataAprovacao se Aprovado, senão criadoEm
-        const dataRef = (o.status === 'Aprovado' && o.dataAprovacao) ? o.dataAprovacao : o.criadoEm;
-        if(dataRef) mesesSet.add(new Date(dataRef).getMonth() + 1);
+        // Usa dataAprovacao se Aprovado, senão criadoEm — substring para evitar fuso
+        const dataRefRaw = (o.status === 'Aprovado' && o.dataAprovacao) ? o.dataAprovacao : o.criadoEm;
+        if(dataRefRaw) {
+          const mesNum = parseInt((dataRefRaw+'').substring(5,7));
+          if(mesNum>=1&&mesNum<=12) mesesSet.add(mesNum);
+        }
         if(o.mes) mesesSet.add(o.mes);
       });
       const sel = document.getElementById('sel-mes');
@@ -2886,16 +2889,22 @@ window.atualizarStatus = async function(status) {
 
 // Retorna o mês relevante do orçamento:
 // - Aprovado com dataAprovacao → mês da aprovação (entra no faturamento do mês em que fechou)
-// - Aprovado sem dataAprovacao (registro antigo) → mês atual
+// - Aprovado sem dataAprovacao → mês de criação (não contamina mês atual)
 // - Outros status → mês de criação do orçamento
+// IMPORTANTE: usa substring YYYY-MM para evitar bug de fuso UTC vs local
 function mesDoOrcamento(o) {
-  if (o.status === 'Aprovado') {
-    if (o.dataAprovacao) return new Date(o.dataAprovacao).getMonth() + 1;
-    return new Date().getMonth() + 1; // aprovado sem registro de data → mês atual
+  function mesLocal(isoStr) {
+    if(!isoStr) return null;
+    const parts = (isoStr+'').substring(0,7).split('-');
+    if(parts.length>=2) return parseInt(parts[1]);
+    return null;
   }
-  const dataRef = o.criadoEm;
-  if(dataRef) return new Date(dataRef).getMonth() + 1;
-  return o.mes || new Date().getMonth() + 1;
+  if (o.status === 'Aprovado') {
+    if (o.dataAprovacao) return mesLocal(o.dataAprovacao) || (new Date().getMonth()+1);
+    // Sem dataAprovacao: usa criadoEm para nao contaminar mes atual
+    return mesLocal(o.criadoEm) || o.mes || (new Date().getMonth()+1);
+  }
+  return mesLocal(o.criadoEm) || o.mes || (new Date().getMonth()+1);
 }
 
 // ── RELATÓRIO ──
