@@ -1491,20 +1491,12 @@ window.confirmarUsarEst = async function() {
   }
 };
 
-// Event delegation — captura clique no botão Usar e fora do modal
+// Event delegation — botão Usar e fechar modal
 document.addEventListener('click', function(e){
-  // Botão Usar
-  var btn = e.target.closest('.btn-usar-est');
-  if(btn){
-    e.stopPropagation();
-    window.abrirModalUsarEst(btn.getAttribute('data-uid'));
-    return;
-  }
-  // Fechar modal clicando fora
+  var btn = e.target.closest ? e.target.closest('.btn-usar-est') : null;
+  if(btn){ e.stopPropagation(); window.abrirModalUsarEst(btn.getAttribute('data-uid')); return; }
   var modal = document.getElementById('modal-usar-estoque');
-  if(modal && modal.style.display !== 'none' && e.target === modal){
-    window.fecharModalUsarEst();
-  }
+  if(modal && modal.style.display !== 'none' && e.target === modal){ window.fecharModalUsarEst(); }
 });
 
 </script>
