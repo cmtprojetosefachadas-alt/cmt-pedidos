@@ -5370,11 +5370,19 @@ window.renderFluxo = function renderFluxo() {
   const saiParaExibir = saiRealizadas.reduce((s,e)=>s+(e.valor||0),0);
   const saldoFinal = entParaExibir - saiParaExibir;
 
-  // Entradas futuras GLOBAIS (todas que ainda não deram baixa)
-  const totalFuturo = fluxoEntradas.filter(e=>e.recebido!==true).reduce((s,e)=>s+(e.valor||0),0);
+  // Entradas futuras GLOBAIS (todas que ainda não deram baixa) — usa saldo real
+  const totalFuturo = fluxoEntradas.filter(e=>e.recebido!==true).reduce((s,e)=>{
+    const vOrig = e.valorOriginal||e.valor||0;
+    const pago = e.pagoParcial||0;
+    return s + Math.max(vOrig-pago,0);
+  },0);
 
-  // Saídas futuras GLOBAIS (todas ainda não pagas)
-  const totalSaiFut2 = fluxoSaidas.filter(s=>s.futura||(s.data&&s.data>hoje)).reduce((s,e)=>s+(e.valor||0),0);
+  // Saídas futuras GLOBAIS (todas ainda não pagas) — usa saldo real
+  const totalSaiFut2 = fluxoSaidas.filter(s=>s.futura||(s.data&&s.data>hoje)).reduce((s,e)=>{
+    const vOrig = e.valorOriginal||e.valor||0;
+    const pago = e.pagoParcial||0;
+    return s + Math.max(vOrig-pago,0);
+  },0);
 
   // Aberto = pedidos do mês - entradas recebidas
   const pedMes = pedidos.filter(p => normalizaMes(p.mes) === mesNum || extraiMes(p.dataConversao) === mesNum);
@@ -5473,8 +5481,16 @@ window.renderEntradasLista = function renderEntradasLista() {
   const vencidas = fluxoEntradas.filter(e => e.recebido!==true && entradaMesMatch(e, mesSelecionado) && matchCliente(e) && e.data && e.data < hoje).sort((a,b)=>(a.data||'').localeCompare(b.data||''));
 
   const totalRecebidas = recebidas.reduce((s,e)=>s+(e.valor||0),0);
-  const totalPendentes = pendentes.reduce((s,e)=>s+(e.valor||0),0);
-  const totalVencidas = vencidas.reduce((s,e)=>s+(e.valor||0),0);
+  const totalPendentes = pendentes.reduce((s,e)=>{
+    const vOrig = e.valorOriginal||e.valor||0;
+    const pago = e.pagoParcial||0;
+    return s + Math.max(vOrig-pago,0);
+  },0);
+  const totalVencidas = vencidas.reduce((s,e)=>{
+    const vOrig = e.valorOriginal||e.valor||0;
+    const pago = e.pagoParcial||0;
+    return s + Math.max(vOrig-pago,0);
+  },0);
 
   const thead = `<thead><tr style="border-bottom:2px solid var(--border);background:var(--surface2);">
     <th style="padding:10px 8px;text-align:left;font-size:12px;color:var(--muted);font-weight:600;">Data</th>
@@ -5503,13 +5519,22 @@ window.renderEntradasLista = function renderEntradasLista() {
       </td>
     </tr>`;}).join('');
 
-  const rowPendentes = arr => arr.map(e=>`
+  const rowPendentes = arr => arr.map(e=>{
+    const valorOriginal = e.valorOriginal || e.valor || 0;
+    const pagoParcial = e.pagoParcial || 0;
+    const saldo = Math.max(valorOriginal - pagoParcial, 0);
+    const temParcial = pagoParcial > 0;
+    const temHist = (e.historicoPagementos||[]).length > 0;
+    return `
     <tr style="border-bottom:1px solid var(--border);">
       <td style="padding:9px 8px;font-size:13px;">${fmtDataBr(e.data)}${e.compensacao?`<br/><span style="font-size:10px;color:var(--muted);">Comp: ${fmtDataBr(e.compensacao)}</span>`:''}</td>
-      <td style="padding:9px 8px;font-size:13px;font-weight:500;">${e.clienteNome||'—'}</td>
+      <td style="padding:9px 8px;font-size:13px;font-weight:500;">${e.clienteNome||'—'}${temHist?` <span style="font-size:10px;background:#D1FAE5;color:#065F46;padding:1px 6px;border-radius:8px;font-weight:700;">📋 ${(e.historicoPagementos||[]).length} pgto${(e.historicoPagementos||[]).length>1?'s':''}</span>`:''}</td>
       <td style="padding:9px 8px;"><span style="background:var(--amber-bg);color:var(--amber-text);padding:2px 8px;border-radius:12px;font-size:11px;">${e.tipo||'Entrada'}</span></td>
       <td style="padding:9px 8px;color:var(--muted);font-size:12px;">${e.obs||''}</td>
-      <td style="padding:9px 8px;text-align:right;font-weight:600;color:var(--amber-text);">${fmtMoney(e.valor||0)}</td>
+      <td style="padding:9px 8px;text-align:right;font-weight:600;color:var(--amber-text);">
+        ${fmtMoney(saldo)}
+        ${temParcial?`<br/><span style="font-size:10px;color:#888;font-weight:400;">pago: ${fmtMoney(pagoParcial)} / ${fmtMoney(valorOriginal)}</span>`:''}
+      </td>
       <td style="padding:9px 8px;">
         <div style="display:flex;gap:4px;">
           <button class="btn btn-primary" style="font-size:11px;padding:3px 8px;white-space:nowrap;" data-id="${e.id}" data-recebido="0" data-type="toggle-recebido">✅ Baixa</button>
@@ -5517,7 +5542,7 @@ window.renderEntradasLista = function renderEntradasLista() {
           <button class="del-btn" data-id="${e.id}" data-type="del-entrada">×</button>
         </div>
       </td>
-    </tr>`).join('');
+    </tr>`;}).join('');
 
   const rowVencidas = arr => arr.map(e=>{
     const valorOriginal = e.valorOriginal || e.valor || 0;
@@ -5549,7 +5574,7 @@ window.renderEntradasLista = function renderEntradasLista() {
     <div class="form-card" style="margin-bottom:12px;border:2px solid #7C0000;background:#fff0f0;">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
         <div style="font-size:14px;font-weight:800;color:#7C0000;">🔴 PENDÊNCIAS DE MESES ANTERIORES — NÃO RECEBIDAS</div>
-        <span style="background:#7C0000;color:#fff;padding:4px 14px;border-radius:6px;font-size:13px;font-weight:700;">${atrasadasOutrosMesesEnt.length} item${atrasadasOutrosMesesEnt.length>1?'s':''} · ${fmtMoney(atrasadasOutrosMesesEnt.reduce((s,e)=>s+(e.valor||0),0))}</span>
+        <span style="background:#7C0000;color:#fff;padding:4px 14px;border-radius:6px;font-size:13px;font-weight:700;">${atrasadasOutrosMesesEnt.length} item${atrasadasOutrosMesesEnt.length>1?'s':''} · ${fmtMoney(atrasadasOutrosMesesEnt.reduce((s,e)=>{const v=e.valorOriginal||e.valor||0;const p=e.pagoParcial||0;return s+Math.max(v-p,0);},0))}</span>
       </div>
       <div style="font-size:12px;color:#7C0000;margin-bottom:10px;padding:8px 12px;background:#FECACA;border-radius:6px;">⚠️ Esses recebimentos venceram em meses anteriores e ainda não foram confirmados. Dê baixa ou verifique!</div>
       <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowVencidas(atrasadasOutrosMesesEnt)}</tbody></table>
@@ -5680,8 +5705,16 @@ function renderSaidasLista(lista) {
   const futurasNormais = futurasAll.filter(s => !s.data || s.data >= hoje);
 
   const totalRealizadas = realizadas.reduce((s,e)=>s+(e.valor||0),0);
-  const totalFuturas = futurasNormais.reduce((s,e)=>s+(e.valor||0),0);
-  const totalVencidas = vencidas.reduce((s,e)=>s+(e.valor||0),0);
+  const totalFuturas = futurasNormais.reduce((s,e)=>{
+    const vOrig = e.valorOriginal||e.valor||0;
+    const pago = e.pagoParcial||0;
+    return s + Math.max(vOrig-pago,0);
+  },0);
+  const totalVencidas = vencidas.reduce((s,e)=>{
+    const vOrig = e.valorOriginal||e.valor||0;
+    const pago = e.pagoParcial||0;
+    return s + Math.max(vOrig-pago,0);
+  },0);
 
   const thead = `<thead><tr style="border-bottom:2px solid var(--border);background:var(--surface2);">
     <th style="padding:10px 8px;text-align:left;font-size:12px;color:var(--muted);font-weight:600;">Data</th>
@@ -5710,19 +5743,28 @@ function renderSaidasLista(lista) {
       </td>
     </tr>`;}).join('');
 
-  const rowFuturas = arr => arr.map(s=>`
+  const rowFuturas = arr => arr.map(s=>{
+    const valorOriginal = s.valorOriginal || s.valor || 0;
+    const pagoParcial = s.pagoParcial || 0;
+    const saldo = Math.max(valorOriginal - pagoParcial, 0);
+    const temParcial = pagoParcial > 0;
+    const temHist = (s.historicoPagementos||[]).length > 0;
+    return `
     <tr style="border-bottom:1px solid var(--border);">
       <td style="padding:9px 8px;font-size:13px;">${fmtDataBr(s.data)}</td>
-      <td style="padding:9px 8px;font-size:13px;font-weight:500;">${s.desc||'—'}</td>
+      <td style="padding:9px 8px;font-size:13px;font-weight:500;">${s.desc||'—'}${temHist?` <span style="font-size:10px;background:#D1FAE5;color:#065F46;padding:1px 6px;border-radius:8px;font-weight:700;">📋 ${(s.historicoPagementos||[]).length} pgto${(s.historicoPagementos||[]).length>1?'s':''}</span>`:''}</td>
       <td style="padding:9px 8px;"><span style="background:var(--amber-bg);color:var(--amber-text);padding:2px 8px;border-radius:12px;font-size:11px;">${s.cat||'Outro'}</span></td>
       <td style="padding:9px 8px;color:var(--muted);font-size:12px;">${s.ref||s.obs||''}</td>
-      <td style="padding:9px 8px;text-align:right;font-weight:600;color:var(--amber-text);">${fmtMoney(s.valor||0)}</td>
+      <td style="padding:9px 8px;text-align:right;font-weight:600;color:var(--amber-text);">
+        ${fmtMoney(saldo)}
+        ${temParcial?`<br/><span style="font-size:10px;color:#888;font-weight:400;">pago: ${fmtMoney(pagoParcial)} / ${fmtMoney(valorOriginal)}</span>`:''}
+      </td>
       <td style="padding:9px 8px;display:flex;gap:4px;">
         <button class="btn btn-primary" style="font-size:11px;padding:3px 8px;white-space:nowrap;" data-id="${s.id}" data-type="baixa-saida">✅ Baixa</button>
         <button class="btn" style="font-size:11px;padding:3px 8px;" data-id="${s.id}" data-type="edit-saida">✏️</button>
         <button class="del-btn" data-id="${s.id}" data-type="del-saida">×</button>
       </td>
-    </tr>`).join('');
+    </tr>`;}).join('');
 
   const rowVencidas = arr => arr.map(s=>{
     const valorOriginal = s.valorOriginal || s.valor || 0;
@@ -5751,7 +5793,7 @@ function renderSaidasLista(lista) {
     <div class="form-card" style="margin-bottom:12px;border:2px solid #7C0000;background:#fff0f0;">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
         <div style="font-size:14px;font-weight:800;color:#7C0000;">🔴 PENDÊNCIAS DE MESES ANTERIORES — NÃO PAGAS</div>
-        <span style="background:#7C0000;color:#fff;padding:4px 14px;border-radius:6px;font-size:13px;font-weight:700;">${atrasadasOutrosMeses.length} item${atrasadasOutrosMeses.length>1?'s':''} · ${fmtMoney(atrasadasOutrosMeses.reduce((s,e)=>s+(e.valor||0),0))}</span>
+        <span style="background:#7C0000;color:#fff;padding:4px 14px;border-radius:6px;font-size:13px;font-weight:700;">${atrasadasOutrosMeses.length} item${atrasadasOutrosMeses.length>1?'s':''} · ${fmtMoney(atrasadasOutrosMeses.reduce((s,e)=>{const v=e.valorOriginal||e.valor||0;const p=e.pagoParcial||0;return s+Math.max(v-p,0);},0))}</span>
       </div>
       <div style="font-size:12px;color:#7C0000;margin-bottom:10px;padding:8px 12px;background:#FECACA;border-radius:6px;">⚠️ Essas saídas venceram em meses anteriores e ainda não foram pagas. Regularize ou dê baixa!</div>
       <table style="width:100%;border-collapse:collapse;font-size:13px;">${thead}<tbody>${rowVencidas(atrasadasOutrosMeses)}</tbody></table>
