@@ -1390,6 +1390,114 @@ body {
 <div id="toast">Salvo com sucesso!</div>
 
 <!-- Firebase -->
+<script>
+
+// ── USAR ESTOQUE ──
+let _usarEstItem = null;
+
+window.abrirModalUsarEst = function(id) {
+  const it = (window._estoqueItens||[]).find(x=>x.id===id);
+  if(!it) return;
+  _usarEstItem = it;
+  const qtdDisp = parseFloat(it.qtd)||1;
+  const valUnit = parseFloat(it.valorUnit)||0;
+  document.getElementById('usar-est-nome').textContent = it.nome;
+  document.getElementById('usar-est-qtd-disp').textContent = qtdDisp.toLocaleString('pt-BR',{maximumFractionDigits:2});
+  document.getElementById('usar-est-valor-unit').textContent = fmt(valUnit);
+  document.getElementById('usar-est-total-atual').textContent = fmt(it.total||0);
+  document.getElementById('usar-est-qtd').value = '1';
+  document.getElementById('usar-est-obs').value = '';
+  document.getElementById('usar-est-cliente').value = it.cliente||'';
+  window._usarEstPreview();
+  const modal = document.getElementById('modal-usar-estoque');
+  modal.style.display = 'flex';
+  setTimeout(()=>document.getElementById('usar-est-qtd').focus(),100);
+};
+
+window.fecharModalUsarEst = function() {
+  document.getElementById('modal-usar-estoque').style.display = 'none';
+  _usarEstItem = null;
+};
+
+window._usarEstQtdStep = function(delta) {
+  const inp = document.getElementById('usar-est-qtd');
+  const val = Math.max(0.01, (parseFloat(inp.value)||0) + delta);
+  inp.value = val;
+  window._usarEstPreview();
+};
+
+window._usarEstPreview = function() {
+  if(!_usarEstItem) return;
+  const qtdUsar = parseFloat(document.getElementById('usar-est-qtd').value)||0;
+  const valUnit = parseFloat(_usarEstItem.valorUnit)||0;
+  const qtdDisp = parseFloat(_usarEstItem.qtd)||1;
+  const debito  = qtdUsar * valUnit;
+  const restQtd = Math.max(0, qtdDisp - qtdUsar);
+  const restVal = restQtd * valUnit;
+  document.getElementById('usar-est-debito').textContent = fmt(debito);
+  document.getElementById('usar-est-restante').textContent = restQtd.toLocaleString('pt-BR',{maximumFractionDigits:2})+' un · '+fmt(restVal);
+  // Cor do preview conforme saldo
+  const preview = document.getElementById('usar-est-preview');
+  if(qtdUsar > qtdDisp) {
+    preview.style.background = '#fff0f0';
+    preview.style.borderColor = '#fca5a5';
+    document.getElementById('usar-est-restante').style.color = '#cc2222';
+  } else {
+    preview.style.background = '#fff4ec';
+    preview.style.borderColor = '#fbd5b0';
+    document.getElementById('usar-est-restante').style.color = '#0a8a4a';
+  }
+};
+
+window.confirmarUsarEst = async function() {
+  if(!_usarEstItem) return;
+  const qtdUsar = parseFloat(document.getElementById('usar-est-qtd').value)||0;
+  const obs     = document.getElementById('usar-est-obs').value.trim();
+  const cliente = document.getElementById('usar-est-cliente').value.trim();
+  if(qtdUsar<=0){ showToast('Informe uma quantidade válida!'); return; }
+  const qtdDisp = parseFloat(_usarEstItem.qtd)||1;
+  if(qtdUsar > qtdDisp){ showToast('Quantidade maior que o disponível!'); return; }
+
+  const valUnit  = parseFloat(_usarEstItem.valorUnit)||0;
+  const novaQtd  = Math.max(0, qtdDisp - qtdUsar);
+  const novoTotal = novaQtd * valUnit;
+  const obsNova  = obs ? ((_usarEstItem.obs?_usarEstItem.obs+' | ':'')+obs) : _usarEstItem.obs;
+
+  try {
+    await window._updateDoc(window._doc(window._db,'cmt_estoque_itens',_usarEstItem.id), {
+      qtd:   novaQtd,
+      total: novoTotal,
+      obs:   obsNova||'',
+      cliente: cliente||_usarEstItem.cliente||'',
+      usado: novaQtd <= 0,
+      ultimoUso: new Date().toISOString(),
+      ultimoUsoQtd: qtdUsar,
+      ultimoUsoObs: obs
+    });
+    // Atualizar local
+    const idx = window._estoqueItens.findIndex(x=>x.id===_usarEstItem.id);
+    if(idx>=0){
+      window._estoqueItens[idx].qtd   = novaQtd;
+      window._estoqueItens[idx].total = novoTotal;
+      window._estoqueItens[idx].obs   = obsNova||'';
+      window._estoqueItens[idx].cliente = cliente||_usarEstItem.cliente||'';
+      window._estoqueItens[idx].usado = novaQtd <= 0;
+    }
+    window.fecharModalUsarEst();
+    renderEstoque();
+    showToast('✅ Uso registrado! Debitado: '+qtdUsar.toLocaleString('pt-BR',{maximumFractionDigits:2})+' un.');
+  } catch(e) {
+    showToast('Erro ao salvar: '+e.message);
+  }
+};
+
+// Fechar modal clicando fora — aguarda DOM
+document.addEventListener('DOMContentLoaded', function(){
+  var m = document.getElementById('modal-usar-estoque');
+  if(m) m.addEventListener('click', function(e){ if(e.target===this) window.fecharModalUsarEst(); });
+});
+
+</script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy }
@@ -1406,6 +1514,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+window._db = db;
+window._doc = doc;
+window._updateDoc = updateDoc;
 
 // ── USUÁRIOS INTERNOS (salvos no Firebase coleção cmt_usuarios) ──
 // Senha padrão inicial: cada usuário pode ser criado pelo admin
@@ -6037,110 +6148,6 @@ document.querySelectorAll('.side-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     if(window.innerWidth<=768) closeSidebar();
   });
-});
-
-// ── USAR ESTOQUE ──
-let _usarEstItem = null;
-
-window.abrirModalUsarEst = function(id) {
-  const it = (window._estoqueItens||[]).find(x=>x.id===id);
-  if(!it) return;
-  _usarEstItem = it;
-  const qtdDisp = parseFloat(it.qtd)||1;
-  const valUnit = parseFloat(it.valorUnit)||0;
-  document.getElementById('usar-est-nome').textContent = it.nome;
-  document.getElementById('usar-est-qtd-disp').textContent = qtdDisp.toLocaleString('pt-BR',{maximumFractionDigits:2});
-  document.getElementById('usar-est-valor-unit').textContent = fmt(valUnit);
-  document.getElementById('usar-est-total-atual').textContent = fmt(it.total||0);
-  document.getElementById('usar-est-qtd').value = '1';
-  document.getElementById('usar-est-obs').value = '';
-  document.getElementById('usar-est-cliente').value = it.cliente||'';
-  window._usarEstPreview();
-  const modal = document.getElementById('modal-usar-estoque');
-  modal.style.display = 'flex';
-  setTimeout(()=>document.getElementById('usar-est-qtd').focus(),100);
-};
-
-window.fecharModalUsarEst = function() {
-  document.getElementById('modal-usar-estoque').style.display = 'none';
-  _usarEstItem = null;
-};
-
-window._usarEstQtdStep = function(delta) {
-  const inp = document.getElementById('usar-est-qtd');
-  const val = Math.max(0.01, (parseFloat(inp.value)||0) + delta);
-  inp.value = val;
-  window._usarEstPreview();
-};
-
-window._usarEstPreview = function() {
-  if(!_usarEstItem) return;
-  const qtdUsar = parseFloat(document.getElementById('usar-est-qtd').value)||0;
-  const valUnit = parseFloat(_usarEstItem.valorUnit)||0;
-  const qtdDisp = parseFloat(_usarEstItem.qtd)||1;
-  const debito  = qtdUsar * valUnit;
-  const restQtd = Math.max(0, qtdDisp - qtdUsar);
-  const restVal = restQtd * valUnit;
-  document.getElementById('usar-est-debito').textContent = fmt(debito);
-  document.getElementById('usar-est-restante').textContent = restQtd.toLocaleString('pt-BR',{maximumFractionDigits:2})+' un · '+fmt(restVal);
-  // Cor do preview conforme saldo
-  const preview = document.getElementById('usar-est-preview');
-  if(qtdUsar > qtdDisp) {
-    preview.style.background = '#fff0f0';
-    preview.style.borderColor = '#fca5a5';
-    document.getElementById('usar-est-restante').style.color = '#cc2222';
-  } else {
-    preview.style.background = '#fff4ec';
-    preview.style.borderColor = '#fbd5b0';
-    document.getElementById('usar-est-restante').style.color = '#0a8a4a';
-  }
-};
-
-window.confirmarUsarEst = async function() {
-  if(!_usarEstItem) return;
-  const qtdUsar = parseFloat(document.getElementById('usar-est-qtd').value)||0;
-  const obs     = document.getElementById('usar-est-obs').value.trim();
-  const cliente = document.getElementById('usar-est-cliente').value.trim();
-  if(qtdUsar<=0){ showToast('Informe uma quantidade válida!'); return; }
-  const qtdDisp = parseFloat(_usarEstItem.qtd)||1;
-  if(qtdUsar > qtdDisp){ showToast('Quantidade maior que o disponível!'); return; }
-
-  const valUnit  = parseFloat(_usarEstItem.valorUnit)||0;
-  const novaQtd  = Math.max(0, qtdDisp - qtdUsar);
-  const novoTotal = novaQtd * valUnit;
-  const obsNova  = obs ? ((_usarEstItem.obs?_usarEstItem.obs+' | ':'')+obs) : _usarEstItem.obs;
-
-  try {
-    await updateDoc(doc(db,'cmt_estoque_itens',_usarEstItem.id), {
-      qtd:   novaQtd,
-      total: novoTotal,
-      obs:   obsNova||'',
-      cliente: cliente||_usarEstItem.cliente||'',
-      usado: novaQtd <= 0,
-      ultimoUso: new Date().toISOString(),
-      ultimoUsoQtd: qtdUsar,
-      ultimoUsoObs: obs
-    });
-    // Atualizar local
-    const idx = window._estoqueItens.findIndex(x=>x.id===_usarEstItem.id);
-    if(idx>=0){
-      window._estoqueItens[idx].qtd   = novaQtd;
-      window._estoqueItens[idx].total = novoTotal;
-      window._estoqueItens[idx].obs   = obsNova||'';
-      window._estoqueItens[idx].cliente = cliente||_usarEstItem.cliente||'';
-      window._estoqueItens[idx].usado = novaQtd <= 0;
-    }
-    window.fecharModalUsarEst();
-    renderEstoque();
-    showToast('✅ Uso registrado! Debitado: '+qtdUsar.toLocaleString('pt-BR',{maximumFractionDigits:2})+' un.');
-  } catch(e) {
-    showToast('Erro ao salvar: '+e.message);
-  }
-};
-
-// Fechar modal clicando fora
-document.getElementById('modal-usar-estoque').addEventListener('click', function(e){
-  if(e.target === this) window.fecharModalUsarEst();
 });
 </script>
 
