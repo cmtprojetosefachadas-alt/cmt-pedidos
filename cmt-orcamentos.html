@@ -887,34 +887,36 @@ body {
 
   <div class="orc-header" style="padding-top:28px">
     <h2>Controle de Estoque</h2>
-    <div style="display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap">
+    <div style="display:flex;gap:8px;align-items:center;margin-left:auto">
       <button class="btn-ghost" onclick="window.abrirModalEstoqueLocal()" style="font-size:12px;padding:6px 14px">+ Adicionar Local</button>
       <button class="btn-ghost" onclick="window.abrirModalEstoquePrestador()" style="font-size:12px;padding:6px 14px">+ Adicionar Prestador</button>
       <button class="btn-ghost" style="font-size:12px;padding:6px 14px;background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700" onclick="window.gerarPDFEstoque()">📄 PDF Geral</button>
-      <button class="btn-ghost" id="btn-rel-uso" style="font-size:12px;padding:6px 14px;background:#6b21a8;color:#fff;border-color:#6b21a8;font-weight:700" onclick="window.toggleRelUso()">📋 Relatório de Uso</button>
+      <button id="btn-rel-uso" class="btn-ghost" style="font-size:12px;padding:6px 14px;background:#6b21a8;color:#fff;border-color:#6b21a8;font-weight:700" onclick="window.toggleRelUso()">📋 Relatório de Uso</button>
     </div>
   </div>
-
-  <div id="est-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px"></div>
 
   <!-- RELATÓRIO DE USO -->
   <div id="est-rel-uso" style="display:none;margin-bottom:20px;">
     <div class="card" style="padding:0;overflow:hidden;">
-      <div style="background:linear-gradient(135deg,#6b21a8,#e8520a);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="background:linear-gradient(135deg,#6b21a8,#e8520a);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
         <div>
-          <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Histórico de uso</div>
-          <div style="font-size:15px;font-weight:800;color:#fff;" id="rel-uso-titulo">Todos os registros</div>
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Histórico de uso de materiais</div>
+          <div id="rel-uso-titulo" style="font-size:15px;font-weight:800;color:#fff;">Todos os registros</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span id="rel-uso-total" style="background:rgba(255,255,255,0.2);color:#fff;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;"></span>
-          <button onclick="window.toggleRelUso()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;">×</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input id="rel-uso-busca" type="text" placeholder="🔍 Buscar por nome, data ou cliente..." oninput="window.renderRelUso()" style="font-size:12px;padding:6px 12px;border:none;border-radius:6px;background:rgba(255,255,255,0.15);color:#fff;width:240px;outline:none;font-family:'Inter',sans-serif;" />
+          <span id="rel-uso-total" style="background:rgba(255,255,255,0.2);color:#fff;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;white-space:nowrap;"></span>
+          <button onclick="window.toggleRelUso()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;line-height:1;">×</button>
         </div>
       </div>
+      <!-- Abas de mês/ano -->
+      <div id="rel-uso-abas" style="display:flex;gap:0;overflow-x:auto;background:#f8f7f4;border-bottom:1px solid #e8e4de;"></div>
+      <!-- Tabela -->
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead>
             <tr style="background:#f8f7f4;">
-              <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #e8e4de;">Data do uso</th>
+              <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #e8e4de;">Data</th>
               <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #e8e4de;">Material</th>
               <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #e8e4de;">Local / Prestador</th>
               <th style="padding:10px 14px;text-align:right;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #e8e4de;">Qtd usada</th>
@@ -929,6 +931,7 @@ body {
     </div>
   </div>
 
+  <div id="est-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px"></div>
   <div id="est-cards"></div>
 
 </div>
@@ -1533,68 +1536,128 @@ document.addEventListener('click', function(e){
   if(modal && modal.style.display !== 'none' && e.target === modal){ window.fecharModalUsarEst(); }
 });
 
+</script>
+<script>
 
 // ── RELATÓRIO DE USO ──
+window._relUsoMesSel = 'todos';
+
 window.toggleRelUso = function() {
-  const el = document.getElementById('est-rel-uso');
-  const btn = document.getElementById('btn-rel-uso');
+  var el = document.getElementById('est-rel-uso');
+  var btn = document.getElementById('btn-rel-uso');
   if(!el) return;
-  const aberto = el.style.display !== 'none';
-  if(aberto) {
+  if(el.style.display !== 'none') {
     el.style.display = 'none';
     if(btn) btn.textContent = '📋 Relatório de Uso';
   } else {
-    window.renderRelUso();
     el.style.display = 'block';
-    el.scrollIntoView({behavior:'smooth', block:'start'});
-    if(btn) btn.textContent = '📋 Fechar relatório';
+    if(btn) btn.textContent = '📋 Fechar Relatório';
+    window._relUsoMesSel = 'todos';
+    window.renderRelUso();
+    setTimeout(function(){ el.scrollIntoView({behavior:'smooth',block:'start'}); }, 100);
   }
 };
 
 window.renderRelUso = function() {
-  const itens = window._estoqueItens || [];
-  const entidades = window._estoqueEntidades || [];
+  var itens = window._estoqueItens || [];
+  var entidades = window._estoqueEntidades || [];
+  var busca = (document.getElementById('rel-uso-busca')||{}).value || '';
+  busca = busca.toLowerCase().trim();
 
-  // Coletar todos os itens que tiveram uso registrado
-  const usados = itens
-    .filter(it => it.ultimoUso)
-    .sort((a,b) => new Date(b.ultimoUso) - new Date(a.ultimoUso));
+  // Coletar todos com uso registrado
+  var todos = itens.filter(function(it){ return it.ultimoUso; });
 
-  const tbody = document.getElementById('rel-uso-tbody');
-  const vazio = document.getElementById('rel-uso-vazio');
-  const total = document.getElementById('rel-uso-total');
+  // Ordenar alfabeticamente por nome, depois por data desc
+  todos.sort(function(a,b){
+    var n = a.nome.localeCompare(b.nome,'pt-BR');
+    if(n !== 0) return n;
+    return new Date(b.ultimoUso) - new Date(a.ultimoUso);
+  });
+
+  // Construir abas de mês/ano
+  var mesesSet = {};
+  todos.forEach(function(it){
+    var d = new Date(it.ultimoUso);
+    var key = (d.getMonth()+1).toString().padStart(2,'0') + '/' + d.getFullYear();
+    mesesSet[key] = true;
+  });
+  var meses = Object.keys(mesesSet).sort(function(a,b){
+    var pa = a.split('/'); var pb = b.split('/');
+    return new Date(pb[1],pb[0]-1) - new Date(pa[1],pa[0]-1);
+  });
+
+  var nomesMes = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var abasEl = document.getElementById('rel-uso-abas');
+  if(abasEl){
+    window._selRelUso = function(mes) { window._relUsoMesSel = mes; window.renderRelUso(); };
+    var abaHtml = '<button data-mes="todos" class="rel-aba-btn" style="padding:8px 16px;border:none;border-bottom:2px solid '+(window._relUsoMesSel==='todos'?'#6b21a8':'transparent')+';background:none;cursor:pointer;font-size:12px;font-weight:'+(window._relUsoMesSel==='todos'?'700':'500')+';color:'+(window._relUsoMesSel==='todos'?'#6b21a8':'#888')+';white-space:nowrap;">Todos</button>';
+    meses.forEach(function(m){
+      var p = m.split('/');
+      var label = nomesMes[parseInt(p[0])] + ' ' + p[1];
+      var ativo = window._relUsoMesSel === m;
+      abaHtml += '<button data-mes="'+m+'" class="rel-aba-btn" style="padding:8px 16px;border:none;border-bottom:2px solid '+(ativo?'#6b21a8':'transparent')+';background:none;cursor:pointer;font-size:12px;font-weight:'+(ativo?'700':'500')+';color:'+(ativo?'#6b21a8':'#888')+';white-space:nowrap;">'+label+'</button>';
+    });
+    abasEl.innerHTML = abaHtml;
+    abasEl.querySelectorAll('.rel-aba-btn').forEach(function(b){ b.addEventListener('click', function(){ window._selRelUso(this.getAttribute('data-mes')); }); });
+  }
+
+  // Filtrar por mês selecionado
+  var filtrados = todos;
+  if(window._relUsoMesSel !== 'todos'){
+    filtrados = todos.filter(function(it){
+      var d = new Date(it.ultimoUso);
+      var key = (d.getMonth()+1).toString().padStart(2,'0') + '/' + d.getFullYear();
+      return key === window._relUsoMesSel;
+    });
+  }
+
+  // Filtrar por busca
+  if(busca){
+    filtrados = filtrados.filter(function(it){
+      var ent = entidades.find(function(e){ return e.id === it.entidadeId; });
+      var entNome = ent ? ent.nome.toLowerCase() : '';
+      var dataStr = it.ultimoUso ? new Date(it.ultimoUso).toLocaleDateString('pt-BR') : '';
+      return it.nome.toLowerCase().includes(busca) ||
+             (it.cliente||'').toLowerCase().includes(busca) ||
+             entNome.includes(busca) ||
+             dataStr.includes(busca);
+    });
+  }
+
+  var tbody = document.getElementById('rel-uso-tbody');
+  var vazio = document.getElementById('rel-uso-vazio');
+  var total = document.getElementById('rel-uso-total');
 
   if(!tbody) return;
 
-  if(!usados.length) {
+  if(total) total.textContent = filtrados.length + ' registro' + (filtrados.length !== 1 ? 's' : '');
+
+  if(!filtrados.length){
     tbody.innerHTML = '';
     if(vazio) vazio.style.display = 'block';
-    if(total) total.textContent = '0 registros';
     return;
   }
-
   if(vazio) vazio.style.display = 'none';
-  if(total) total.textContent = usados.length + ' registro' + (usados.length !== 1 ? 's' : '');
 
-  tbody.innerHTML = usados.map((it, i) => {
-    const ent = entidades.find(e => e.id === it.entidadeId);
-    const entNome = ent ? ent.nome : '—';
-    const dataUso = it.ultimoUso ? new Date(it.ultimoUso).toLocaleDateString('pt-BR') : '—';
-    const qtdUsada = it.ultimoUsoQtd || '—';
-    const valUnit = parseFloat(it.valorUnit) || 0;
-    const valDebitado = typeof qtdUsada === 'number' ? valUnit * qtdUsada : 0;
-    const bg = i % 2 === 0 ? '' : 'background:#fafaf8;';
-
-    return `<tr style="${bg}border-bottom:1px solid #f0ede8;">
-      <td style="padding:10px 14px;color:#888;font-size:12px;white-space:nowrap;">${dataUso}</td>
-      <td style="padding:10px 14px;font-weight:600;color:#1a2332;">${it.nome}</td>
-      <td style="padding:10px 14px;font-size:12px;color:#555;">${entNome}</td>
-      <td style="padding:10px 14px;text-align:right;font-weight:700;color:#e8520a;">${typeof qtdUsada === 'number' ? qtdUsada.toLocaleString('pt-BR',{maximumFractionDigits:2}) : qtdUsada}</td>
-      <td style="padding:10px 14px;text-align:right;font-weight:700;color:#cc2222;">${valDebitado > 0 ? window.fmt(valDebitado) : '—'}</td>
-      <td style="padding:10px 14px;font-size:12px;color:${it.cliente ? '#1a5fa8' : '#aaa'};font-weight:${it.cliente ? '600' : '400'};">${it.cliente || '—'}</td>
-    </tr>`;
+  tbody.innerHTML = filtrados.map(function(it, i){
+    var ent = entidades.find(function(e){ return e.id === it.entidadeId; });
+    var entNome = ent ? ent.nome : '—';
+    var dataUso = it.ultimoUso ? new Date(it.ultimoUso).toLocaleDateString('pt-BR') : '—';
+    var qtdUsada = it.ultimoUsoQtd;
+    var valUnit = parseFloat(it.valorUnit) || 0;
+    var valDebitado = (typeof qtdUsada === 'number' && qtdUsada > 0) ? valUnit * qtdUsada : 0;
+    var bg = i % 2 === 0 ? '' : 'background:#fafaf8;';
+    return '<tr style="'+bg+'border-bottom:1px solid #f0ede8;">' +
+      '<td style="padding:10px 14px;color:#888;font-size:12px;white-space:nowrap;">'+dataUso+'</td>' +
+      '<td style="padding:10px 14px;font-weight:600;color:#1a2332;">'+it.nome+'</td>' +
+      '<td style="padding:10px 14px;font-size:12px;color:#555;">'+entNome+'</td>' +
+      '<td style="padding:10px 14px;text-align:right;font-weight:700;color:#e8520a;">'+(typeof qtdUsada==='number'?qtdUsada.toLocaleString('pt-BR',{maximumFractionDigits:2}):'—')+'</td>' +
+      '<td style="padding:10px 14px;text-align:right;font-weight:700;color:#cc2222;">'+(valDebitado>0?window.fmt(valDebitado):'—')+'</td>' +
+      '<td style="padding:10px 14px;font-size:12px;color:'+(it.cliente?'#1a5fa8':'#aaa')+';font-weight:'+(it.cliente?'600':'400')+';">'+(it.cliente||'—')+'</td>' +
+    '</tr>';
   }).join('');
 };
+
 </script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
