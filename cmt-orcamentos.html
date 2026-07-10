@@ -895,38 +895,30 @@ body {
     </div>
   </div>
 
-  <!-- RELATÓRIO DE USO -->
   <div id="est-rel-uso" style="display:none;margin-bottom:20px;">
     <div class="card" style="padding:0;overflow:hidden;">
       <div style="background:linear-gradient(135deg,#6b21a8,#e8520a);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-        <div>
-          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Histórico de uso de materiais</div>
-          <div id="rel-uso-titulo" style="font-size:15px;font-weight:800;color:#fff;">Todos os registros</div>
-        </div>
+        <div style="font-size:15px;font-weight:800;color:#fff;">📋 Histórico de uso de materiais</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <input id="rel-uso-busca" type="text" placeholder="🔍 Buscar por nome, data ou cliente..." oninput="window.renderRelUso()" style="font-size:12px;padding:6px 12px;border:none;border-radius:6px;background:rgba(255,255,255,0.15);color:#fff;width:240px;outline:none;font-family:'Inter',sans-serif;" />
-          <span id="rel-uso-total" style="background:rgba(255,255,255,0.2);color:#fff;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;white-space:nowrap;"></span>
-          <button onclick="window.toggleRelUso()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;line-height:1;">×</button>
+          <input id="rel-uso-busca" type="text" placeholder="🔍 Buscar..." oninput="window.renderRelUso()" style="font-size:12px;padding:6px 12px;border:none;border-radius:6px;background:rgba(255,255,255,0.15);color:#fff;width:200px;outline:none;"/>
+          <span id="rel-uso-total" style="background:rgba(255,255,255,0.2);color:#fff;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;"></span>
+          <button onclick="window.toggleRelUso()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:18px;line-height:1;">×</button>
         </div>
       </div>
-      <!-- Abas de mês/ano -->
       <div id="rel-uso-abas" style="display:flex;gap:0;overflow-x:auto;background:#f8f7f4;border-bottom:1px solid #e8e4de;"></div>
-      <!-- Tabela -->
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <thead>
-            <tr style="background:#f8f7f4;">
-              <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #e8e4de;">Data</th>
-              <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #e8e4de;">Material</th>
-              <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #e8e4de;">Local / Prestador</th>
-              <th style="padding:10px 14px;text-align:right;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #e8e4de;">Qtd usada</th>
-              <th style="padding:10px 14px;text-align:right;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #e8e4de;">Valor debitado</th>
-              <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #e8e4de;">Cliente destino</th>
-            </tr>
-          </thead>
+          <thead><tr style="background:#f8f7f4;">
+            <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;border-bottom:1px solid #e8e4de;">Data</th>
+            <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;border-bottom:1px solid #e8e4de;">Material</th>
+            <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;border-bottom:1px solid #e8e4de;">Local/Prestador</th>
+            <th style="padding:10px 14px;text-align:right;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;border-bottom:1px solid #e8e4de;">Qtd usada</th>
+            <th style="padding:10px 14px;text-align:right;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;border-bottom:1px solid #e8e4de;">Valor debitado</th>
+            <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;border-bottom:1px solid #e8e4de;">Cliente</th>
+          </tr></thead>
           <tbody id="rel-uso-tbody"></tbody>
         </table>
-        <div id="rel-uso-vazio" style="display:none;text-align:center;padding:32px;color:#888;font-size:13px;">Nenhum uso registrado ainda.</div>
+        <div id="rel-uso-vazio" style="display:none;text-align:center;padding:32px;color:#888;">Nenhum uso registrado ainda.</div>
       </div>
     </div>
   </div>
@@ -1440,8 +1432,8 @@ window.abrirModalUsarEst = function(id) {
   const valUnit = parseFloat(it.valorUnit)||0;
   document.getElementById('usar-est-nome').textContent = it.nome;
   document.getElementById('usar-est-qtd-disp').textContent = qtdDisp.toLocaleString('pt-BR',{maximumFractionDigits:2});
-  document.getElementById('usar-est-valor-unit').textContent = fmt(valUnit);
-  document.getElementById('usar-est-total-atual').textContent = fmt(it.total||0);
+  document.getElementById('usar-est-valor-unit').textContent = window.fmt(valUnit);
+  document.getElementById('usar-est-total-atual').textContent = window.fmt(it.total||0);
   document.getElementById('usar-est-qtd').value = '1';
   document.getElementById('usar-est-obs').value = '';
   document.getElementById('usar-est-cliente').value = it.cliente||'';
@@ -1471,8 +1463,8 @@ window._usarEstPreview = function() {
   const debito  = qtdUsar * valUnit;
   const restQtd = Math.max(0, qtdDisp - qtdUsar);
   const restVal = restQtd * valUnit;
-  document.getElementById('usar-est-debito').textContent = fmt(debito);
-  document.getElementById('usar-est-restante').textContent = restQtd.toLocaleString('pt-BR',{maximumFractionDigits:2})+' un · '+fmt(restVal);
+  document.getElementById('usar-est-debito').textContent = window.fmt(debito);
+  document.getElementById('usar-est-restante').textContent = restQtd.toLocaleString('pt-BR',{maximumFractionDigits:2})+' un · '+window.fmt(restVal);
   // Cor do preview conforme saldo
   const preview = document.getElementById('usar-est-preview');
   if(qtdUsar > qtdDisp) {
@@ -1491,9 +1483,9 @@ window.confirmarUsarEst = async function() {
   const qtdUsar = parseFloat(document.getElementById('usar-est-qtd').value)||0;
   const obs     = document.getElementById('usar-est-obs').value.trim();
   const cliente = document.getElementById('usar-est-cliente').value.trim();
-  if(qtdUsar<=0){ showToast('Informe uma quantidade válida!'); return; }
+  if(qtdUsar<=0){ window.showToast('Informe uma quantidade válida!'); return; }
   const qtdDisp = parseFloat(_usarEstItem.qtd)||1;
-  if(qtdUsar > qtdDisp){ showToast('Quantidade maior que o disponível!'); return; }
+  if(qtdUsar > qtdDisp){ window.showToast('Quantidade maior que o disponível!'); return; }
 
   const valUnit  = parseFloat(_usarEstItem.valorUnit)||0;
   const novaQtd  = Math.max(0, qtdDisp - qtdUsar);
@@ -1521,10 +1513,10 @@ window.confirmarUsarEst = async function() {
       window._estoqueItens[idx].usado = novaQtd <= 0;
     }
     window.fecharModalUsarEst();
-    renderEstoque();
-    showToast('✅ Uso registrado! Debitado: '+qtdUsar.toLocaleString('pt-BR',{maximumFractionDigits:2})+' un.');
+    if(window.renderEstoque) window.renderEstoque();
+    window.showToast('✅ Uso registrado! Debitado: '+qtdUsar.toLocaleString('pt-BR',{maximumFractionDigits:2})+' un.');
   } catch(e) {
-    showToast('Erro ao salvar: '+e.message);
+    window.showToast('Erro ao salvar: '+e.message);
   }
 };
 
@@ -1538,8 +1530,6 @@ document.addEventListener('click', function(e){
 
 </script>
 <script>
-
-// ── RELATÓRIO DE USO ──
 window._relUsoMesSel = 'todos';
 
 window.toggleRelUso = function() {
@@ -1558,106 +1548,78 @@ window.toggleRelUso = function() {
   }
 };
 
+window._selRelUso = function(mes) {
+  window._relUsoMesSel = mes;
+  window.renderRelUso();
+};
+
 window.renderRelUso = function() {
   var itens = window._estoqueItens || [];
   var entidades = window._estoqueEntidades || [];
-  var busca = (document.getElementById('rel-uso-busca')||{}).value || '';
-  busca = busca.toLowerCase().trim();
-
-  // Coletar todos com uso registrado
+  var busca = ((document.getElementById('rel-uso-busca')||{}).value||'').toLowerCase().trim();
   var todos = itens.filter(function(it){ return it.ultimoUso; });
-
-  // Ordenar alfabeticamente por nome, depois por data desc
   todos.sort(function(a,b){
     var n = a.nome.localeCompare(b.nome,'pt-BR');
-    if(n !== 0) return n;
-    return new Date(b.ultimoUso) - new Date(a.ultimoUso);
+    return n !== 0 ? n : new Date(b.ultimoUso) - new Date(a.ultimoUso);
   });
-
-  // Construir abas de mês/ano
+  var nomesMes = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   var mesesSet = {};
   todos.forEach(function(it){
     var d = new Date(it.ultimoUso);
-    var key = (d.getMonth()+1).toString().padStart(2,'0') + '/' + d.getFullYear();
+    var key = (d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getFullYear();
     mesesSet[key] = true;
   });
   var meses = Object.keys(mesesSet).sort(function(a,b){
-    var pa = a.split('/'); var pb = b.split('/');
+    var pa=a.split('/'); var pb=b.split('/');
     return new Date(pb[1],pb[0]-1) - new Date(pa[1],pa[0]-1);
   });
-
-  var nomesMes = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   var abasEl = document.getElementById('rel-uso-abas');
   if(abasEl){
-    window._selRelUso = function(mes) { window._relUsoMesSel = mes; window.renderRelUso(); };
-    var abaHtml = '<button data-mes="todos" class="rel-aba-btn" style="padding:8px 16px;border:none;border-bottom:2px solid '+(window._relUsoMesSel==='todos'?'#6b21a8':'transparent')+';background:none;cursor:pointer;font-size:12px;font-weight:'+(window._relUsoMesSel==='todos'?'700':'500')+';color:'+(window._relUsoMesSel==='todos'?'#6b21a8':'#888')+';white-space:nowrap;">Todos</button>';
+    var sel = window._relUsoMesSel;
+    var abaHtml = '<button data-mes="todos" class="rel-aba-btn" style="padding:8px 16px;border:none;border-bottom:2px solid '+(sel==='todos'?'#6b21a8':'transparent')+';background:none;cursor:pointer;font-size:12px;font-weight:'+(sel==='todos'?'700':'500')+';color:'+(sel==='todos'?'#6b21a8':'#888')+';white-space:nowrap;">Todos</button>';
     meses.forEach(function(m){
-      var p = m.split('/');
-      var label = nomesMes[parseInt(p[0])] + ' ' + p[1];
-      var ativo = window._relUsoMesSel === m;
+      var p=m.split('/'); var label=nomesMes[parseInt(p[0])]+' '+p[1]; var ativo=sel===m;
       abaHtml += '<button data-mes="'+m+'" class="rel-aba-btn" style="padding:8px 16px;border:none;border-bottom:2px solid '+(ativo?'#6b21a8':'transparent')+';background:none;cursor:pointer;font-size:12px;font-weight:'+(ativo?'700':'500')+';color:'+(ativo?'#6b21a8':'#888')+';white-space:nowrap;">'+label+'</button>';
     });
     abasEl.innerHTML = abaHtml;
-    abasEl.querySelectorAll('.rel-aba-btn').forEach(function(b){ b.addEventListener('click', function(){ window._selRelUso(this.getAttribute('data-mes')); }); });
-  }
-
-  // Filtrar por mês selecionado
-  var filtrados = todos;
-  if(window._relUsoMesSel !== 'todos'){
-    filtrados = todos.filter(function(it){
-      var d = new Date(it.ultimoUso);
-      var key = (d.getMonth()+1).toString().padStart(2,'0') + '/' + d.getFullYear();
-      return key === window._relUsoMesSel;
+    abasEl.querySelectorAll('.rel-aba-btn').forEach(function(b){
+      b.addEventListener('click', function(){ window._selRelUso(this.getAttribute('data-mes')); });
     });
   }
-
-  // Filtrar por busca
-  if(busca){
-    filtrados = filtrados.filter(function(it){
-      var ent = entidades.find(function(e){ return e.id === it.entidadeId; });
-      var entNome = ent ? ent.nome.toLowerCase() : '';
-      var dataStr = it.ultimoUso ? new Date(it.ultimoUso).toLocaleDateString('pt-BR') : '';
-      return it.nome.toLowerCase().includes(busca) ||
-             (it.cliente||'').toLowerCase().includes(busca) ||
-             entNome.includes(busca) ||
-             dataStr.includes(busca);
-    });
-  }
-
-  var tbody = document.getElementById('rel-uso-tbody');
-  var vazio = document.getElementById('rel-uso-vazio');
-  var total = document.getElementById('rel-uso-total');
-
+  var filtrados = window._relUsoMesSel === 'todos' ? todos : todos.filter(function(it){
+    var d=new Date(it.ultimoUso);
+    return ((d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getFullYear()) === window._relUsoMesSel;
+  });
+  if(busca) filtrados = filtrados.filter(function(it){
+    var ent=entidades.find(function(e){return e.id===it.entidadeId;});
+    return it.nome.toLowerCase().includes(busca)||(it.cliente||'').toLowerCase().includes(busca)||
+           (ent?ent.nome.toLowerCase():'').includes(busca)||
+           (it.ultimoUso?new Date(it.ultimoUso).toLocaleDateString('pt-BR'):'').includes(busca);
+  });
+  var tbody=document.getElementById('rel-uso-tbody');
+  var vazio=document.getElementById('rel-uso-vazio');
+  var total=document.getElementById('rel-uso-total');
   if(!tbody) return;
-
-  if(total) total.textContent = filtrados.length + ' registro' + (filtrados.length !== 1 ? 's' : '');
-
-  if(!filtrados.length){
-    tbody.innerHTML = '';
-    if(vazio) vazio.style.display = 'block';
-    return;
-  }
-  if(vazio) vazio.style.display = 'none';
-
-  tbody.innerHTML = filtrados.map(function(it, i){
-    var ent = entidades.find(function(e){ return e.id === it.entidadeId; });
-    var entNome = ent ? ent.nome : '—';
-    var dataUso = it.ultimoUso ? new Date(it.ultimoUso).toLocaleDateString('pt-BR') : '—';
-    var qtdUsada = it.ultimoUsoQtd;
-    var valUnit = parseFloat(it.valorUnit) || 0;
-    var valDebitado = (typeof qtdUsada === 'number' && qtdUsada > 0) ? valUnit * qtdUsada : 0;
-    var bg = i % 2 === 0 ? '' : 'background:#fafaf8;';
-    return '<tr style="'+bg+'border-bottom:1px solid #f0ede8;">' +
-      '<td style="padding:10px 14px;color:#888;font-size:12px;white-space:nowrap;">'+dataUso+'</td>' +
-      '<td style="padding:10px 14px;font-weight:600;color:#1a2332;">'+it.nome+'</td>' +
-      '<td style="padding:10px 14px;font-size:12px;color:#555;">'+entNome+'</td>' +
-      '<td style="padding:10px 14px;text-align:right;font-weight:700;color:#e8520a;">'+(typeof qtdUsada==='number'?qtdUsada.toLocaleString('pt-BR',{maximumFractionDigits:2}):'—')+'</td>' +
-      '<td style="padding:10px 14px;text-align:right;font-weight:700;color:#cc2222;">'+(valDebitado>0?window.fmt(valDebitado):'—')+'</td>' +
-      '<td style="padding:10px 14px;font-size:12px;color:'+(it.cliente?'#1a5fa8':'#aaa')+';font-weight:'+(it.cliente?'600':'400')+';">'+(it.cliente||'—')+'</td>' +
+  if(total) total.textContent=filtrados.length+' registro'+(filtrados.length!==1?'s':'');
+  if(!filtrados.length){ tbody.innerHTML=''; if(vazio) vazio.style.display='block'; return; }
+  if(vazio) vazio.style.display='none';
+  tbody.innerHTML=filtrados.map(function(it,i){
+    var ent=entidades.find(function(e){return e.id===it.entidadeId;});
+    var entNome=ent?ent.nome:'—';
+    var dataUso=it.ultimoUso?new Date(it.ultimoUso).toLocaleDateString('pt-BR'):'—';
+    var qtd=it.ultimoUsoQtd; var valUnit=parseFloat(it.valorUnit)||0;
+    var val=typeof qtd==='number'?valUnit*qtd:0;
+    var bg=i%2===0?'':'background:#fafaf8;';
+    return '<tr style="'+bg+'border-bottom:1px solid #f0ede8;">'+
+      '<td style="padding:10px 14px;color:#888;font-size:12px;white-space:nowrap;">'+dataUso+'</td>'+
+      '<td style="padding:10px 14px;font-weight:600;color:#1a2332;">'+it.nome+'</td>'+
+      '<td style="padding:10px 14px;font-size:12px;color:#555;">'+entNome+'</td>'+
+      '<td style="padding:10px 14px;text-align:right;font-weight:700;color:#e8520a;">'+(typeof qtd==='number'?qtd.toLocaleString('pt-BR',{maximumFractionDigits:2}):'—')+'</td>'+
+      '<td style="padding:10px 14px;text-align:right;font-weight:700;color:#cc2222;">'+(val>0&&window.fmt?window.fmt(val):'—')+'</td>'+
+      '<td style="padding:10px 14px;font-size:12px;color:'+(it.cliente?'#1a5fa8':'#aaa')+';font-weight:'+(it.cliente?'600':'400')+';">'+(it.cliente||'—')+'</td>'+
     '</tr>';
   }).join('');
 };
-
 </script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -3864,6 +3826,7 @@ async function renderTabelaUsuarios() {
 }
 // ── GESTÃO DE USUÁRIOS ──
 function fmt(v){return'R$ '+(Math.round((v||0)*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+window.fmt = fmt;
 function fmtData(iso){try{if(!iso)return '-';const p=iso.substring(0,10).split('-');return p[2]+'/'+p[1]+'/'+p[0];}catch{return '-'}}
 function badgeClass(s){return s==='Aprovado'?'badge-green':s==='Recusado'?'badge-red':'badge-amber'}
 
@@ -5224,7 +5187,7 @@ window.toggleEstoqueCard = function(id) {
   renderEstoque();
 };
 
-function renderEstoque() {
+window.renderEstoque = function renderEstoque() {
   const entidades  = window._estoqueEntidades||[];
   const todosItens = window._estoqueItens||[];
   const totalVal   = todosItens.reduce((a,i)=>a+i.total,0);
