@@ -3691,12 +3691,17 @@ window.atualizarTotaisEdit = function() {
       </div>`;
   }
 
+  const margemReal = venda>0 ? Math.round(lucro/venda*100) : 0;
+  const pctMat  = venda>0 ? Math.round(subMat/venda*100) : 0;
+  const pctMO   = venda>0 ? Math.round(moVal/venda*100) : 0;
+  const pctCusto= venda>0 ? Math.round(custoT/venda*100) : 0;
+
   document.getElementById('edit-orc-totais').innerHTML = `
-    <div class="mbar"><div class="mbar-label">Materiais</div><div class="mbar-val">${fmt(subMat)}</div></div>
-    <div class="mbar"><div class="mbar-label">Mão de obra</div><div class="mbar-val" style="color:var(--purple)">${fmt(moVal)}</div></div>
-    <div class="mbar"><div class="mbar-label">Custo total</div><div class="mbar-val amber">${fmt(custoT)}</div></div>
+    <div class="mbar"><div class="mbar-label">Materiais <span style="font-size:10px;color:var(--muted);font-weight:400;">${pctMat}% da venda</span></div><div class="mbar-val">${fmt(subMat)}</div></div>
+    <div class="mbar"><div class="mbar-label">Mão de obra <span style="font-size:10px;color:var(--muted);font-weight:400;">${pctMO}% da venda</span></div><div class="mbar-val" style="color:var(--purple)">${fmt(moVal)}</div></div>
+    <div class="mbar"><div class="mbar-label">Custo total <span style="font-size:10px;color:var(--muted);font-weight:400;">${pctCusto}% da venda</span></div><div class="mbar-val amber">${fmt(custoT)}</div></div>
     <div class="mbar"><div class="mbar-label">Venda (${margem}% margem)</div><div class="mbar-val">${fmt(venda)}</div></div>
-    <div class="mbar"><div class="mbar-label">Lucro estimado</div><div class="mbar-val green">${fmt(lucro)}</div></div>
+    <div class="mbar"><div class="mbar-label">Lucro estimado <span style="font-size:11px;background:${margemReal>=40?'#dcfce7':margemReal>=25?'#fef9c3':'#fee2e2'};color:${margemReal>=40?'#166534':margemReal>=25?'#854d0e':'#991b1b'};padding:1px 6px;border-radius:10px;font-weight:700;">${margemReal}%</span></div><div class="mbar-val green">${fmt(lucro)}</div></div>
     ${isCard?`<div class="mbar"><div class="mbar-label">Taxa ${pagLabel} (${taxaCard}%)</div><div class="mbar-val" style="color:var(--red)">${fmt(taxaVal)}</div></div>`:''}
     <div class="mbar" style="grid-column:span ${isCard?1:2}"><div class="mbar-label">Pagamento</div><div class="mbar-val" style="color:var(--blue)">${pagLabel}</div></div>
   `;
