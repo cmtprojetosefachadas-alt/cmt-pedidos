@@ -160,6 +160,48 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 @media screen and (min-width:1201px){
   .mob-nav{display:none!important}
 }
+
+/* TABLET (768px - 1200px) */
+@media screen and (max-width:1200px) and (min-width:769px){
+  .cards-grid{grid-template-columns:repeat(2,1fr)!important;gap:12px!important}
+  .section-header{flex-wrap:wrap!important;gap:8px!important}
+  .form-grid,.fg2{grid-template-columns:1fr 1fr!important}
+}
+
+/* MOBILE (até 768px) */
+@media screen and (max-width:768px){
+  .cards-grid{grid-template-columns:1fr!important;gap:10px!important}
+  .client-card{padding:14px 16px!important}
+  .card-head{gap:10px!important}
+  .main{padding:8px!important}
+  .section-header{flex-direction:column!important;align-items:flex-start!important;gap:8px!important}
+  .section-title{font-size:16px!important}
+  .form-card{padding:14px!important}
+  .form-grid,.fg2{grid-template-columns:1fr!important}
+  .modal{width:96%!important;padding:16px!important;max-height:96vh!important}
+  .modal-actions{flex-direction:column!important}
+  .modal-actions .btn{width:100%!important}
+  table{font-size:12px!important}
+  table td,table th{padding:7px 6px!important}
+  .topbar{padding:0 12px!important}
+  .topbar-input{display:none!important}
+  .btn{font-size:12px!important;padding:6px 10px!important}
+  /* Fluxo de caixa mobile */
+  .fluxo-table th:nth-child(3),.fluxo-table td:nth-child(3),
+  .fluxo-table th:nth-child(4),.fluxo-table td:nth-child(4){display:none!important}
+  /* Esconde colunas menos importantes em tabelas */
+  .hide-mobile{display:none!important}
+  /* Cards de resumo */
+  .resumo-cards{grid-template-columns:1fr 1fr!important;gap:8px!important}
+  /* Pedidos card */
+  .card-name{font-size:14px!important}
+  .card-desc{font-size:12px!important}
+  .badge{font-size:10px!important}
+  .progress-bar{height:5px!important}
+  /* Mob nav */
+  .mob-nav{gap:4px!important;padding:6px 8px!important;overflow-x:auto!important}
+  .mob-nav button{font-size:11px!important;padding:6px 10px!important;white-space:nowrap!important}
+}
 </style>
 </head>
 <body>
@@ -6846,6 +6888,11 @@ function renderTercServicos(lista){
     const totalComb = g.itens.reduce((s,t)=>s+(t.valorCombinado||0),0);
     const totalPago = g.itens.reduce((s,t)=>s+(t.pagamentos||[]).reduce((a,p)=>a+(p.valor||0),0),0);
     const falta = Math.max(totalComb-totalPago,0);
+    // Detalhe por serviço para conferência
+    const detalheValores = g.itens.map(t=>{
+      const pago=(t.pagamentos||[]).reduce((a,p)=>a+(p.valor||0),0);
+      return `${t.servico||'?'}: combinado ${tercFmt(t.valorCombinado||0)} | pago ${tercFmt(pago)} | falta ${tercFmt(Math.max((t.valorCombinado||0)-pago,0))}`;
+    }).join('\n');
     const servRows = g.itens.map(t=>{
       const pago = (t.pagamentos||[]).reduce((a,p)=>a+(p.valor||0),0);
       const pct = Math.min(t.valorCombinado>0?pago/t.valorCombinado*100:0,100);
@@ -6856,7 +6903,7 @@ function renderTercServicos(lista){
         : `<span style="background:#FAEEDA;color:#633806;font-size:11px;padding:2px 9px;border-radius:20px;">⏳ Pendente</span>`;
       const pagoText = pct>=100
         ? `<span style="font-size:10px;color:var(--green);">Quitado ✓</span>`
-        : `<span style="font-size:10px;color:var(--muted);">${tercFmt(pago)} de ${tercFmt(t.valorCombinado||0)}</span>`;
+        : `<span style="font-size:10px;color:var(--muted);">${tercFmt(pago)} pago de ${tercFmt(t.valorCombinado||0)} | falta: <strong style="color:#A32D2D;">${tercFmt(Math.max((t.valorCombinado||0)-pago,0))}</strong></span>`;
       return `<div onclick="abrirDetalheTerceiro('${t.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:0.5px solid var(--border);cursor:pointer;gap:12px;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
         <div style="flex:1;min-width:0;">
           <div style="font-size:12px;font-weight:600;">${t.servico||'—'}</div>
@@ -6882,6 +6929,7 @@ function renderTercServicos(lista){
           <div style="text-align:right;">
             <div style="font-size:12px;font-weight:600;color:var(--green);">${tercFmt(totalPago)} pago</div>
             <div style="font-size:11px;color:${falta>0?'#A32D2D':'var(--green)'};">${falta>0?tercFmt(falta)+' a pagar':'Quitado'}</div>
+            <div style="font-size:10px;color:var(--muted);">total: ${tercFmt(totalComb)}</div>
           </div>
           <span id="${gid}-arr" style="font-size:12px;color:var(--muted);transition:transform .2s;display:inline-block;">▼</span>
         </div>
