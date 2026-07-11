@@ -1906,11 +1906,10 @@ function renderListaOrcamentos() {
       <td><span class="badge ${badgeClass(o.status)}">${o.status}</span></td>
     </tr>
   `).join('');
-  const todos = window._orcamentos||[];
   const doc2 = document.getElementById('badges-status');
   if(doc2) {
-    const apr=todos.filter(o=>o.status==='Aprovado').length;
-    const agu=todos.filter(o=>o.status==='Aguardando').length;
+    const apr=orcs.filter(o=>o.status==='Aprovado').length;
+    const agu=orcs.filter(o=>o.status==='Aguardando').length;
     doc2.innerHTML=`<span class="badge badge-green">${apr} aprovados</span><span class="badge badge-amber">${agu} aguardando</span>`;
   }
 }
@@ -2268,7 +2267,8 @@ window.getOrcamentosFiltrados = function() {
   return (window._orcamentos||[]).filter(o=>{
     if(q && !o.cliente.toLowerCase().includes(q) && !(o.desc||'').toLowerCase().includes(q)) return false;
     if(status && o.status!==status) return false;
-    const dataOrc=(o.criadoEm||o.dataAprovacao||'').substring(0,10);
+    // Para aprovados: usa dataAprovacao; para outros: usa criadoEm
+    const dataOrc = (o.status==='Aprovado' ? (o.dataAprovacao||o.criadoEm) : (o.criadoEm||o.dataAprovacao)||'').substring(0,10);
     if(mesSel && dataOrc){
       const [anoFiltro,mesFiltro] = mesSel.split('-');
       const [anoOrc,mesOrc] = dataOrc.split('-');
@@ -2287,7 +2287,7 @@ window.popularMesesLista = function() {
   const cur = sel.value;
   const mesesSet = new Set();
   (window._orcamentos||[]).forEach(o=>{
-    const dataRef = (o.criadoEm||o.dataAprovacao||'').substring(0,7);
+    const dataRef = (o.status==='Aprovado' ? (o.dataAprovacao||o.criadoEm) : (o.criadoEm||o.dataAprovacao)||'').substring(0,7);
     if(dataRef) mesesSet.add(dataRef);
   });
   const meses = [...mesesSet].sort((a,b)=>b.localeCompare(a));
