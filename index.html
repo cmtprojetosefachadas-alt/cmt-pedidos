@@ -485,7 +485,27 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;">Selecione cláusulas para incluir automaticamente:</div>
         <div style="display:flex;flex-direction:column;gap:8px;">
 
-          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);transition:all .15s;" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
+          <!-- PRAZO — editável -->
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);transition:all .15s;" id="lbl-obs-prazo">
+            <input type="checkbox" id="obs-prazo" onchange="window.atualizarObsPreDefinidas()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;margin-top:2px;"/>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;">📅 Prazo de Entrega</div>
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <span style="font-size:12px;color:var(--muted);">De</span>
+                <input type="number" id="prazo-min" min="1" max="999" placeholder="__" onclick="event.stopPropagation()"
+                  oninput="window.atualizarObsPreDefinidas()"
+                  style="width:60px;padding:4px 8px;border:1.5px solid var(--border2);border-radius:6px;font-size:13px;font-weight:700;text-align:center;background:var(--surface);color:var(--text);"/>
+                <span style="font-size:12px;color:var(--muted);">a</span>
+                <input type="number" id="prazo-max" min="1" max="999" placeholder="__" onclick="event.stopPropagation()"
+                  oninput="window.atualizarObsPreDefinidas()"
+                  style="width:60px;padding:4px 8px;border:1.5px solid var(--border2);border-radius:6px;font-size:13px;font-weight:700;text-align:center;background:var(--surface);color:var(--text);"/>
+                <span style="font-size:12px;color:var(--muted);">dias úteis</span>
+              </div>
+            </div>
+          </label>
+
+          <!-- ALTURA — bloqueada -->
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);transition:all .15s;" id="lbl-obs-altura">
             <input type="checkbox" id="obs-altura" onchange="window.atualizarObsPreDefinidas()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;margin-top:2px;"/>
             <div>
               <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;">📏 Serviços em Altura</div>
@@ -493,7 +513,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             </div>
           </label>
 
-          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);transition:all .15s;" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
+          <!-- ELÉTRICA — bloqueada -->
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);transition:all .15s;" id="lbl-obs-eletrica">
             <input type="checkbox" id="obs-eletrica" onchange="window.atualizarObsPreDefinidas()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;margin-top:2px;"/>
             <div>
               <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;">⚡ Parte Elétrica</div>
@@ -501,7 +522,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             </div>
           </label>
 
-          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);transition:all .15s;" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
+          <!-- CALHAS — bloqueada -->
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);transition:all .15s;" id="lbl-obs-calhas">
             <input type="checkbox" id="obs-calhas" onchange="window.atualizarObsPreDefinidas()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;margin-top:2px;"/>
             <div>
               <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;">🌧️ Calhas e Vedação</div>
@@ -512,8 +534,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         </div>
       </div>
 
+      <!-- Preview das cláusulas selecionadas (somente leitura) -->
+      <div id="obs-preview-wrap" style="display:none;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">📋 Cláusulas selecionadas (somente leitura):</div>
+        <div id="obs-preview-text" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text);line-height:1.7;white-space:pre-wrap;cursor:not-allowed;user-select:none;"></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;">🔒 Texto protegido — desmarque a cláusula para remover</div>
+      </div>
+
       <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Observações adicionais (opcional):</div>
-      <div class="field"><textarea id="f-obs" placeholder="Ex: Prazo de entrega: 15 dias úteis..." style="min-height:80px;"></textarea></div>
+      <div class="field"><textarea id="f-obs" placeholder="Ex: Qualquer outra observação específica deste orçamento..." style="min-height:70px;"></textarea></div>
     </div>
 
     <!-- FORMA DE PAGAMENTO -->
@@ -1635,12 +1664,23 @@ window.showTab = async function showTab(tab){
       document.getElementById('f-num').value='ORC-'+(1005+orcamentos.length+1);
       document.getElementById('f-num').dataset.editId='';
       document.getElementById('f-obs').value='';
-      // Limpa checkboxes de cláusulas pré-definidas
-      ['obs-altura','obs-eletrica','obs-calhas'].forEach(id=>{
+      // Limpa checkboxes e prazo
+      ['obs-prazo','obs-altura','obs-eletrica','obs-calhas'].forEach(id=>{
         const el=document.getElementById(id);
-        if(el){el.checked=false;const lbl=el.closest('label');if(lbl)lbl.style.borderColor='var(--border)';}
+        if(el) el.checked=false;
       });
-      window._obsManual='';
+      ['prazo-min','prazo-max'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el) el.value='';
+      });
+      ['lbl-obs-prazo','lbl-obs-altura','lbl-obs-eletrica','lbl-obs-calhas'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el) el.style.borderColor='var(--border)';
+      });
+      const pw=document.getElementById('obs-preview-wrap');
+      if(pw) pw.style.display='none';
+      const obsPreviewText=document.getElementById('obs-preview-text');
+      if(obsPreviewText) obsPreviewText.textContent='';
       document.getElementById('f-garantias').value='';
       document.getElementById('f-pagamento').value='';
       // Reset pagamento UI
@@ -2767,33 +2807,55 @@ function renderItens(){
 }
 // ── CLÁUSULAS PRÉ-DEFINIDAS DE OBSERVAÇÃO ──
 const _clausulas = {
-  altura: `Serviços em Altura:\nEm serviços que exijam trabalho em altura ou de difícil acesso, a disponibilização e os custos de guincho, andaime, plataforma elevatória ou equipamentos equivalentes são de responsabilidade do cliente.`,
+  altura:   `Serviços em Altura:\nEm serviços que exijam trabalho em altura ou de difícil acesso, a disponibilização e os custos de guincho, andaime, plataforma elevatória ou equipamentos equivalentes são de responsabilidade do cliente.`,
   eletrica: `Parte Elétrica:\nA CMT entrega toda a instalação elétrica da fachada/painel pronta para funcionamento (fontes, fotocélula, timer e demais componentes do sistema). A alimentação elétrica do imóvel até o ponto de ligação da fachada/painel é de responsabilidade do cliente, incluindo infraestrutura, cabeamento e disponibilidade de energia.`,
-  calhas: `Calhas e Vedação:\nA instalação de calhas, rufos, condutores e demais itens de escoamento de água, bem como a vedação correspondente, não faz parte do escopo da CMT, sendo de responsabilidade do cliente a contratação desse serviço.`
+  calhas:   `Calhas e Vedação:\nA instalação de calhas, rufos, condutores e demais itens de escoamento de água, bem como a vedação correspondente, não faz parte do escopo da CMT, sendo de responsabilidade do cliente a contratação desse serviço.`
 };
-window._obsManual = '';
 
 window.atualizarObsPreDefinidas = function() {
-  const checks = {
-    altura:   document.getElementById('obs-altura')?.checked,
-    eletrica: document.getElementById('obs-eletrica')?.checked,
-    calhas:   document.getElementById('obs-calhas')?.checked
-  };
-  // Atualiza borda visual
-  Object.keys(checks).forEach(k => {
-    const el = document.getElementById('obs-'+k);
-    if(el) el.closest('label').style.borderColor = checks[k] ? 'var(--brand)' : 'var(--border)';
+  const prazoMin = document.getElementById('prazo-min')?.value||'';
+  const prazoMax = document.getElementById('prazo-max')?.value||'';
+  const usaPrazo = document.getElementById('obs-prazo')?.checked;
+  const usaAltura   = document.getElementById('obs-altura')?.checked;
+  const usaEletrica = document.getElementById('obs-eletrica')?.checked;
+  const usaCalhas   = document.getElementById('obs-calhas')?.checked;
+
+  // Atualiza borda visual das labels
+  [['obs-prazo','lbl-obs-prazo'],['obs-altura','lbl-obs-altura'],
+   ['obs-eletrica','lbl-obs-eletrica'],['obs-calhas','lbl-obs-calhas']].forEach(([chk,lbl])=>{
+    const checked = document.getElementById(chk)?.checked;
+    const el = document.getElementById(lbl);
+    if(el) el.style.borderColor = checked ? 'var(--brand)' : 'var(--border)';
   });
-  // Monta cláusulas ativas
-  const clausulasAtivas = Object.entries(checks).filter(([,v])=>v).map(([k])=>_clausulas[k]);
-  const textarea = document.getElementById('f-obs');
-  if(!textarea) return;
-  // Mantém obs manual separada
-  const manual = window._obsManual || '';
-  const partes = clausulasAtivas.length > 0
-    ? [...clausulasAtivas, ...(manual ? [manual] : [])]
-    : [manual];
-  textarea.value = partes.join('\n\n');
+
+  // Monta partes das cláusulas
+  const partes = [];
+  if(usaPrazo) {
+    const pMin = prazoMin || '__';
+    const pMax = prazoMax || '__';
+    partes.push(`Prazo de Entrega:\n${pMin} a ${pMax} dias úteis.`);
+  }
+  if(usaAltura)   partes.push(_clausulas.altura);
+  if(usaEletrica) partes.push(_clausulas.eletrica);
+  if(usaCalhas)   partes.push(_clausulas.calhas);
+
+  // Atualiza preview (bloqueado)
+  const previewWrap = document.getElementById('obs-preview-wrap');
+  const previewText = document.getElementById('obs-preview-text');
+  if(partes.length > 0) {
+    if(previewWrap) previewWrap.style.display = 'block';
+    if(previewText) previewText.textContent = partes.join('\n\n');
+  } else {
+    if(previewWrap) previewWrap.style.display = 'none';
+    if(previewText) previewText.textContent = '';
+  }
+};
+
+// Monta obs final para salvar (cláusulas + manual)
+window.getObsCompleta = function() {
+  const previewText = document.getElementById('obs-preview-text')?.textContent || '';
+  const manual = (document.getElementById('f-obs')?.value || '').trim();
+  return [previewText, manual].filter(Boolean).join('\n\n');
 };
 
 function calcTotal(){
@@ -3057,7 +3119,7 @@ function gerarPDFHTML(){
   const cliente=document.getElementById('f-cliente').value;
   const dt=document.getElementById('f-data').value;
   const dtv=document.getElementById('f-validade').value;
-  const obs=document.getElementById('f-obs').value||'Sem observações.';
+  const obs = window.getObsCompleta ? window.getObsCompleta() : (document.getElementById('f-obs').value||'Sem observações.');
   const garantias=document.getElementById('f-garantias').value||'';
   const pagamento=document.getElementById('f-pagamento').value||'';
   // Captura fotos direto aqui para garantir leitura correta
