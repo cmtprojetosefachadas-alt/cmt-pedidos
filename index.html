@@ -2851,11 +2851,11 @@ window.atualizarObsPreDefinidas = function() {
   }
 };
 
-// Monta obs final para salvar (cláusulas + manual)
+// Monta obs final para salvar e PDF (cláusulas bloqueadas + obs manual)
 window.getObsCompleta = function() {
-  const previewText = document.getElementById('obs-preview-text')?.textContent || '';
+  const previewText = (document.getElementById('obs-preview-text')?.textContent || '').trim();
   const manual = (document.getElementById('f-obs')?.value || '').trim();
-  return [previewText, manual].filter(Boolean).join('\n\n');
+  return [previewText, manual].filter(Boolean).join('\n\n') || 'Sem observações.';
 };
 
 function calcTotal(){
@@ -3308,7 +3308,7 @@ document.getElementById('btn-salvar-orc').addEventListener('click',async()=>{
     data:dataFmt,
     validade:fmtDate(document.getElementById('f-validade').value),
     itens:editingItens,
-    obs:document.getElementById('f-obs').value,
+    obs: window.getObsCompleta ? window.getObsCompleta() : (document.getElementById('f-obs').value||''),
     garantias:document.getElementById('f-garantias').value,
     pagamento:document.getElementById('f-pagamento').value,
     foto1:_foto1salvar,
