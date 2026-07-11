@@ -2458,11 +2458,22 @@ window.gerarPDFOrcamentos = function() {
     <td style="color:#666;font-size:10px">${(o.desc||'').substring(0,40)}</td>
     <td style="font-weight:700;color:#e8520a">${fmt(o.venda||0)}</td>
     <td>${fmt(o.custoTotal||0)}</td>
-    <td style="font-weight:700;color:#0a8a4a">${fmt(o.lucro||0)}</td>
-    <td>${o.margemPct||0}%</td>
+    <td style="font-weight:700;color:${o.status==='Recusado'?'#cc2222':'#0a8a4a'}">${o.status==='Recusado'?'—':fmt(o.lucro||0)}</td>
+    <td>${o.status==='Recusado'?'—':(o.margemPct||0)+'%'}</td>
     <td style="color:#888">${fmtData(o.criadoEm)}</td>
     <td><span style="background:${statusBg[o.status]||'#eee'};color:${statusCor[o.status]||'#888'};padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700">${o.status}</span></td>
   </tr>`).join('');
+
+  // Labels dinâmicos conforme status filtrado
+  const isSoRecusado  = status==='Recusado';
+  const isSoAprovado  = status==='Aprovado';
+  const isSoAguardando= status==='Aguardando';
+  const totalReal     = isSoRecusado ? 0 : aprovados.reduce((a,o)=>a+(o.venda||0),0);
+  const lucroReal     = isSoRecusado ? 0 : aprovados.reduce((a,o)=>a+(o.lucro||0),0);
+  const perdaTotal    = recusados.reduce((a,o)=>a+(o.venda||0),0);
+  const headerValor   = isSoRecusado ? perdaTotal : totalVenda;
+  const headerLabel   = isSoRecusado ? 'Total perdido (potencial)' : isSoAguardando ? 'Em negociação' : 'Total faturado';
+  const headerCor     = isSoRecusado ? '#cc2222' : '#e8520a';
 
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
   <title>Relatório de Orçamentos — CMT</title>
@@ -2483,34 +2494,46 @@ window.gerarPDFOrcamentos = function() {
     td{padding:7px 10px;border-bottom:1px solid #f0ede8;font-size:11px;vertical-align:middle}
     tr:nth-child(even) td{background:#fafaf8}
     tr.tot td{background:#1a2332;color:#fff;font-weight:700;border:none}
-    tr.tot td.acc{color:#e8520a} tr.tot td.grn{color:#3ecf8e}
+    tr.tot td.acc{color:#e8520a} tr.tot td.grn{color:#3ecf8e} tr.tot td.red{color:#ff8888}
     .footer{margin-top:20px;padding-top:10px;border-top:1px solid #e0ddd6;font-size:10px;color:#aaa;display:flex;justify-content:space-between}
     @media print{body{background:#fff}.page{padding:16px;max-width:100%}}
   </style></head><body><div class="page">
   <div class="header">
     <div>
       <div class="logo">CMT <span>Projetos e Fachadas</span></div>
-      <div style="font-size:15px;font-weight:700;color:#1a2332;margin-top:4px">Relatório de Orçamentos</div>
-      <div style="font-size:11px;color:#888;margin-top:2px">Gerado em ${hoje} · Status: ${status||'Todos'}</div>
+      <div style="font-size:15px;font-weight:700;color:#1a2332;margin-top:4px">Relatório de Orçamentos${status&&status!=='Todos'?' — '+status:''}</div>
+      <div style="font-size:11px;color:#888;margin-top:2px">Gerado em ${hoje} · ${lista.length} orçamentos${status&&status!=='Todos'?' · Filtro: '+status:''}</div>
     </div>
     <div style="text-align:right">
-      <div style="font-size:11px;color:#888">Total faturado</div>
-      <div style="font-size:26px;font-weight:900;color:#e8520a">${fmt(totalVenda)}</div>
+      <div style="font-size:11px;color:#888">${headerLabel}</div>
+      <div style="font-size:26px;font-weight:900;color:${headerCor}">${fmt(headerValor)}</div>
       <div style="font-size:11px;color:#888">${lista.length} orçamentos</div>
     </div>
   </div>
   <div class="kpis">
-    <div class="kpi" style="border-left-color:#e8520a"><div class="kpi-l">Faturamento</div><div class="kpi-v" style="color:#e8520a">${fmt(totalVenda)}</div><div class="kpi-s">${aprovados.length} aprovados</div></div>
-    <div class="kpi" style="border-left-color:#0a8a4a"><div class="kpi-l">Lucro total</div><div class="kpi-v" style="color:#0a8a4a">${fmt(totalLucro)}</div><div class="kpi-s">Margem ${totalVenda>0?Math.round(totalLucro/totalVenda*100):0}%</div></div>
-    <div class="kpi" style="border-left-color:#1a5fa8"><div class="kpi-l">Em negociação</div><div class="kpi-v" style="color:#1a5fa8">${aguardando.length}</div><div class="kpi-s">${fmt(aguardando.reduce((a,o)=>a+(o.venda||0),0))}</div></div>
-    <div class="kpi" style="border-left-color:#cc2222"><div class="kpi-l">Não fechados</div><div class="kpi-v" style="color:#cc2222">${recusados.length}</div><div class="kpi-s">Taxa ${lista.length>0?Math.round(recusados.length/lista.length*100):0}% perda</div></div>
+    ${isSoRecusado ? `
+      <div class="kpi" style="border-left-color:#cc2222"><div class="kpi-l">Perdidos</div><div class="kpi-v" style="color:#cc2222">${recusados.length}</div><div class="kpi-s">100% desta lista</div></div>
+      <div class="kpi" style="border-left-color:#cc2222"><div class="kpi-l">Receita perdida</div><div class="kpi-v" style="color:#cc2222">${fmt(perdaTotal)}</div><div class="kpi-s">Valor potencial não realizado</div></div>
+      <div class="kpi" style="border-left-color:#888"><div class="kpi-l">Lucro potencial perdido</div><div class="kpi-v" style="color:#888">${fmt(recusados.reduce((a,o)=>a+(o.lucro||0),0))}</div><div class="kpi-s">Estimativa se tivessem fechado</div></div>
+      <div class="kpi" style="border-left-color:#888"><div class="kpi-l">Margem média</div><div class="kpi-v" style="color:#888">${perdaTotal>0?Math.round(recusados.reduce((a,o)=>a+(o.lucro||0),0)/perdaTotal*100):0}%</div><div class="kpi-s">Dos orçamentos recusados</div></div>
+    ` : isSoAguardando ? `
+      <div class="kpi" style="border-left-color:#e8520a"><div class="kpi-l">Em negociação</div><div class="kpi-v" style="color:#e8520a">${aguardando.length}</div><div class="kpi-s">Aguardando retorno</div></div>
+      <div class="kpi" style="border-left-color:#e8520a"><div class="kpi-l">Valor em jogo</div><div class="kpi-v" style="color:#e8520a">${fmt(totalVenda)}</div><div class="kpi-s">Potencial se aprovados</div></div>
+      <div class="kpi" style="border-left-color:#0a8a4a"><div class="kpi-l">Lucro potencial</div><div class="kpi-v" style="color:#0a8a4a">${fmt(totalLucro)}</div><div class="kpi-s">Estimativa se fecharem</div></div>
+      <div class="kpi" style="border-left-color:#888"><div class="kpi-l">Margem média</div><div class="kpi-v" style="color:#888">${totalVenda>0?Math.round(totalLucro/totalVenda*100):0}%</div><div class="kpi-s">Dos orçamentos em aberto</div></div>
+    ` : `
+      <div class="kpi" style="border-left-color:#e8520a"><div class="kpi-l">Faturamento</div><div class="kpi-v" style="color:#e8520a">${fmt(totalReal)}</div><div class="kpi-s">${aprovados.length} aprovados</div></div>
+      <div class="kpi" style="border-left-color:#0a8a4a"><div class="kpi-l">Lucro total</div><div class="kpi-v" style="color:#0a8a4a">${fmt(lucroReal)}</div><div class="kpi-s">Margem ${totalReal>0?Math.round(lucroReal/totalReal*100):0}%</div></div>
+      <div class="kpi" style="border-left-color:#1a5fa8"><div class="kpi-l">Em negociação</div><div class="kpi-v" style="color:#1a5fa8">${aguardando.length}</div><div class="kpi-s">${fmt(aguardando.reduce((a,o)=>a+(o.venda||0),0))}</div></div>
+      <div class="kpi" style="border-left-color:#cc2222"><div class="kpi-l">Não fechados</div><div class="kpi-v" style="color:#cc2222">${recusados.length}</div><div class="kpi-s">Taxa ${lista.length>0?Math.round(recusados.length/lista.length*100):0}% perda</div></div>
+    `}
   </div>
   <h3>📋 Lista de orçamentos</h3>
   <table>
     <thead><tr><th>Nº</th><th>Cliente</th><th>Serviço</th><th>Venda</th><th>Custo</th><th>Lucro</th><th>Margem</th><th>Data</th><th>Status</th></tr></thead>
     <tbody>
       ${rows}
-      <tr class="tot"><td colspan="3" style="text-align:right">TOTAL</td><td class="acc">${fmt(totalVenda)}</td><td>${fmt(totalCusto)}</td><td class="grn">${fmt(totalLucro)}</td><td>${totalVenda>0?Math.round(totalLucro/totalVenda*100):0}%</td><td colspan="2"></td></tr>
+      <tr class="tot"><td colspan="3" style="text-align:right">TOTAL (${lista.length} orç.)</td><td class="acc">${fmt(totalVenda)}</td><td>${fmt(totalCusto)}</td><td class="${isSoRecusado?'red':'grn'}">${isSoRecusado?'—':fmt(totalLucro)}</td><td>${isSoRecusado?'—':totalVenda>0?Math.round(totalLucro/totalVenda*100)+'%':'—'}</td><td colspan="2"></td></tr>
     </tbody>
   </table>
   <div class="footer"><span>CMT Projetos e Fachadas — Relatório de Orçamentos</span><span>Gerado em ${hoje} · ${lista.length} registros</span></div>
