@@ -479,7 +479,41 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
     <div class="form-card">
       <h3>Observações</h3>
-      <div class="field"><textarea id="f-obs" placeholder="Ex: Prazo de entrega: 15 dias úteis..."></textarea></div>
+
+      <!-- Cláusulas pré-definidas -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;">Selecione cláusulas para incluir automaticamente:</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);transition:all .15s;" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
+            <input type="checkbox" id="obs-altura" onchange="window.atualizarObsPreDefinidas()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;margin-top:2px;"/>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;">📏 Serviços em Altura</div>
+              <div style="font-size:11px;color:var(--muted);line-height:1.5;">Guincho, andaime ou plataforma elevatória — responsabilidade do cliente.</div>
+            </div>
+          </label>
+
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);transition:all .15s;" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
+            <input type="checkbox" id="obs-eletrica" onchange="window.atualizarObsPreDefinidas()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;margin-top:2px;"/>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;">⚡ Parte Elétrica</div>
+              <div style="font-size:11px;color:var(--muted);line-height:1.5;">CMT entrega instalação elétrica da fachada pronta. Alimentação do imóvel até o ponto é responsabilidade do cliente.</div>
+            </div>
+          </label>
+
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);transition:all .15s;" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
+            <input type="checkbox" id="obs-calhas" onchange="window.atualizarObsPreDefinidas()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;margin-top:2px;"/>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;">🌧️ Calhas e Vedação</div>
+              <div style="font-size:11px;color:var(--muted);line-height:1.5;">Calhas, rufos e vedação não fazem parte do escopo da CMT — responsabilidade do cliente.</div>
+            </div>
+          </label>
+
+        </div>
+      </div>
+
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Observações adicionais (opcional):</div>
+      <div class="field"><textarea id="f-obs" placeholder="Ex: Prazo de entrega: 15 dias úteis..." style="min-height:80px;"></textarea></div>
     </div>
 
     <!-- FORMA DE PAGAMENTO -->
@@ -1601,6 +1635,12 @@ window.showTab = async function showTab(tab){
       document.getElementById('f-num').value='ORC-'+(1005+orcamentos.length+1);
       document.getElementById('f-num').dataset.editId='';
       document.getElementById('f-obs').value='';
+      // Limpa checkboxes de cláusulas pré-definidas
+      ['obs-altura','obs-eletrica','obs-calhas'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el){el.checked=false;const lbl=el.closest('label');if(lbl)lbl.style.borderColor='var(--border)';}
+      });
+      window._obsManual='';
       document.getElementById('f-garantias').value='';
       document.getElementById('f-pagamento').value='';
       // Reset pagamento UI
@@ -2725,6 +2765,37 @@ function renderItens(){
   }).join('');
   calcTotal();
 }
+// ── CLÁUSULAS PRÉ-DEFINIDAS DE OBSERVAÇÃO ──
+const _clausulas = {
+  altura: `Serviços em Altura:\nEm serviços que exijam trabalho em altura ou de difícil acesso, a disponibilização e os custos de guincho, andaime, plataforma elevatória ou equipamentos equivalentes são de responsabilidade do cliente.`,
+  eletrica: `Parte Elétrica:\nA CMT entrega toda a instalação elétrica da fachada/painel pronta para funcionamento (fontes, fotocélula, timer e demais componentes do sistema). A alimentação elétrica do imóvel até o ponto de ligação da fachada/painel é de responsabilidade do cliente, incluindo infraestrutura, cabeamento e disponibilidade de energia.`,
+  calhas: `Calhas e Vedação:\nA instalação de calhas, rufos, condutores e demais itens de escoamento de água, bem como a vedação correspondente, não faz parte do escopo da CMT, sendo de responsabilidade do cliente a contratação desse serviço.`
+};
+window._obsManual = '';
+
+window.atualizarObsPreDefinidas = function() {
+  const checks = {
+    altura:   document.getElementById('obs-altura')?.checked,
+    eletrica: document.getElementById('obs-eletrica')?.checked,
+    calhas:   document.getElementById('obs-calhas')?.checked
+  };
+  // Atualiza borda visual
+  Object.keys(checks).forEach(k => {
+    const el = document.getElementById('obs-'+k);
+    if(el) el.closest('label').style.borderColor = checks[k] ? 'var(--brand)' : 'var(--border)';
+  });
+  // Monta cláusulas ativas
+  const clausulasAtivas = Object.entries(checks).filter(([,v])=>v).map(([k])=>_clausulas[k]);
+  const textarea = document.getElementById('f-obs');
+  if(!textarea) return;
+  // Mantém obs manual separada
+  const manual = window._obsManual || '';
+  const partes = clausulasAtivas.length > 0
+    ? [...clausulasAtivas, ...(manual ? [manual] : [])]
+    : [manual];
+  textarea.value = partes.join('\n\n');
+};
+
 function calcTotal(){
   const sub=editingItens.reduce(function(s,it){return s+(parseFloat(it.valor)||0);},0);
   const totalCusto=editingItens.reduce(function(s,it){return s+(parseFloat(it.custo)||0);},0);
@@ -3047,7 +3118,11 @@ function gerarPDFHTML(){
       ${desc>0?`<div style="color:#555;font-size:13px;">Desconto (${desc}%): <strong>– ${fmtMoney(sub*desc/100)}</strong></div>`:''}
       <div class="pdf-total-final">Total: ${fmtMoney(total)}</div>
     </div>
-    <div class="pdf-obs"><strong>Observações:</strong><br/>${obs.replace(/\n/g,'<br/>')}</div>
+    <div class="pdf-obs"><strong>Observações:</strong><br/>${obs.split('\n').map(linha=>{
+      // Títulos das cláusulas ficam em negrito no PDF
+      if(linha.endsWith(':') && linha.length < 60) return `<strong>${linha}</strong>`;
+      return linha || '&nbsp;';
+    }).join('<br/>')}</div>
     ${pagamento?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>💳 Forma de Pagamento:</strong><br/>${pagamento}</div>`:''}
     ${garantias?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>🛡️ Garantias:</strong><br/>${garantias.replace(/\n/g,'<br/>')}</div>`:''}
     <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${fmtDate(dt)}</span></div>
