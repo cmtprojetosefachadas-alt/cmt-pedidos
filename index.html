@@ -3115,11 +3115,13 @@ window.clearOrcFoto = clearOrcFoto;
 window.getOrcFotosHTML = getOrcFotosHTML;
 
 function gerarPDFHTML(){
+  // Captura obs ANTES de qualquer navegação - garante que preview-text ainda existe
+  window._obsCompletaSalva = window.getObsCompleta ? window.getObsCompleta() : (document.getElementById('f-obs')?.value||'');
   const num=document.getElementById('f-num').value;
   const cliente=document.getElementById('f-cliente').value;
   const dt=document.getElementById('f-data').value;
   const dtv=document.getElementById('f-validade').value;
-  const obs = window.getObsCompleta ? window.getObsCompleta() : (document.getElementById('f-obs').value||'Sem observações.');
+  const obs = window._obsCompletaSalva || (window.getObsCompleta ? window.getObsCompleta() : (document.getElementById('f-obs')?.value||'Sem observações.'));
   const garantias=document.getElementById('f-garantias').value||'';
   const pagamento=document.getElementById('f-pagamento').value||'';
   // Captura fotos direto aqui para garantir leitura correta
@@ -3281,6 +3283,8 @@ document.getElementById('btn-wpp-orc').addEventListener('click',()=>window.open(
 document.getElementById('btn-wpp-pdf').addEventListener('click',()=>window.open('https://wa.me/?text='+getWppMsg(),'_blank'));
 
 document.getElementById('btn-salvar-orc').addEventListener('click',async()=>{
+  // Captura obs completa ANTES de qualquer operação
+  window._obsCompletaSalva = window.getObsCompleta ? window.getObsCompleta() : (document.getElementById('f-obs')?.value||'');
   const num=document.getElementById('f-num').value;
   const clienteNome=document.getElementById('f-cliente').value;
   const c=clientes.find(x=>x.nome===clienteNome);
@@ -3308,7 +3312,7 @@ document.getElementById('btn-salvar-orc').addEventListener('click',async()=>{
     data:dataFmt,
     validade:fmtDate(document.getElementById('f-validade').value),
     itens:editingItens,
-    obs: window.getObsCompleta ? window.getObsCompleta() : (document.getElementById('f-obs').value||''),
+    obs: window._obsCompletaSalva || (window.getObsCompleta ? window.getObsCompleta() : (document.getElementById('f-obs')?.value||'')),
     garantias:document.getElementById('f-garantias').value,
     pagamento:document.getElementById('f-pagamento').value,
     foto1:_foto1salvar,
