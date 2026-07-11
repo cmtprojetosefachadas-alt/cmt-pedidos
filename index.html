@@ -984,6 +984,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <select id="terc-mes-sel" onchange="renderTerceirizados()" style="font-size:12px;padding:5px 10px;border-radius:8px;border:0.5px solid var(--border2);background:var(--surface);color:var(--text);">
         <option value="todos">Todos os meses</option>
       </select>
+      <button onclick="tercGerarPDFGeral()" class="btn" style="font-size:12px;padding:5px 12px;background:#1C2340;color:#fff;border-color:#1C2340;">📄 PDF Geral</button>
       <button onclick="abrirModalNovoTerceiro()" class="btn btn-primary" style="font-size:12px;padding:5px 12px;">+ Novo prestador / serviço</button>
     </div>
   </div>
@@ -7058,6 +7059,10 @@ function abrirDetalheTerceiro(id){
   document.getElementById('td-obs').textContent = t.obs||'Sem observação';
   document.getElementById('td-st-info').textContent = (t.statusData?t.statusLabel+' '+t.statusData:'—');
   tercSetStatusBtn(t.status||'pendente');
+  // Inicializa campo hidden com status atual
+  let hidden = document.getElementById('terc-status-atual');
+  if(!hidden){ hidden=document.createElement('input'); hidden.type='hidden'; hidden.id='terc-status-atual'; document.body.appendChild(hidden); }
+  hidden.value = t.status||'pendente';
   tercRenderPgtos(t);
   document.getElementById('td-np-data').value = new Date().toISOString().split('T')[0];
   document.getElementById('td-np-val').value='';
@@ -7072,18 +7077,138 @@ document.getElementById('terc-detalhe-close').onclick = ()=>document.getElementB
 function tercSetStatusBtn(s){
   [{id:'tst-p',v:'pendente'},{id:'tst-i',v:'instalacao'},{id:'tst-c',v:'concluido'}].forEach(({id,v})=>{
     const b=document.getElementById(id);
-    b.style.background = s===v?'var(--brand)':'transparent';
-    b.style.color = s===v?'#fff':'var(--text)';
-    b.style.borderColor = s===v?'var(--brand)':'var(--border2)';
+    if(!b) return;
+    const ativo = s===v;
+    b.style.background = ativo ? 'var(--brand)' : 'transparent';
+    b.style.color = ativo ? '#fff' : 'var(--text)';
+    b.style.borderColor = ativo ? 'var(--brand)' : 'var(--border2)';
+    b.dataset.ativo = ativo ? '1' : '0';
   });
 }
 
 function tercSetStatus(s){
   tercSetStatusBtn(s);
+  // Guarda status atual num campo hidden para leitura fácil no salvar
+  let hidden = document.getElementById('terc-status-atual');
+  if(!hidden){
+    hidden = document.createElement('input');
+    hidden.type = 'hidden';
+    hidden.id = 'terc-status-atual';
+    document.body.appendChild(hidden);
+  }
+  hidden.value = s;
   const labels={pendente:'Pendente desde',instalacao:'Em instalação desde',concluido:'Concluído em'};
   const hoje = new Date().toLocaleDateString('pt-BR');
   document.getElementById('td-st-info').textContent = labels[s]+' '+hoje;
 }
+window.tercGerarPDFGeral = function() {
+  const mes = document.getElementById('terc-mes-sel')?.value || 'todos';
+  const filtrado = mes==='todos' ? terceirizadosData : terceirizadosData.filter(t=>t.mes===mes);
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  const mesTitulo = mes==='todos' ? 'Todos os meses' : mes;
+
+  // Agrupa por prestador
+  const grupos = {};
+  filtrado.forEach(t=>{
+    const k = t.prestador||'Sem nome';
+    if(!grupos[k]) grupos[k]={espec:t.especialidade||'',itens:[]};
+    grupos[k].itens.push(t);
+  });
+
+  const totalComb = filtrado.reduce((s,t)=>s+(t.valorCombinado||0),0);
+  const totalPago = filtrado.reduce((s,t)=>s+(t.pagamentos||[]).reduce((a,p)=>a+(p.valor||0),0),0);
+  const totalFalta = Math.max(totalComb-totalPago,0);
+
+  const linhasPrestador = Object.entries(grupos).map(([nome,g])=>{
+    const tComb = g.itens.reduce((s,t)=>s+(t.valorCombinado||0),0);
+    const tPago = g.itens.reduce((s,t)=>s+(t.pagamentos||[]).reduce((a,p)=>a+(p.valor||0),0),0);
+    const tFalta = Math.max(tComb-tPago,0);
+
+    const servRows = g.itens.map(t=>{
+      const pago=(t.pagamentos||[]).reduce((a,p)=>a+(p.valor||0),0);
+      const falta=Math.max((t.valorCombinado||0)-pago,0);
+      const statusLabel = t.status==='concluido'?'✅ Concluído':t.status==='instalacao'?'⚙️ Em instalação':'⏳ Pendente';
+      return `<tr style="border-bottom:1px solid #f0f0f0;">
+        <td style="padding:7px 10px;font-size:12px;padding-left:24px;">${t.servico||'—'}</td>
+        <td style="padding:7px 10px;font-size:12px;color:#666;">${t.cliente||'—'}${t.pedido?' · '+t.pedido:''}</td>
+        <td style="padding:7px 10px;font-size:12px;color:#666;">${t.mes||'—'}</td>
+        <td style="padding:7px 10px;font-size:12px;text-align:center;">${statusLabel}</td>
+        <td style="padding:7px 10px;font-size:12px;text-align:right;">${tercFmt(t.valorCombinado||0)}</td>
+        <td style="padding:7px 10px;font-size:12px;text-align:right;color:#0F6E56;font-weight:600;">${tercFmt(pago)}</td>
+        <td style="padding:7px 10px;font-size:12px;text-align:right;color:${falta>0?'#A32D2D':'#0F6E56'};font-weight:600;">${falta>0?tercFmt(falta):'Quitado'}</td>
+      </tr>`;
+    }).join('');
+
+    return `
+    <tr style="background:#f5f5f5;border-top:2px solid #1C2340;">
+      <td colspan="4" style="padding:9px 10px;font-size:13px;font-weight:700;color:#1C2340;">👷 ${nome}${g.espec?' — '+g.espec:''}</td>
+      <td style="padding:9px 10px;font-size:13px;font-weight:700;text-align:right;">${tercFmt(tComb)}</td>
+      <td style="padding:9px 10px;font-size:13px;font-weight:700;text-align:right;color:#0F6E56;">${tercFmt(tPago)}</td>
+      <td style="padding:9px 10px;font-size:13px;font-weight:700;text-align:right;color:${tFalta>0?'#A32D2D':'#0F6E56'};">${tFalta>0?tercFmt(tFalta):'Quitado'}</td>
+    </tr>
+    ${servRows}`;
+  }).join('');
+
+  document.getElementById('pdf-content').innerHTML = `
+    <div style="max-width:900px;margin:0 auto;font-family:'DM Sans',Arial,sans-serif;color:#1C2340;padding:32px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #1C2340;">
+        <div>
+          <div style="font-size:16px;font-weight:800;">CMT PROJETOS E FACHADAS</div>
+          <div style="font-size:11px;color:#666;">CNPJ: 53.466.209/0001-01 · Franca/SP · (16) 99649-2182</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="background:#1C2340;color:#fff;font-size:15px;font-weight:800;padding:6px 16px;border-radius:6px;">RELATÓRIO DE TERCEIRIZADOS</div>
+          <div style="font-size:11px;color:#555;margin-top:4px;">Período: ${mesTitulo} · Emitido em: ${hoje}</div>
+        </div>
+      </div>
+
+      <!-- Resumo geral -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">
+        <div style="background:#f8f8f8;border-radius:8px;padding:12px 16px;border-left:4px solid #1C2340;">
+          <div style="font-size:10px;color:#999;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Total combinado</div>
+          <div style="font-size:20px;font-weight:800;">${tercFmt(totalComb)}</div>
+        </div>
+        <div style="background:#f0fdf4;border-radius:8px;padding:12px 16px;border-left:4px solid #0F6E56;">
+          <div style="font-size:10px;color:#999;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Total pago</div>
+          <div style="font-size:20px;font-weight:800;color:#0F6E56;">${tercFmt(totalPago)}</div>
+        </div>
+        <div style="background:#fff5f5;border-radius:8px;padding:12px 16px;border-left:4px solid #A32D2D;">
+          <div style="font-size:10px;color:#999;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Saldo em aberto</div>
+          <div style="font-size:20px;font-weight:800;color:#A32D2D;">${totalFalta>0?tercFmt(totalFalta):'Tudo quitado ✓'}</div>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <table style="width:100%;border-collapse:collapse;border:1.5px solid #e0e0e0;border-radius:8px;overflow:hidden;">
+        <thead>
+          <tr style="background:#1C2340;color:#fff;">
+            <th style="padding:9px 10px;text-align:left;font-size:11px;">Serviço</th>
+            <th style="padding:9px 10px;text-align:left;font-size:11px;">Cliente / Pedido</th>
+            <th style="padding:9px 10px;text-align:left;font-size:11px;">Mês</th>
+            <th style="padding:9px 10px;text-align:center;font-size:11px;">Status</th>
+            <th style="padding:9px 10px;text-align:right;font-size:11px;">Combinado</th>
+            <th style="padding:9px 10px;text-align:right;font-size:11px;">Pago</th>
+            <th style="padding:9px 10px;text-align:right;font-size:11px;">Saldo</th>
+          </tr>
+        </thead>
+        <tbody>${linhasPrestador}</tbody>
+        <tfoot>
+          <tr style="background:#1C2340;color:#fff;">
+            <td colspan="4" style="padding:10px;font-size:13px;font-weight:700;">TOTAL GERAL</td>
+            <td style="padding:10px;font-size:14px;font-weight:800;text-align:right;">${tercFmt(totalComb)}</td>
+            <td style="padding:10px;font-size:14px;font-weight:800;text-align:right;color:#4ade80;">${tercFmt(totalPago)}</td>
+            <td style="padding:10px;font-size:14px;font-weight:800;text-align:right;color:${totalFalta>0?'#fca5a5':'#4ade80'};">${totalFalta>0?tercFmt(totalFalta):'Quitado ✓'}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div style="margin-top:20px;text-align:center;font-size:10px;color:#999;padding-top:12px;border-top:1px solid #eee;">
+        CMT Projetos e Fachadas · CNPJ: 53.466.209/0001-01 · Franca/SP · Gerado em ${hoje}
+      </div>
+    </div>`;
+  showTab('preview');
+};
+
 window.tercSetStatus = tercSetStatus;
 
 function tercRenderPgtos(t){
@@ -7147,10 +7272,15 @@ async function tercDelPgto(i){
 window.tercDelPgto = tercDelPgto;
 
 document.getElementById('td-btn-salvar').onclick = async function(){
-  if(!tercCurrentId)return;
-  const statusInfo = document.getElementById('td-st-info').textContent;
-  const status = document.getElementById('tst-c').style.background.includes('var(--brand)')||document.getElementById('tst-c').style.color==='#fff'?'concluido':
-    document.getElementById('tst-i').style.color==='#fff'?'instalacao':'pendente';
+  if(!tercCurrentId) return;
+  // Lê status do campo hidden (confiável) ou pelo data-ativo
+  let status = document.getElementById('terc-status-atual')?.value || 'pendente';
+  // Fallback: verifica data-ativo nos botões
+  if(!status) {
+    if(document.getElementById('tst-c')?.dataset.ativo==='1') status='concluido';
+    else if(document.getElementById('tst-i')?.dataset.ativo==='1') status='instalacao';
+    else status='pendente';
+  }
   const labels={pendente:'Pendente desde',instalacao:'Em instalação desde',concluido:'Concluído em'};
   await updateDoc(doc(db,'terceirizados',tercCurrentId),{
     status,
