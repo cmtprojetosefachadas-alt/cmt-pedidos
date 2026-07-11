@@ -1029,7 +1029,7 @@ body {
       <div style="display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr;gap:10px;margin-bottom:10px">
         <div>
           <label class="field-label">Orçamento / Cliente</label>
-          <select class="field" id="desp-orc"></select>
+          <select class="field" id="desp-orc" onchange="window.previewItensOrc()"></select>
         </div>
         <div>
           <label class="field-label">Descrição</label>
@@ -1054,6 +1054,21 @@ body {
           <input class="field" id="desp-data" type="date">
         </div>
         <button class="btn btn-primary" style="margin-bottom:1px" onclick="window.lancarDespesa()">+ Lançar</button>
+      </div>
+    </div>
+
+    <!-- Preview itens do orçamento selecionado -->
+    <div id="desp-preview-orc" style="display:none;margin-bottom:12px;">
+      <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:14px 16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:12px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.05em;">✅ Itens do orçamento — clique para selecionar</div>
+          <div style="display:flex;gap:8px;">
+            <button onclick="window.selecionarTodosItensOrc(true)" style="font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid #16a34a;background:#16a34a;color:#fff;cursor:pointer;font-weight:600;">Selecionar todos</button>
+            <button onclick="window.selecionarTodosItensOrc(false)" style="font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid #d1d5db;background:#fff;color:#555;cursor:pointer;">Limpar</button>
+            <button onclick="window.lancarItensSelecionados()" style="font-size:11px;padding:4px 16px;border-radius:6px;border:none;background:linear-gradient(135deg,#166534,#16a34a);color:#fff;cursor:pointer;font-weight:700;">🚀 Lançar selecionados</button>
+          </div>
+        </div>
+        <div id="desp-itens-lista" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;"></div>
       </div>
     </div>
 
@@ -1621,6 +1636,122 @@ window.renderRelUso = function() {
   }).join('');
 };
 </script>
+<script>
+
+window._itensOrcSel = {};
+window._itensOrcData = [];
+
+window.previewItensOrc = function() {
+  var orcId = document.getElementById('desp-orc').value;
+  var preview = document.getElementById('desp-preview-orc');
+  var lista = document.getElementById('desp-itens-lista');
+  if(!preview || !lista) return;
+  if(!orcId) { preview.style.display='none'; return; }
+  var orc = (window._orcamentos||[]).find(function(o){ return o.id===orcId; });
+  if(!orc) { preview.style.display='none'; return; }
+
+  var itensOrc = [];
+  var grupos = orc.grupos || [];
+
+  grupos.forEach(function(g) {
+    (g.itens||[]).forEach(function(it) {
+      var val = Math.round((it.custoUnit||it.custo||0)*(it.qty||1)*100)/100;
+      if(val > 0) itensOrc.push({ desc: it.nome||it.desc||'Material', cat: it.cat||'Material', valor: val, qtd: it.qty||1, unit: it.unit||'', grupo: g.nome });
+    });
+    if(g.moVal && g.moVal > 0)
+      itensOrc.push({ desc: 'Mão de obra — '+g.nome, cat: 'Mão de obra', valor: Math.round(g.moVal*100)/100, grupo: g.nome, isMO: true });
+  });
+
+  if(!grupos.length) {
+    (orc.itens||[]).forEach(function(it) {
+      var val = Math.round((it.custoUnit||it.custo||0)*(it.qty||1)*100)/100;
+      if(val > 0) itensOrc.push({ desc: it.nome||it.desc||'Material', cat: it.cat||'Material', valor: val, qtd: it.qty||1, unit: it.unit||'' });
+    });
+    if(orc.moVal && orc.moVal > 0)
+      itensOrc.push({ desc: 'Mão de obra', cat: 'Mão de obra', valor: orc.moVal, isMO: true });
+  }
+
+  if(!itensOrc.length) { preview.style.display='none'; return; }
+
+  window._itensOrcSel = {};
+  window._itensOrcData = itensOrc;
+  itensOrc.forEach(function(it, i){ window._itensOrcSel[i] = true; });
+
+  lista.innerHTML = itensOrc.map(function(it, i) {
+    var cor = it.isMO ? '#7c3aed' : '#1a5fa8';
+    var bg = it.isMO ? 'rgba(124,58,237,0.06)' : 'rgba(26,95,168,0.05)';
+    var fmtVal = typeof fmt === 'function' ? fmt(it.valor) : 'R$ '+it.valor.toFixed(2).replace('.',',');
+    return '<div id="ior-'+i+'" onclick="window.toggleItemOrc('+i+')" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:'+bg+';cursor:pointer;border:1.5px solid '+cor+';transition:all .15s;">'+
+      '<div id="ior-chk-'+i+'" style="width:18px;height:18px;border-radius:4px;border:2px solid '+cor+';background:'+cor+';display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="color:#fff;font-size:11px;">✓</span></div>'+
+      '<div style="flex:1;min-width:0;">'+
+        '<div style="font-size:12px;font-weight:600;color:#1a2332;">'+it.desc+(it.qtd&&!it.isMO?' <span style="color:#888;font-weight:400;">× '+it.qtd+(it.unit?' '+it.unit:'')+'</span>':'')+'</div>'+
+        '<div style="font-size:11px;color:#888;">'+it.cat+(it.grupo?' · '+it.grupo:'')+'</div>'+
+      '</div>'+
+      '<div style="font-size:13px;font-weight:700;color:'+cor+';">'+fmtVal+'</div>'+
+    '</div>';
+  }).join('');
+
+  preview.style.display = 'block';
+};
+
+window.toggleItemOrc = function(i) {
+  window._itensOrcSel[i] = !window._itensOrcSel[i];
+  var chk = document.getElementById('ior-chk-'+i);
+  var row = document.getElementById('ior-'+i);
+  var it = (window._itensOrcData||[])[i];
+  if(!chk||!row||!it) return;
+  var cor = it.isMO ? '#7c3aed' : '#1a5fa8';
+  var sel = window._itensOrcSel[i];
+  chk.style.background = sel ? cor : 'transparent';
+  chk.innerHTML = sel ? '<span style="color:#fff;font-size:11px;">✓</span>' : '';
+  row.style.borderColor = sel ? cor : '#e5e7eb';
+};
+
+window.selecionarTodosItensOrc = function(sel) {
+  (window._itensOrcData||[]).forEach(function(it, i) {
+    window._itensOrcSel[i] = sel;
+    var chk = document.getElementById('ior-chk-'+i);
+    var row = document.getElementById('ior-'+i);
+    if(!chk||!row) return;
+    var cor = it.isMO ? '#7c3aed' : '#1a5fa8';
+    chk.style.background = sel ? cor : 'transparent';
+    chk.innerHTML = sel ? '<span style="color:#fff;font-size:11px;">✓</span>' : '';
+    row.style.borderColor = sel ? cor : '#e5e7eb';
+  });
+};
+
+window.lancarItensSelecionados = async function() {
+  var orcId = document.getElementById('desp-orc').value;
+  var data  = document.getElementById('desp-data').value || new Date().toISOString().split('T')[0];
+  var orc = (window._orcamentos||[]).find(function(o){ return o.id===orcId; });
+  if(!orc) { showToast('Selecione o orçamento!'); return; }
+  var itens = (window._itensOrcData||[]).filter(function(it,i){ return window._itensOrcSel[i] && it.valor > 0; });
+  if(!itens.length) { showToast('Selecione ao menos um item!'); return; }
+
+  var ok = 0;
+  for(var i=0; i<itens.length; i++) {
+    var it = itens[i];
+    var desp = {
+      orcId: orcId, orcNum: orc.num||orc.numero||'?', orcCliente: orc.cliente||'?',
+      desc: it.desc, cat: it.cat, valor: it.valor,
+      obs: (it.qtd&&!it.isMO) ? 'Qtd: '+it.qtd+(it.unit?' '+it.unit:'') : '',
+      data: data,
+      lancadoPor: (window._usuarioLogado&&window._usuarioLogado.nome)||'Sistema',
+      criadoEm: new Date().toISOString()
+    };
+    try { await window._addDoc(window._collection(window._db,'cmt_despesas'), desp); ok++; }
+    catch(e) { console.error(e); }
+  }
+
+  showToast('✅ '+ok+' despesa(s) lançada(s)!');
+  document.getElementById('desp-preview-orc').style.display = 'none';
+  window._itensOrcSel = {}; window._itensOrcData = [];
+  if(typeof carregarDespesas==='function') await carregarDespesas();
+  if(typeof renderDespesasKPIs==='function') renderDespesasKPIs();
+  if(typeof renderDespesas==='function') renderDespesas();
+};
+
+</script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy }
@@ -1637,6 +1768,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+window._db = db;
+window._addDoc = addDoc;
+window._collection = collection;
 window._db = db;
 window._doc = doc;
 window._updateDoc = updateDoc;
