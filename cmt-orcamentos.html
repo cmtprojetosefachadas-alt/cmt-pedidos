@@ -2944,20 +2944,24 @@ window.gerarPDFOrcamento = function(id) {
 
 
 window.gerarPDFRelatorio = function() {
-  const mes    = parseInt(document.getElementById('sel-mes')?.value||3);
+  const mesSel = document.getElementById('sel-mes')?.value||'';
   const nomes  = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const todos  = window._orcamentos.filter(o=>mesDoOrcamento(o)===mes);
+  // Derivar nome do mês e ano do formato MM/AAAA
+  const [mmStr, aaaStr] = mesSel ? mesSel.split('/') : [String(new Date().getMonth()+1).padStart(2,'0'), String(new Date().getFullYear())];
+  const mes    = parseInt(mmStr||new Date().getMonth()+1);
+  const ano    = aaaStr || String(new Date().getFullYear());
+  const todos  = window._orcamentos.filter(o=>!mesSel||mesDoOrcamento(o)===mesSel);
   const orcs   = todos.filter(o=>o.status==='Aprovado');
   const aguard = todos.filter(o=>o.status==='Aguardando');
   const recus  = todos.filter(o=>o.status==='Recusado');
 
-  const fat        = orcs.reduce((a,o)=>a+o.venda,0);
-  const custo      = orcs.reduce((a,o)=>a+o.custoTotal,0);
+  const fat        = orcs.reduce((a,o)=>a+(o.venda||0),0);
+  const custo      = orcs.reduce((a,o)=>a+(o.custoTotal||0),0);
   const lucro      = fat-custo;
   const margem     = fat>0?(lucro/fat*100):0;
-  const fatAguard  = aguard.reduce((a,o)=>a+o.venda,0);
-  const fatRecus   = recus.reduce((a,o)=>a+o.venda,0);
-  const totalGerado= todos.reduce((a,o)=>a+o.venda,0);
+  const fatAguard  = aguard.reduce((a,o)=>a+(o.venda||0),0);
+  const fatRecus   = recus.reduce((a,o)=>a+(o.venda||0),0);
+  const totalGerado= todos.reduce((a,o)=>a+(o.venda||0),0);
   const txConv     = todos.length>0?Math.round(orcs.length/todos.length*100):0;
   const txPerda    = todos.length>0?Math.round(recus.length/todos.length*100):0;
   const ticketMed  = orcs.length>0?fat/orcs.length:0;
@@ -2978,7 +2982,7 @@ window.gerarPDFRelatorio = function() {
 
   const html = `<!DOCTYPE html><html lang="pt-BR"><head>
   <meta charset="UTF-8">
-  <title>Relatório ${nomes[mes]} 2026 — CMT</title>
+  <title>Relatório ${nomes[mes]} ${ano} — CMT</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:Arial,sans-serif;color:#1a1a1a;background:#f0ede8;font-size:12px}
@@ -3009,7 +3013,7 @@ window.gerarPDFRelatorio = function() {
   <div class="header">
     <div>
       <div class="logo">CMT <span>Projetos e Fachadas</span></div>
-      <div style="font-size:14px;font-weight:700;color:#1a2332;margin-top:4px">Relatório de Resultados — ${nomes[mes]} 2026</div>
+      <div style="font-size:14px;font-weight:700;color:#1a2332;margin-top:4px">Relatório de Resultados — ${nomes[mes]} ${ano}</div>
       <div style="font-size:11px;color:#888;margin-top:2px">Gerado em ${new Date().toLocaleDateString('pt-BR')} · USO INTERNO</div>
     </div>
     <div style="text-align:right">
@@ -3291,7 +3295,7 @@ function mesDoOrcamento(o) {
 // ── RELATÓRIO ──
 window.renderRelatorio = function() {
   const mes = document.getElementById('sel-mes')?.value||'';
-  const todos = window._orcamentos.filter(o=>!mes||mesDoOrcamento(o)===mes);
+  const todos = (window._orcamentos||[]).filter(o=>!mes||mesDoOrcamento(o)===mes);
   const orcs  = todos.filter(o=>o.status==='Aprovado');
   const aguard= todos.filter(o=>o.status==='Aguardando');
   const recus = todos.filter(o=>o.status==='Recusado');
