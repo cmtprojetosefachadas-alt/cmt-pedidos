@@ -53,6 +53,13 @@
   .badge-current::before { content:''; width:8px; height:8px; border-radius:50%; background:#E05C1A; animation:pulse2 1.5s infinite; }
   @keyframes pulse2 { 0%,100%{opacity:1} 50%{opacity:0.4} }
   .loading { text-align:center; color:var(--muted); padding:40px; font-size:14px; }
+
+  .fin-card { background:var(--surface); border-radius:var(--radius); border:1px solid var(--border); padding:28px 22px; text-align:center; }
+  .fin-icon { width:56px; height:56px; border-radius:50%; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center; font-size:26px; margin:0 auto 16px; }
+  .fin-title { font-size:16px; font-weight:700; color:var(--navy); margin-bottom:6px; }
+  .fin-data { font-size:13px; color:var(--muted); margin-bottom:16px; }
+  .fin-msg { font-size:13px; color:var(--text); line-height:1.6; background:#f8f8f8; border-radius:8px; padding:14px; text-align:left; margin-bottom:18px; }
+  .fin-contato { display:inline-flex; align-items:center; gap:8px; background:var(--brand); color:#fff; text-decoration:none; padding:12px 20px; border-radius:8px; font-size:13px; font-weight:600; }
 </style>
 </head>
 <body>
@@ -84,25 +91,43 @@
     <div class="loading" id="load-cliente">Carregando seu pedido...</div>
 
     <div id="pedido-info" style="display:none;">
-      <div class="card">
-        <div class="pedido-nome" id="cli-nome"></div>
-        <div class="pedido-cod" id="cli-cod"></div>
-        <div class="pedido-desc" id="cli-desc"></div>
-        <div id="cli-badge"></div>
-      <div id="cli-fotos" style="display:none;"></div>
-        <div class="prog-bar"><div class="prog-fill" id="cli-prog"></div></div>
-        <div class="prog-label" id="cli-prog-label"></div>
+
+      <div id="pedido-ativo">
+        <div class="card">
+          <div class="pedido-nome" id="cli-nome"></div>
+          <div class="pedido-cod" id="cli-cod"></div>
+          <div class="pedido-desc" id="cli-desc"></div>
+          <div id="cli-badge"></div>
+        <div id="cli-fotos" style="display:none;"></div>
+          <div class="prog-bar"><div class="prog-fill" id="cli-prog"></div></div>
+          <div class="prog-label" id="cli-prog-label"></div>
+        </div>
+
+        <div class="card">
+          <div class="etapa-title">Etapas do pedido</div>
+          <div id="cli-etapas"></div>
+        </div>
+
+        <div class="card" id="msgs-card" style="display:none;">
+          <div class="etapa-title">Mensagens da CMT</div>
+          <div id="cli-msgs"></div>
+        </div>
       </div>
 
-      <div class="card">
-        <div class="etapa-title">Etapas do pedido</div>
-        <div id="cli-etapas"></div>
+      <div id="pedido-finalizado" style="display:none;">
+        <div class="fin-card">
+          <div class="fin-icon">✓</div>
+          <div class="fin-title" id="fin-nome"></div>
+          <div class="pedido-cod" id="fin-cod" style="margin-bottom:14px;"></div>
+          <div class="fin-data" id="fin-data"></div>
+          <div class="fin-msg">
+            Este pedido foi finalizado e entregue. Para fins de garantia, o acompanhamento detalhado (etapas, fotos e mensagens) não fica mais disponível neste sistema.<br/><br/>
+            Caso precise de suporte, segunda via de nota, acionamento de garantia ou qualquer outra informação sobre este pedido, entre em contato diretamente conosco.
+          </div>
+          <a class="fin-contato" id="fin-contato-link" href="#" target="_blank">📞 Falar com a CMT</a>
+        </div>
       </div>
 
-      <div class="card" id="msgs-card" style="display:none;">
-        <div class="etapa-title">Mensagens da CMT</div>
-        <div id="cli-msgs"></div>
-      </div>
     </div>
   </div>
 </div>
@@ -134,6 +159,9 @@ const ETAPAS = [
 ];
 
 let pedidoId = null;
+
+// >>> AJUSTE AQUI: telefone/whatsapp da CMT (só números, com DDD)
+const CONTATO_WHATSAPP = "5516900000000";
 
 function fmtTS(ts) {
   if (!ts) return '';
@@ -184,13 +212,27 @@ function carregarPedido(id) {
     if (snap.empty) return;
     const p = { id: snap.docs[0].id, ...snap.docs[0].data() };
     renderPedido(p);
-    carregarMensagens(p.id);
+    if (!p.finalizado) carregarMensagens(p.id);
   });
 }
 
 function renderPedido(p) {
   document.getElementById('load-cliente').style.display = 'none';
   document.getElementById('pedido-info').style.display = 'block';
+
+  if (p.finalizado) {
+    document.getElementById('pedido-ativo').style.display = 'none';
+    document.getElementById('pedido-finalizado').style.display = 'block';
+
+    document.getElementById('fin-nome').textContent = p.nome;
+    document.getElementById('fin-cod').textContent = p.codigo;
+    document.getElementById('fin-data').textContent = 'Finalizado em ' + (p.dataFinalizacao || '');
+    document.getElementById('fin-contato-link').href = 'https://wa.me/' + CONTATO_WHATSAPP +
+      '?text=' + encodeURIComponent('Olá, sou cliente CMT (pedido ' + p.codigo + ') e preciso de suporte sobre um pedido finalizado.');
+    return;
+  }
+  document.getElementById('pedido-ativo').style.display = 'block';
+  document.getElementById('pedido-finalizado').style.display = 'none';
 
   const etapa = p.etapa || 0;
   const prog = Math.round((etapa / (ETAPAS.length - 1)) * 100);
