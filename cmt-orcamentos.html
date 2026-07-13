@@ -1306,18 +1306,18 @@ body {
       <div>
         <label class="field-label">Margem de venda (%)</label>
         <div style="display:flex;align-items:center;gap:6px">
-          <input class="field" id="edit-margem" type="number" min="1" max="99" value="30" oninput="syncSliderFromInput('edit-margem','edit-margem-slider');validarCamposEdit();atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px;width:70px">
+          <input class="field" id="edit-margem" type="number" min="1" max="99" value="30" oninput="window._editModificado=true;syncSliderFromInput('edit-margem','edit-margem-slider');validarCamposEdit();atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px;width:70px">
           <span id="edit-margem-preview" style="font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap">30%</span>
         </div>
-        <input type="range" id="edit-margem-slider" min="1" max="99" value="30" style="width:100%;margin-top:6px;accent-color:var(--accent);cursor:pointer" oninput="syncInputFromSlider('edit-margem','edit-margem-slider');validarCamposEdit();atualizarTotaisEdit()">
+        <input type="range" id="edit-margem-slider" min="1" max="99" value="30" style="width:100%;margin-top:6px;accent-color:var(--accent);cursor:pointer" oninput="window._editModificado=true;syncInputFromSlider('edit-margem','edit-margem-slider');validarCamposEdit();atualizarTotaisEdit()">
       </div>
       <div>
         <label class="field-label">Mão de obra (%)</label>
         <div style="display:flex;align-items:center;gap:6px">
-          <input class="field" id="edit-mo-pct" type="number" min="0" max="99" value="25" oninput="syncSliderFromInput('edit-mo-pct','edit-mo-slider');validarCamposEdit();atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px;width:70px">
+          <input class="field" id="edit-mo-pct" type="number" min="0" max="99" value="25" oninput="window._editModificado=true;syncSliderFromInput('edit-mo-pct','edit-mo-slider');validarCamposEdit();atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px;width:70px">
           <span id="edit-mo-preview" style="font-size:13px;font-weight:700;color:var(--purple);white-space:nowrap">25%</span>
         </div>
-        <input type="range" id="edit-mo-slider" min="0" max="99" value="25" style="width:100%;margin-top:6px;accent-color:var(--purple);cursor:pointer" oninput="syncInputFromSlider('edit-mo-pct','edit-mo-slider');validarCamposEdit();atualizarTotaisEdit()">
+        <input type="range" id="edit-mo-slider" min="0" max="99" value="25" style="width:100%;margin-top:6px;accent-color:var(--purple);cursor:pointer" oninput="window._editModificado=true;syncInputFromSlider('edit-mo-pct','edit-mo-slider');validarCamposEdit();atualizarTotaisEdit()">
 
       </div>
       <div>
@@ -3526,6 +3526,7 @@ window.abrirEdicaoOrcamento = function(id) {
   };
   sel.dispatchEvent(new Event('change'));
   renderEditItens();
+  window._editModificado = false; // reseta flag ao abrir
   atualizarTotaisEdit();
   document.getElementById('modal-editar-orc').classList.add('open');
 };
@@ -3564,6 +3565,15 @@ window.carregarGrupoParaEditar = function(o, idx) {
   document.getElementById('edit-mo-pct').value = moPct;
   document.getElementById('edit-mo-preview').textContent = moPct+'%';
   document.getElementById('edit-mo-slider').value = moPct;
+  // Guardar valores salvos para exibir antes de qualquer edição
+  window._editValoresSalvos = {
+    subMat: g.subMat || o.subMat || 0,
+    moVal:  g.moVal  || o.moVal  || 0,
+    venda:  g.venda  || o.venda  || 0,
+    lucro:  g.lucro  || o.lucro  || 0,
+    custoTotal: g.custoTotal || o.custoTotal || 0,
+    margemPct: g.margem || o.margemPct || margem
+  };
 };
 
 window.trocarGrupoEdit = function(idx) {
@@ -3716,8 +3726,33 @@ window.validarCamposEdit = function() {
 
 window.atualizarTotaisEdit = function() {
   const o = (window._orcamentos||[]).find(x=>x.id===window._modalOrcId);
-  // não bloqueia se o não encontrado — calcula do zero com _editItens
   const margem   = parseFloat(document.getElementById('edit-margem')?.value)||30;
+  // Se ainda não foi modificado, mostrar valores salvos do Firebase
+  if(!window._editModificado && window._editValoresSalvos && window._editValoresSalvos.venda>0) {
+    const sv = window._editValoresSalvos;
+    const margemReal = sv.venda>0?Math.round(sv.lucro/sv.venda*100):0;
+    const pctMat = sv.venda>0?Math.round(sv.subMat/sv.venda*100):0;
+    const pctMO  = sv.venda>0?Math.round(sv.moVal/sv.venda*100):0;
+    const pctCusto = sv.venda>0?Math.round(sv.custoTotal/sv.venda*100):0;
+    const badgeLucro = `<span style="font-size:10px;background:${margemReal>=40?'#dcfce7':margemReal>=25?'#fef9c3':'#fee2e2'};color:${margemReal>=40?'#166534':margemReal>=25?'#854d0e':'#991b1b'};padding:1px 7px;border-radius:10px;font-weight:700;margin-left:4px;">${margemReal}%</span>`;
+    document.getElementById('edit-orc-totais').innerHTML = `
+      <div class="mbar"><div class="mbar-label">Materiais <span style="font-size:10px;color:var(--muted);font-weight:400;">${pctMat}% da venda</span></div><div class="mbar-val">${fmt(sv.subMat)}</div></div>
+      <div class="mbar"><div class="mbar-label">Mão de obra <span style="font-size:10px;color:var(--muted);font-weight:400;">${pctMO}% da venda</span></div><div class="mbar-val" style="color:var(--purple)">${fmt(sv.moVal)}</div></div>
+      <div class="mbar"><div class="mbar-label">Custo total <span style="font-size:10px;color:var(--muted);font-weight:400;">${pctCusto}% da venda</span></div><div class="mbar-val amber">${fmt(sv.custoTotal)}</div></div>
+      <div class="mbar"><div class="mbar-label">Venda (${sv.margemPct}% margem)</div><div class="mbar-val">${fmt(sv.venda)}</div></div>
+      <div class="mbar"><div class="mbar-label">Lucro líquido ${badgeLucro}</div><div class="mbar-val green">${fmt(sv.lucro)}</div></div>
+      <div style="grid-column:1/-1;margin-top:4px;padding:8px 12px;background:#f8f7f4;border-radius:8px;border:1px solid #e8e4de;">
+        <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">Legenda de margem</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#166534;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#dcfce7;border:1px solid #86efac;"></span>≥ 40% — Excelente</span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#854d0e;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#fef9c3;border:1px solid #fde047;"></span>25–39% — Bom</span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#991b1b;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#fee2e2;border:1px solid #fca5a5;"></span>&lt; 25% — Atenção</span>
+        </div>
+      </div>`;
+    return; // não recalcula, só mostra o que está salvo
+  }
+  // A partir daqui: usuário modificou algo, recalcula
+
   const moPct    = parseFloat(document.getElementById('edit-mo-pct')?.value)||25;
   const pag      = document.getElementById('edit-pagamento')?.value||'dinheiro';
   const isCard   = pag==='cartao_debito'||pag==='cartao_credito';
