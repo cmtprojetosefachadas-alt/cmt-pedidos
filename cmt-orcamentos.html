@@ -3611,12 +3611,14 @@ window.salvarGrupoAtualEdit = function(o) {
   const margem = parseFloat(document.getElementById('edit-margem').value)||30;
   const moPct  = parseFloat(document.getElementById('edit-mo-pct').value)||25;
   const subMat = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100,0);
-  const divisor= Math.max(0.01,1-margem/100);
-  const venda  = Math.round(subMat/divisor*100)/100;
-  const moVal  = Math.round(venda*moPct/100*100)/100;
+  // Fórmula única: venda = subMat / (1 - margem% - MO%)
+  const divisor = Math.max(0.001, 1 - margem/100 - moPct/100);
+  const venda   = Math.round(subMat/divisor*100)/100;
+  const moVal   = Math.round(venda*moPct/100*100)/100;
   const custoTotal = Math.round((subMat+moVal)*100)/100;
-  const lucro  = Math.round((venda-custoTotal)*100)/100;
-  o.grupos[idx] = {...o.grupos[idx], itens:[..._editItens], margem, moPct, subMat, moVal, venda, lucro, custoTotal};
+  const lucro   = Math.round((venda-custoTotal)*100)/100;
+  const margemPct = venda>0 ? Math.round(lucro/venda*100) : margem;
+  o.grupos[idx] = {...o.grupos[idx], itens:[..._editItens], margem, moPct, subMat, moVal, venda, lucro, custoTotal, margemPct};
 };
 
 window.toggleTipoCliente = function(tipo) {
@@ -3820,7 +3822,7 @@ window.atualizarTotaisEdit = function() {
     const gAtual = oAtual.grupos[idx];
     if(gAtual) {
       const subMatG = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100,0);
-      const divG    = Math.max(0.01,1-margem/100);
+      const divG    = Math.max(0.001, 1 - margem/100 - moPct/100);
       const vendaG  = Math.round(subMatG/divG*100)/100;
       const moValG  = Math.round(vendaG*moPct/100*100)/100;
       const custoG  = Math.round((subMatG+moValG)*100)/100;
@@ -3898,11 +3900,11 @@ window.salvarEdicaoOrcamento = async function() {
     const margem = parseFloat(document.getElementById('edit-margem').value)||30;
     const moPct  = parseFloat(document.getElementById('edit-mo-pct').value)||25;
     const subMat = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100,0);
-    const divisor= Math.max(0.01,1-margem/100);
-    const venda  = Math.round(subMat/divisor*100)/100;
-    const moVal  = Math.round(venda*moPct/100*100)/100;
+    const divisor = Math.max(0.001, 1 - margem/100 - moPct/100);
+    const venda   = Math.round(subMat/divisor*100)/100;
+    const moVal   = Math.round(venda*moPct/100*100)/100;
     const custoTotal = Math.round((subMat+moVal)*100)/100;
-    const lucro  = Math.round((venda-custoTotal)*100)/100;
+    const lucro   = Math.round((venda-custoTotal)*100)/100;
     o.grupos = [{id:'g1',nome:'Serviço 1',margem,moPct,itens:[..._editItens],subMat,moVal,venda,lucro,custoTotal}];
   }
 
