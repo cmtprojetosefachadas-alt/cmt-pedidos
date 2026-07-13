@@ -646,8 +646,8 @@ body {
         <thead>
           <tr>
             <th>Nº</th><th>Cliente</th><th>Serviço</th>
-            <th>Venda</th><th>Custo</th><th style="color:#7c3aed;">CF</th><th>Lucro</th><th>Margem</th>
-            <th>Data</th><th>Status</th><th></th>
+            <th>Venda</th><th>Custo</th><th>Lucro</th><th>Margem</th>
+            <th>Data</th><th>Status</th>
           </tr>
         </thead>
         <tbody id="lista-tbody"></tbody>
@@ -1325,17 +1325,6 @@ body {
           <span id="edit-mo-preview" style="font-size:13px;font-weight:700;color:var(--purple);white-space:nowrap">25%</span>
         </div>
         <input type="range" id="edit-mo-slider" min="0" max="99" value="25" style="width:100%;margin-top:6px;accent-color:var(--purple);cursor:pointer" oninput="syncInputFromSlider('edit-mo-pct','edit-mo-slider');validarCamposEdit();atualizarTotaisEdit()">
-        <!-- Custo fixo -->
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f5f3ff;border-radius:8px;border:1.5px solid #c4b5fd;margin-top:10px;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:12px;font-weight:700;color:#7c3aed;">⚙ Custo fixo</span>
-            <input id="edit-custo-fixo-pct" type="number" min="0" max="50" step="0.5" value="6"
-              oninput="window.atualizarTotaisEdit()"
-              style="width:50px;padding:3px 6px;border:1.5px solid #7c3aed;border-radius:6px;font-size:12px;font-weight:700;color:#7c3aed;background:#fff;text-align:center;">
-            <span style="font-size:12px;color:#7c3aed;">% da venda</span>
-          </div>
-          <span style="font-size:13px;font-weight:700;color:#7c3aed;" id="edit-custo-fixo-val">R$ 0,00</span>
-        </div>
       </div>
       <div>
         <label class="field-label">Forma de pagamento</label>
@@ -2058,7 +2047,7 @@ function renderListaOrcamentos() {
       <td>${o.cliente}</td>
       <td style="color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.desc||''}</td>
       <td class="td-val td-amber">${fmt(o.venda||0)}</td>
-      <td class="td-val">${fmt(o.custoTotal||0)}</td><td style="color:#7c3aed;font-weight:700;font-size:12px;">${o.custoFixoVal>0?fmt(o.custoFixoVal)+"("+o.custoFixoPct+"%)":"—"}</td>
+      <td class="td-val">${fmt(o.custoTotal||0)}</td>
       <td class="td-val ${(o.lucro||0)>=0?'td-green':'td-red'}">${fmt(o.lucro||0)}</td>
       <td class="td-val">${o.margemPct||0}%</td>
       <td style="color:var(--muted)">${fmtData(o.dataAprovacao||o.criadoEm)}</td>
@@ -2167,13 +2156,16 @@ window.calcGrupo = function(gid) {
   const g = window._grupos.find(x=>x.id===gid)||{margem:30,moPct:25};
   const margem = parseFloat(g.margem)||30;
   const moPct  = parseFloat(g.moPct)||25;
+  const cfPct = parseFloat(document.getElementById('custo-fixo-pct')?.value||0);
   const subMat = itens.reduce((a,i)=>a+(i.custo||0)*i.qty,0);
-  const divisor= Math.max(0.01,1-margem/100);
-  const venda  = subMat/divisor;
-  const moVal  = venda*moPct/100;
-  const custoTotal = subMat+moVal;
-  const lucro  = (venda*margem/100)-moVal;
-  return {itens,subMat,venda,moVal,custoTotal,lucro,margem,moPct};
+  // Venda = Mat / (1 - margem% - MO% - CF%)
+  const divisor = Math.max(0.001, 1 - margem/100 - moPct/100 - cfPct/100);
+  const venda   = Math.round(subMat/divisor*100)/100;
+  const moVal   = Math.round(venda*moPct/100*100)/100;
+  const cfVal   = Math.round(venda*cfPct/100*100)/100;
+  const custoTotal = Math.round((subMat+moVal+cfVal)*100)/100;
+  const lucro   = Math.round((venda-custoTotal)*100)/100;
+  return {itens,subMat,venda,moVal,cfVal,cfPct,custoTotal,lucro,margem,moPct};
 };
 
 window.atualizarGrupo = function(gid, campo, valor) {
@@ -2505,7 +2497,7 @@ window.gerarPDFOrcamentos = function() {
     <td style="font-weight:600">${o.cliente}</td>
     <td style="color:#666;font-size:10px">${(o.desc||'').substring(0,40)}</td>
     <td style="font-weight:700;color:#e8520a">${fmt(o.venda||0)}</td>
-    <td>${fmt(o.custoTotal||0)}</td><td style="color:#7c3aed;font-weight:700;font-size:12px;">${o.custoFixoVal>0?fmt(o.custoFixoVal)+'<span style="font-size:9px;color:#a78bfa;margin-left:2px;">('+o.custoFixoPct+'%)</span>':'&#8212;'}</td>
+    <td>${fmt(o.custoTotal||0)}${o.custoFixoPct?`<span style="font-size:9px;background:#f5f3ff;color:#7c3aed;padding:1px 4px;border-radius:4px;margin-left:3px;font-weight:700;">+${o.custoFixoPct}%</span>`:''}</td>
     <td style="font-weight:700;color:${o.status==='Recusado'?'#cc2222':'#0a8a4a'}">${o.status==='Recusado'?'—':fmt(o.lucro||0)}</td>
     <td>${o.status==='Recusado'?'—':(o.margemPct||0)+'%'}</td>
     <td style="color:#888">${fmtData(o.criadoEm)}</td>
@@ -2578,10 +2570,10 @@ window.gerarPDFOrcamentos = function() {
   </div>
   <h3>📋 Lista de orçamentos</h3>
   <table>
-    <thead><tr><th>Nº</th><th>Cliente</th><th>Serviço</th><th>Venda</th><th>Custo</th><th style="color:#7c3aed">CF</th><th>Lucro</th><th>Margem</th><th>Data</th><th>Status</th></tr></thead>
+    <thead><tr><th>Nº</th><th>Cliente</th><th>Serviço</th><th>Venda</th><th>Custo</th><th>Lucro</th><th>Margem</th><th>Data</th><th>Status</th></tr></thead>
     <tbody>
       ${rows}
-      <tr class="tot"><td colspan="3" style="text-align:right">TOTAL (${lista.length} orç.)</td><td class="acc">${fmt(totalVenda)}</td><td>${fmt(totalCusto)}</td><td style="color:#c4b5fd">${fmt(lista.reduce((s,o)=>s+(o.custoFixoVal||0),0))}</td><td class="${isSoRecusado?'red':'grn'}">${isSoRecusado?'—':fmt(totalLucro)}</td><td>${isSoRecusado?'—':totalVenda>0?Math.round(totalLucro/totalVenda*100)+'%':'—'}</td><td colspan="2"></td></tr>
+      <tr class="tot"><td colspan="3" style="text-align:right">TOTAL (${lista.length} orç.)</td><td class="acc">${fmt(totalVenda)}</td><td>${fmt(totalCusto)}</td><td class="${isSoRecusado?'red':'grn'}">${isSoRecusado?'—':fmt(totalLucro)}</td><td>${isSoRecusado?'—':totalVenda>0?Math.round(totalLucro/totalVenda*100)+'%':'—'}</td><td colspan="2"></td></tr>
     </tbody>
   </table>
   <div class="footer"><span>CMT Projetos e Fachadas — Relatório de Orçamentos</span><span>Gerado em ${hoje} · ${lista.length} registros</span></div>
@@ -3589,7 +3581,6 @@ window.carregarGrupoParaEditar = function(o, idx) {
   document.getElementById('edit-margem').value = margem;
   document.getElementById('edit-margem-preview').textContent = margem+'%';
   document.getElementById('edit-margem-slider').value = margem;
-  const _cfLoadEl = document.getElementById('edit-custo-fixo-pct'); if(_cfLoadEl) _cfLoadEl.value = o.custoFixoPct||6;
   document.getElementById('edit-mo-pct').value = moPct;
   document.getElementById('edit-mo-preview').textContent = moPct+'%';
   document.getElementById('edit-mo-slider').value = moPct;
@@ -3753,15 +3744,15 @@ window.atualizarTotaisEdit = function() {
   const taxaCard = isCard?(parseFloat(document.getElementById('edit-taxa-cartao')?.value)||0):0;
   const subMat   = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100, 0);
   const cfPct    = parseFloat(document.getElementById('edit-custo-fixo-pct')?.value||0);
-  // venda*(1 - margem% - mo% - cf% - taxa%) = subMat
-  const divisor  = Math.max(0.001, 1-margem/100-moPct/100-cfPct/100-taxaCard/100);
+  // Venda = Mat / (1 - margem% - MO% - CF% - taxa%)
+  const divisor  = Math.max(0.001, 1 - margem/100 - moPct/100 - cfPct/100 - taxaCard/100);
   const venda    = Math.round(subMat/divisor*100)/100;
   const moVal    = Math.round(venda*moPct/100*100)/100;
   const cfVal    = Math.round(venda*cfPct/100*100)/100;
   const taxaVal  = Math.round(venda*taxaCard/100*100)/100;
   const custoT   = Math.round((subMat+moVal+cfVal+taxaVal)*100)/100;
   const lucro    = Math.round((venda-custoT)*100)/100;
-  const _cfValEl = document.getElementById('edit-custo-fixo-val'); if(_cfValEl) _cfValEl.textContent = fmt(cfVal);
+  const _cfV = document.getElementById('edit-custo-fixo-val'); if(_cfV) _cfV.textContent = fmt(cfVal);
   const pagLabel = {'dinheiro':'Dinheiro/PIX','boleto':'Boleto','cartao_debito':'Débito','cartao_credito':'Crédito','cheque':'Cheque','transferencia':'Transferência'}[pag]||pag;
 
   // Linha de MO no resumo de itens
