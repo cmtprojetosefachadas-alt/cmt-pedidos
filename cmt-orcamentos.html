@@ -582,6 +582,17 @@ body {
         <div id="grupos-lista"></div>
         <div class="total-block" id="total-block" style="display:none">
           <div id="grupos-resumo-geral"></div>
+          <!-- Custo fixo -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-top:1px dashed var(--border);margin-top:6px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;font-weight:700;color:#7c3aed;">⚙ Custo fixo</span>
+              <input id="custo-fixo-pct" type="number" min="0" max="50" step="0.5" value="6"
+                oninput="renderGrupos()"
+                style="width:46px;padding:3px 6px;border:1.5px solid #7c3aed;border-radius:6px;font-size:12px;font-weight:700;color:#7c3aed;background:#f5f3ff;text-align:center;">
+              <span style="font-size:11px;color:#7c3aed;">%</span>
+            </div>
+            <span style="font-size:12px;font-weight:700;color:#7c3aed;" id="custo-fixo-val">R$ 0,00</span>
+          </div>
           <hr class="total-divider">
           <div class="total-final">
             <span class="label">Venda total</span>
@@ -2246,21 +2257,33 @@ window.renderGrupos = function() {
 
   // Atualiza total geral
   const totais = window._grupos.map(g=>window.calcGrupo(g.id));
-  const vendaTotal = totais.reduce((s,c)=>s+c.venda,0);
-  const lucroTotal = totais.reduce((s,c)=>s+c.lucro,0);
-  const lucroP     = vendaTotal>0?(lucroTotal/vendaTotal*100):0;
+  const vendaBase  = totais.reduce((s,c)=>s+c.venda,0);
+  const lucroBase  = totais.reduce((s,c)=>s+c.lucro,0);
+  const custoFixoPct = parseFloat(document.getElementById('custo-fixo-pct')?.value||6);
+  const custoFixoVal = Math.round(vendaBase * custoFixoPct/100 * 100)/100;
+  const vendaTotal   = Math.round((vendaBase + custoFixoVal)*100)/100;
+  const lucroTotal   = Math.round((lucroBase - custoFixoVal)*100)/100;
+  const lucroP       = vendaTotal>0?(lucroTotal/vendaTotal*100):0;
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
-  set('total-venda',fmt(vendaTotal));
-  set('lucro-pct-label',lucroP.toFixed(1)+'%');
+  set('total-venda', fmt(vendaTotal));
+  set('lucro-pct-label', lucroP.toFixed(1)+'%');
+  set('custo-fixo-val', fmt(custoFixoVal));
   const bar=document.getElementById('lucro-bar-fill');
-  if(bar){bar.style.width=Math.min(100,lucroP)+'%';bar.style.background=lucroP>20?'var(--green)':lucroP>10?'var(--accent)':'var(--red)';}
+  if(bar){bar.style.width=Math.min(100,Math.max(0,lucroP))+'%';bar.style.background=lucroP>20?'var(--green)':lucroP>10?'var(--accent)':'var(--red)';}
+
+  // Salvar no window para usar no salvarOrcamento
+  window._custoFixoPct = custoFixoPct;
+  window._custoFixoVal = custoFixoVal;
+  window._vendaTotalFinal = vendaTotal;
+  window._lucroTotalFinal = lucroTotal;
 
   const resEl=document.getElementById('grupos-resumo-geral');
   if(resEl) resEl.innerHTML=window._grupos.filter(g=>window.calcGrupo(g.id).itens.length>0).map(g=>{
     const c=window.calcGrupo(g.id);
     return `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid var(--border);">
-      <span style="color:var(--muted);">${g.nome}</span><span style="font-weight:600;">${fmt(c.venda)}</span></div>`;
-  }).join('');
+      <span style="color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g.nome}</span><span style="font-weight:600;">${fmt(c.venda)}</span></div>`;
+  }).concat(custoFixoVal>0?[`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid #e9d5ff;">
+    <span style="color:#7c3aed;">⚙ Custo fixo ${custoFixoPct}%</span><span style="font-weight:600;color:#7c3aed;">+${fmt(custoFixoVal)}</span></div>`]:[]).join('');
 };
 
 window.recalcular = function() { renderGrupos(); };
@@ -2367,12 +2390,19 @@ window.salvarOrcamento = async function() {
       lucro:Math.round(c.lucro*100)/100,custoTotal:Math.round(c.custoTotal*100)/100};
   });
 
+  const custoFixoPct = window._custoFixoPct||0;
+  const custoFixoVal = window._custoFixoVal||0;
+  const vendaFinal   = window._vendaTotalFinal||Math.round(vendaTotal*100)/100;
+  const lucroFinal   = window._lucroTotalFinal||Math.round(lucroTotal*100)/100;
+  const margemFinal  = vendaFinal>0?Math.round(lucroFinal/vendaFinal*100):margemMedia;
+
   const data={
     numero,cliente,desc,itens:todosItens,grupos:gruposData,
     subMat:Math.round(subMatTotal*100)/100,moVal:Math.round(moTotal*100)/100,
-    moPct:moPctMedia,margemPct:margemMedia,
+    moPct:moPctMedia,margemPct:margemFinal,
     custoTotal:Math.round(custoTotal*100)/100,
-    venda:Math.round(vendaTotal*100)/100,lucro:Math.round(lucroTotal*100)/100,
+    custoFixoPct, custoFixoVal,
+    venda:vendaFinal,lucro:lucroFinal,
     pagamento,taxaCartao,responsavel,status:'Aguardando',
     criadoEm:new Date().toISOString(),mes:new Date().getMonth()+1,tipo,...dadosExtra
   };
@@ -2457,7 +2487,7 @@ window.gerarPDFOrcamentos = function() {
     <td style="font-weight:600">${o.cliente}</td>
     <td style="color:#666;font-size:10px">${(o.desc||'').substring(0,40)}</td>
     <td style="font-weight:700;color:#e8520a">${fmt(o.venda||0)}</td>
-    <td>${fmt(o.custoTotal||0)}</td>
+    <td>${fmt(o.custoTotal||0)}${o.custoFixoPct?`<span style="font-size:9px;background:#f5f3ff;color:#7c3aed;padding:1px 4px;border-radius:4px;margin-left:3px;font-weight:700;">+${o.custoFixoPct}%</span>`:''}</td>
     <td style="font-weight:700;color:${o.status==='Recusado'?'#cc2222':'#0a8a4a'}">${o.status==='Recusado'?'—':fmt(o.lucro||0)}</td>
     <td>${o.status==='Recusado'?'—':(o.margemPct||0)+'%'}</td>
     <td style="color:#888">${fmtData(o.criadoEm)}</td>
