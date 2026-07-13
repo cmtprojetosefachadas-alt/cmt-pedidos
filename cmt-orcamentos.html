@@ -1306,18 +1306,18 @@ body {
       <div>
         <label class="field-label">Margem de venda (%)</label>
         <div style="display:flex;align-items:center;gap:6px">
-          <input class="field" id="edit-margem" type="number" min="1" max="99" value="30" oninput="window._editModificado=true;syncSliderFromInput('edit-margem','edit-margem-slider');validarCamposEdit();atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px;width:70px">
+          <input class="field" id="edit-margem" type="number" min="1" max="99" value="30" oninput="syncSliderFromInput('edit-margem','edit-margem-slider');validarCamposEdit();atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px;width:70px">
           <span id="edit-margem-preview" style="font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap">30%</span>
         </div>
-        <input type="range" id="edit-margem-slider" min="1" max="99" value="30" style="width:100%;margin-top:6px;accent-color:var(--accent);cursor:pointer" oninput="window._editModificado=true;syncInputFromSlider('edit-margem','edit-margem-slider');validarCamposEdit();atualizarTotaisEdit()">
+        <input type="range" id="edit-margem-slider" min="1" max="99" value="30" style="width:100%;margin-top:6px;accent-color:var(--accent);cursor:pointer" oninput="syncInputFromSlider('edit-margem','edit-margem-slider');validarCamposEdit();atualizarTotaisEdit()">
       </div>
       <div>
         <label class="field-label">Mão de obra (%)</label>
         <div style="display:flex;align-items:center;gap:6px">
-          <input class="field" id="edit-mo-pct" type="number" min="0" max="99" value="25" oninput="window._editModificado=true;syncSliderFromInput('edit-mo-pct','edit-mo-slider');validarCamposEdit();atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px;width:70px">
+          <input class="field" id="edit-mo-pct" type="number" min="0" max="99" value="25" oninput="syncSliderFromInput('edit-mo-pct','edit-mo-slider');validarCamposEdit();atualizarTotaisEdit()" style="font-size:13px;padding:8px 10px;width:70px">
           <span id="edit-mo-preview" style="font-size:13px;font-weight:700;color:var(--purple);white-space:nowrap">25%</span>
         </div>
-        <input type="range" id="edit-mo-slider" min="0" max="99" value="25" style="width:100%;margin-top:6px;accent-color:var(--purple);cursor:pointer" oninput="window._editModificado=true;syncInputFromSlider('edit-mo-pct','edit-mo-slider');validarCamposEdit();atualizarTotaisEdit()">
+        <input type="range" id="edit-mo-slider" min="0" max="99" value="25" style="width:100%;margin-top:6px;accent-color:var(--purple);cursor:pointer" oninput="syncInputFromSlider('edit-mo-pct','edit-mo-slider');validarCamposEdit();atualizarTotaisEdit()">
 
       </div>
       <div>
@@ -2877,14 +2877,35 @@ window.gerarPDFOrcamento = function(id) {
   const pagLabels = {'dinheiro':'Dinheiro / PIX','boleto':'Boleto','cartao_debito':'Cartão débito','cartao_credito':'Cartão crédito','cheque':'Cheque','transferencia':'Transferência'};
   const pagLabel= pagLabels[o.pagamento]||'—';
 
-  const itensHTML = (o.itens||[]).map(i=>`
-    <tr>
-      <td>${i.nome}</td>
-      <td style="text-align:center">${i.qty} ${i.unit}</td>
-      <td style="text-align:right">R$ ${i.custo.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-      <td style="text-align:right;font-weight:700">R$ ${(Math.round(i.custo*i.qty*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-    </tr>
-  `).join('');
+  // Gerar itens agrupados por serviço se tiver grupos
+  const temGrupos = o.grupos && o.grupos.length > 1;
+  let itensHTML = '';
+  if(temGrupos) {
+    itensHTML = o.grupos.map(g => {
+      const itensGrupo = (g.itens||[]).map(i=>`
+        <tr>
+          <td>${i.nome}</td>
+          <td style="text-align:center">${i.qty} ${i.unit}</td>
+          <td style="text-align:right">R$ ${(i.custo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+          <td style="text-align:right;font-weight:700">R$ ${(Math.round((i.custo||0)*i.qty*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        </tr>`).join('');
+      const subGrupo = (g.itens||[]).reduce((s,i)=>s+Math.round((i.custo||0)*i.qty*100)/100, 0);
+      return `
+        <tr><td colspan="4" style="padding:10px 0 4px;"><div style="background:#1a2332;color:#fff;font-size:11px;font-weight:700;padding:6px 12px;border-radius:4px;text-transform:uppercase;letter-spacing:.06em;">📋 ${g.nome} — ${(g.itens||[]).length} iten(s)</div></td></tr>
+        ${itensGrupo}
+        <tr style="background:#f8f7f4"><td colspan="3" style="padding:6px 0;font-size:11px;color:#888;font-weight:600;">Subtotal ${g.nome}</td><td style="text-align:right;font-weight:700;color:#e8520a">R$ ${subGrupo.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>
+      `;
+    }).join('<tr><td colspan="4" style="padding:4px"></td></tr>');
+  } else {
+    itensHTML = (o.itens||[]).map(i=>`
+      <tr>
+        <td>${i.nome}</td>
+        <td style="text-align:center">${i.qty} ${i.unit}</td>
+        <td style="text-align:right">R$ ${(i.custo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td style="text-align:right;font-weight:700">R$ ${(Math.round((i.custo||0)*i.qty*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      </tr>
+    `).join('');
+  }
 
   const fmtR = v => 'R$ '+(Math.round((v||0)*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2});
 
@@ -3526,7 +3547,6 @@ window.abrirEdicaoOrcamento = function(id) {
   };
   sel.dispatchEvent(new Event('change'));
   renderEditItens();
-  window._editModificado = false;
   atualizarTotaisEdit();
   document.getElementById('modal-editar-orc').classList.add('open');
 };
@@ -3565,15 +3585,6 @@ window.carregarGrupoParaEditar = function(o, idx) {
   document.getElementById('edit-mo-pct').value = moPct;
   document.getElementById('edit-mo-preview').textContent = moPct+'%';
   document.getElementById('edit-mo-slider').value = moPct;
-  // Guardar valores TOTAIS do orçamento para exibir sem recalcular
-  window._editValoresSalvos = {
-    subMat:     o.subMat     || 0,
-    moVal:      o.moVal      || 0,
-    venda:      o.venda      || 0,
-    lucro:      o.lucro      || 0,
-    custoTotal: o.custoTotal || 0,
-    margemPct:  o.margemPct  || margem
-  };
 };
 
 window.trocarGrupoEdit = function(idx) {
@@ -3725,23 +3736,6 @@ window.validarCamposEdit = function() {
 };
 
 window.atualizarTotaisEdit = function() {
-  // Se não foi modificado ainda, mostrar valores exatos do Firebase
-  if(!window._editModificado && window._editValoresSalvos && window._editValoresSalvos.venda > 0) {
-    const sv = window._editValoresSalvos;
-    const mr = sv.venda>0 ? Math.round(sv.lucro/sv.venda*100) : 0;
-    const pM = sv.venda>0 ? Math.round(sv.subMat/sv.venda*100) : 0;
-    const pO = sv.venda>0 ? Math.round(sv.moVal/sv.venda*100) : 0;
-    const pC = sv.venda>0 ? Math.round(sv.custoTotal/sv.venda*100) : 0;
-    const badge = `<span style="font-size:10px;background:${mr>=40?'#dcfce7':mr>=25?'#fef9c3':'#fee2e2'};color:${mr>=40?'#166534':mr>=25?'#854d0e':'#991b1b'};padding:1px 7px;border-radius:10px;font-weight:700;margin-left:4px;">${mr}%</span>`;
-    document.getElementById('edit-orc-totais').innerHTML = `
-      <div class="mbar"><div class="mbar-label">Materiais <span style="font-size:10px;color:var(--muted);font-weight:400;">${pM}% da venda</span></div><div class="mbar-val">${fmt(sv.subMat)}</div></div>
-      <div class="mbar"><div class="mbar-label">Mão de obra <span style="font-size:10px;color:var(--muted);font-weight:400;">${pO}% da venda</span></div><div class="mbar-val" style="color:var(--purple)">${fmt(sv.moVal)}</div></div>
-      <div class="mbar"><div class="mbar-label">Custo total <span style="font-size:10px;color:var(--muted);font-weight:400;">${pC}% da venda</span></div><div class="mbar-val amber">${fmt(sv.custoTotal)}</div></div>
-      <div class="mbar"><div class="mbar-label">Venda (${sv.margemPct}% margem)</div><div class="mbar-val">${fmt(sv.venda)}</div></div>
-      <div class="mbar"><div class="mbar-label">Lucro líquido ${badge}</div><div class="mbar-val green">${fmt(sv.lucro)}</div></div>
-      <div style="grid-column:1/-1;margin-top:4px;padding:8px 12px;background:#f8f7f4;border-radius:8px;border:1px solid #e8e4de;"><div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:5px;">Legenda</div><div style="display:flex;gap:12px;flex-wrap:wrap;"><span style="font-size:11px;color:#166534;">🟢 ≥ 40% Excelente</span><span style="font-size:11px;color:#854d0e;">🟡 25–39% Bom</span><span style="font-size:11px;color:#991b1b;">🔴 &lt;25% Atenção</span></div></div>`;
-    return;
-  }
   const o = (window._orcamentos||[]).find(x=>x.id===window._modalOrcId);
   // não bloqueia se o não encontrado — calcula do zero com _editItens
   const margem   = parseFloat(document.getElementById('edit-margem')?.value)||30;
