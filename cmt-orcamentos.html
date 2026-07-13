@@ -646,7 +646,7 @@ body {
         <thead>
           <tr>
             <th>Nº</th><th>Cliente</th><th>Serviço</th>
-            <th>Venda</th><th>Custo</th><th>Lucro</th><th>Margem</th>
+            <th>Venda</th><th>Custo</th><th style="color:#7c3aed;">CF</th><th>Lucro</th><th>Margem</th>
             <th>Data</th><th>Status</th>
           </tr>
         </thead>
@@ -1325,6 +1325,16 @@ body {
           <span id="edit-mo-preview" style="font-size:13px;font-weight:700;color:var(--purple);white-space:nowrap">25%</span>
         </div>
         <input type="range" id="edit-mo-slider" min="0" max="99" value="25" style="width:100%;margin-top:6px;accent-color:var(--purple);cursor:pointer" oninput="syncInputFromSlider('edit-mo-pct','edit-mo-slider');validarCamposEdit();atualizarTotaisEdit()">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f5f3ff;border-radius:8px;border:1.5px solid #c4b5fd;margin-top:10px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;font-weight:700;color:#7c3aed;">⚙ Custo fixo</span>
+            <input id="edit-custo-fixo-pct" type="number" min="0" max="50" step="0.5" value="6"
+              oninput="window.atualizarTotaisEdit()"
+              style="width:50px;padding:3px 6px;border:1.5px solid #7c3aed;border-radius:6px;font-size:12px;font-weight:700;color:#7c3aed;background:#fff;text-align:center;">
+            <span style="font-size:12px;color:#7c3aed;">% da venda</span>
+          </div>
+          <span style="font-size:13px;font-weight:700;color:#7c3aed;" id="edit-custo-fixo-val">R$ 0,00</span>
+        </div>
       </div>
       <div>
         <label class="field-label">Forma de pagamento</label>
@@ -2048,6 +2058,7 @@ function renderListaOrcamentos() {
       <td style="color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.desc||''}</td>
       <td class="td-val td-amber">${fmt(o.venda||0)}</td>
       <td class="td-val">${fmt(o.custoTotal||0)}</td>
+      <td style="color:#7c3aed;font-weight:700;font-size:12px;">${o.custoFixoVal>0?fmt(o.custoFixoVal)+"("+o.custoFixoPct+"%)":"—"}</td>
       <td class="td-val ${(o.lucro||0)>=0?'td-green':'td-red'}">${fmt(o.lucro||0)}</td>
       <td class="td-val">${o.margemPct||0}%</td>
       <td style="color:var(--muted)">${fmtData(o.dataAprovacao||o.criadoEm)}</td>
@@ -2158,8 +2169,7 @@ window.calcGrupo = function(gid) {
   const moPct  = parseFloat(g.moPct)||25;
   const cfPct = parseFloat(document.getElementById('custo-fixo-pct')?.value||0);
   const subMat = itens.reduce((a,i)=>a+(i.custo||0)*i.qty,0);
-  // Venda = Mat / (1 - margem% - MO% - CF%)
-  const divisor = Math.max(0.001, 1 - margem/100 - moPct/100 - cfPct/100);
+  const divisor = Math.max(0.001,1-margem/100-moPct/100-cfPct/100);
   const venda   = Math.round(subMat/divisor*100)/100;
   const moVal   = Math.round(venda*moPct/100*100)/100;
   const cfVal   = Math.round(venda*cfPct/100*100)/100;
@@ -2286,6 +2296,7 @@ window.renderGrupos = function() {
   window._custoFixoVal = custoFixoVal;
   window._vendaTotalFinal = vendaTotal;
   window._lucroTotalFinal = lucroTotal;
+  const _cfValEl = document.getElementById('custo-fixo-val'); if(_cfValEl) _cfValEl.textContent = fmt(custoFixoVal);
 
   const resEl=document.getElementById('grupos-resumo-geral');
   if(resEl) resEl.innerHTML=window._grupos.filter(g=>window.calcGrupo(g.id).itens.length>0).map(g=>{
@@ -3581,6 +3592,7 @@ window.carregarGrupoParaEditar = function(o, idx) {
   document.getElementById('edit-margem').value = margem;
   document.getElementById('edit-margem-preview').textContent = margem+'%';
   document.getElementById('edit-margem-slider').value = margem;
+  const _cfEl = document.getElementById('edit-custo-fixo-pct'); if(_cfEl) _cfEl.value = o.custoFixoPct||6;
   document.getElementById('edit-mo-pct').value = moPct;
   document.getElementById('edit-mo-preview').textContent = moPct+'%';
   document.getElementById('edit-mo-slider').value = moPct;
@@ -3744,8 +3756,7 @@ window.atualizarTotaisEdit = function() {
   const taxaCard = isCard?(parseFloat(document.getElementById('edit-taxa-cartao')?.value)||0):0;
   const subMat   = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100, 0);
   const cfPct    = parseFloat(document.getElementById('edit-custo-fixo-pct')?.value||0);
-  // Venda = Mat / (1 - margem% - MO% - CF% - taxa%)
-  const divisor  = Math.max(0.001, 1 - margem/100 - moPct/100 - cfPct/100 - taxaCard/100);
+  const divisor  = Math.max(0.001,1-margem/100-moPct/100-cfPct/100-taxaCard/100);
   const venda    = Math.round(subMat/divisor*100)/100;
   const moVal    = Math.round(venda*moPct/100*100)/100;
   const cfVal    = Math.round(venda*cfPct/100*100)/100;
