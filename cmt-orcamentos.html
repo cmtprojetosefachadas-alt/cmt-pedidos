@@ -2147,15 +2147,23 @@ window.renomearGrupo = function(id, val) {
 window.calcGrupo = function(gid) {
   const itens = Object.values((window._itensPorGrupo||{})[gid]||{});
   const g = window._grupos.find(x=>x.id===gid)||{margem:30,moPct:25};
-  const margem = parseFloat(g.margem)||30;
-  const moPct  = parseFloat(g.moPct)||25;
-  const subMat = itens.reduce((a,i)=>a+(i.custo||0)*i.qty,0);
-  const divisor= Math.max(0.01,1-margem/100);
-  const venda  = subMat/divisor;
-  const moVal  = venda*moPct/100;
-  const custoTotal = subMat+moVal;
-  const lucro  = (venda*margem/100)-moVal;
-  return {itens,subMat,venda,moVal,custoTotal,lucro,margem,moPct};
+  const margem    = parseFloat(g.margem)||30;
+  const moPct     = parseFloat(g.moPct)||25;
+  const cfPct     = parseFloat(document.getElementById('custo-fixo-pct')?.value||0);
+  const subMat    = itens.reduce((a,i)=>a+(i.custo||0)*i.qty,0);
+  // Custo fixo é calculado sobre a venda — precisa resolver iterativamente
+  // venda = (subMat + moVal + custoFixo) / (1 - margem/100)
+  // moVal = venda * moPct/100
+  // custoFixo = venda * cfPct/100
+  // venda * (1 - margem/100) = subMat + venda*moPct/100 + venda*cfPct/100
+  // venda * (1 - margem/100 - moPct/100 - cfPct/100) = subMat
+  const divisor = Math.max(0.001, 1 - margem/100 - moPct/100 - cfPct/100);
+  const venda   = Math.round(subMat/divisor*100)/100;
+  const moVal   = Math.round(venda*moPct/100*100)/100;
+  const cfVal   = Math.round(venda*cfPct/100*100)/100;
+  const custoTotal = Math.round((subMat+moVal+cfVal)*100)/100;
+  const lucro   = Math.round((venda-custoTotal)*100)/100;
+  return {itens,subMat,venda,moVal,cfVal,cfPct,custoTotal,lucro,margem,moPct};
 };
 
 window.atualizarGrupo = function(gid, campo, valor) {
@@ -2212,9 +2220,10 @@ window.renderGrupos = function() {
         <div style="background:var(--surface);border-radius:7px;padding:7px 9px;border:1px solid var(--border);">
           <div style="font-size:10px;color:var(--muted);margin-bottom:1px;">Custo total</div>
           <div style="font-size:12px;font-weight:600;">${fmt(calc.custoTotal)}</div>
+          ${calc.cfVal>0?`<div style="font-size:9px;color:#7c3aed;margin-top:1px;">⚙ CF: +${fmt(calc.cfVal)}</div>`:''}
         </div>
         <div style="background:var(--surface);border-radius:7px;padding:7px 9px;border:1px solid var(--border);">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:1px;">Margem ${calc.margem}%</div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:1px;">Margem ${calc.margem}% líq.</div>
           <div style="font-size:12px;font-weight:600;color:var(--accent);">+${fmt(calc.lucro)}</div>
         </div>
         <div style="background:#E1F5EE;border-radius:7px;padding:7px 9px;border:1px solid #9FE1CB;">
@@ -2255,14 +2264,12 @@ window.renderGrupos = function() {
     </div>`;
   }).join('');
 
-  // Atualiza total geral
+  // Atualiza total geral -- calcGrupo ja inclui CF no calculo
   const totais = window._grupos.map(g=>window.calcGrupo(g.id));
-  const vendaBase  = totais.reduce((s,c)=>s+c.venda,0);
-  const lucroBase  = totais.reduce((s,c)=>s+c.lucro,0);
-  const custoFixoPct = parseFloat(document.getElementById('custo-fixo-pct')?.value||6);
-  const custoFixoVal = Math.round(vendaBase * custoFixoPct/100 * 100)/100;
-  const vendaTotal   = Math.round((vendaBase + custoFixoVal)*100)/100;
-  const lucroTotal   = Math.round((lucroBase - custoFixoVal)*100)/100;
+  const vendaTotal   = Math.round(totais.reduce((s,c)=>s+c.venda,0)*100)/100;
+  const lucroTotal   = Math.round(totais.reduce((s,c)=>s+c.lucro,0)*100)/100;
+  const custoFixoPct = parseFloat(document.getElementById('custo-fixo-pct')?.value||0);
+  const custoFixoVal = Math.round(totais.reduce((s,c)=>s+(c.cfVal||0),0)*100)/100;
   const lucroP       = vendaTotal>0?(lucroTotal/vendaTotal*100):0;
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   set('total-venda', fmt(vendaTotal));
@@ -2275,7 +2282,7 @@ window.renderGrupos = function() {
   window._custoFixoPct = custoFixoPct;
   window._custoFixoVal = custoFixoVal;
   window._vendaTotalFinal = vendaTotal;
-  window._lucroTotalFinal = lucroTotal;
+  window._lucroTotalFinal = lucroTotal; // lucro ja e liquido
 
   const resEl=document.getElementById('grupos-resumo-geral');
   if(resEl) resEl.innerHTML=window._grupos.filter(g=>window.calcGrupo(g.id).itens.length>0).map(g=>{
@@ -3724,13 +3731,17 @@ window.atualizarTotaisEdit = function() {
   const isCard   = pag==='cartao_debito'||pag==='cartao_credito';
   const taxaCard = isCard?(parseFloat(document.getElementById('edit-taxa-cartao')?.value)||0):0;
   const subMat   = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100, 0);
-  const divisor  = Math.max(0.01, 1-margem/100);
-  const vendaBase= subMat/divisor;
-  const taxaVal  = Math.round(vendaBase*taxaCard/100*100)/100;
-  const venda    = Math.round((vendaBase+taxaVal)*100)/100;
-  const moVal    = Math.round(vendaBase*moPct/100*100)/100;
-  const custoT   = Math.round((subMat+moVal+taxaVal)*100)/100;
+  const cfPct    = parseFloat(document.getElementById('edit-custo-fixo-pct')?.value||0);
+  // venda * (1 - margem/100 - moPct/100 - cfPct/100 - taxaCard/100) = subMat
+  const divisor  = Math.max(0.001, 1 - margem/100 - moPct/100 - cfPct/100 - taxaCard/100);
+  const venda    = Math.round(subMat/divisor*100)/100;
+  const moVal    = Math.round(venda*moPct/100*100)/100;
+  const cfVal    = Math.round(venda*cfPct/100*100)/100;
+  const taxaVal  = Math.round(venda*taxaCard/100*100)/100;
+  const custoT   = Math.round((subMat+moVal+cfVal+taxaVal)*100)/100;
   const lucro    = Math.round((venda-custoT)*100)/100;
+  const elCfVal = document.getElementById('edit-custo-fixo-val');
+  if(elCfVal) elCfVal.textContent = fmt(cfVal);
   const pagLabel = {'dinheiro':'Dinheiro/PIX','boleto':'Boleto','cartao_debito':'Débito','cartao_credito':'Crédito','cheque':'Cheque','transferencia':'Transferência'}[pag]||pag;
 
   // Linha de MO no resumo de itens
