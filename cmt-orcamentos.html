@@ -3593,6 +3593,8 @@ window.carregarGrupoParaEditar = function(o, idx) {
   document.getElementById('edit-margem-preview').textContent = margem+'%';
   document.getElementById('edit-margem-slider').value = margem;
   const _cfEl = document.getElementById('edit-custo-fixo-pct'); if(_cfEl) _cfEl.value = o.custoFixoPct||6;
+  // Recalcular imediatamente ao abrir para garantir valores corretos
+  if(typeof window.atualizarTotaisEdit==='function') window.atualizarTotaisEdit();
   document.getElementById('edit-mo-pct').value = moPct;
   document.getElementById('edit-mo-preview').textContent = moPct+'%';
   document.getElementById('edit-mo-slider').value = moPct;
