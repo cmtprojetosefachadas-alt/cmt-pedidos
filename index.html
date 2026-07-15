@@ -404,7 +404,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 
   <div id="panel-pedidos" class="panel">
-    <div class="section-header"><span class="section-title">Pedidos em andamento &nbsp;<span id="ped-count-label" style="font-size:14px;font-weight:500;color:var(--brand);background:#fff3ec;padding:3px 12px;border-radius:20px;"></span></span></div>
+    <div class="section-header" style="flex-wrap:wrap;gap:10px;">
+      <span class="section-title">Pedidos em andamento &nbsp;<span id="ped-count-label" style="font-size:14px;font-weight:500;color:var(--brand);background:#fff3ec;padding:3px 12px;border-radius:20px;"></span></span>
+      <div id="ped-prio-counts" style="display:flex;gap:8px;align-items:center;"></div>
+    </div>
     <div class="cards-grid" id="pedidos-grid"><div class="loading">Carregando...</div></div>
   </div>
 
@@ -1760,7 +1763,7 @@ function clienteCard(p){
   const tipo=finalizado?'pedido-fin':'pedido';
   const prio=!finalizado?(p.prioridade||''):'';
   const prioClass=prio?' prio-'+prio:'';
-  const prioTitulo=prio==='vermelho'?'Prioridade: Urgente (clique para mudar)':prio==='amanha'?'Prioridade: Amanhã (clique para mudar)':prio==='verde'?'Prioridade: Em dia (clique para mudar)':'Definir prioridade';
+  const prioTitulo=prio==='vermelho'?'Prioridade: Urgente (clique para mudar)':prio==='amanha'?'Prioridade: Atenção (clique para mudar)':prio==='verde'?'Prioridade: Sob controle (clique para mudar)':'Definir prioridade';
   return`<div class="client-card${prioClass}" data-id="${p.id}" data-type="${tipo}">
     ${!finalizado?`<button class="priority-dot${prioClass}" title="${prioTitulo}" onclick="event.stopPropagation();togglePrioridade('${p.id}','${prio}')"></button>`:''}
     <div class="card-head"><div class="avatar">${ini(p.nome||'?')}</div>
@@ -2296,6 +2299,19 @@ function renderPedidos(){
   if(badge){badge.textContent=ativos.length;badge.style.display=ativos.length>0?'inline-block':'none';}
   if(lbl){lbl.textContent=ativos.length>0?ativos.length+' ativo'+(ativos.length>1?'s':''):'';}
   document.getElementById('pedidos-grid').innerHTML=ativos.map(clienteCard).join('')||'<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum pedido ativo.</div>';
+  const prioBox=document.getElementById('ped-prio-counts');
+  if(prioBox){
+    const nVermelho=ativos.filter(p=>p.prioridade==='vermelho').length;
+    const nAmanha=ativos.filter(p=>p.prioridade==='amanha').length;
+    const nVerde=ativos.filter(p=>p.prioridade==='verde').length;
+    const pill=(cor,bg,border,label,n)=>n>0?`<span style="display:flex;align-items:center;gap:6px;background:${bg};border:1px solid ${border};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;color:${cor};"><span style="width:9px;height:9px;border-radius:50%;background:${cor};display:inline-block;"></span>${label} ${n}</span>`:'';
+    const pills=[
+      pill('#A32D2D','#FCEBEB','#E39494','Urgente',nVermelho),
+      pill('#854F0B','#FEF6E4','#EFCB7E','Atenção',nAmanha),
+      pill('#1E7E4C','#EDF8F2','#9BD6B6','Sob controle',nVerde)
+    ].join('');
+    prioBox.innerHTML=pills;
+  }
 }
 
 function renderOrcamentos(){
