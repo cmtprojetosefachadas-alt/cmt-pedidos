@@ -44,8 +44,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .stat-label{font-size:13px;color:var(--muted)}
 .stat-link{font-size:12px;color:var(--brand);cursor:pointer}
 .cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.client-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:18px 20px;cursor:pointer;transition:box-shadow 0.2s,transform 0.15s}
+.client-card{position:relative;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:18px 20px;cursor:pointer;transition:box-shadow 0.2s,transform 0.15s,background 0.2s,border-color 0.2s}
 .client-card:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
+.client-card.prio-vermelho{background:#FDEDED;border-color:#E39494}
+.client-card.prio-amanha{background:#FEF6E4;border-color:#EFCB7E}
+.client-card.prio-verde{background:#EDF8F2;border-color:#9BD6B6}
+.priority-dot{position:absolute;top:14px;right:14px;width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid var(--border2);cursor:pointer;z-index:5;transition:transform 0.15s,background 0.15s,border-color 0.15s;padding:0}
+.priority-dot:hover{transform:scale(1.15)}
+.priority-dot.prio-vermelho{background:#D64545;border-color:#B23131}
+.priority-dot.prio-amanha{background:#EFAA1F;border-color:#C98A0F}
+.priority-dot.prio-verde{background:#28A263;border-color:#1E7E4C}
 .card-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
 .avatar{width:42px;height:42px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#fff;flex-shrink:0}
 .card-name{font-size:14px;font-weight:600;color:var(--text)}
@@ -1750,7 +1758,11 @@ function clienteCard(p){
   const etapa=p.etapa||0;
   const finalizado=p.finalizado===true||Number(etapa)>=ETAPAS.length-1;
   const tipo=finalizado?'pedido-fin':'pedido';
-  return`<div class="client-card" data-id="${p.id}" data-type="${tipo}">
+  const prio=!finalizado?(p.prioridade||''):'';
+  const prioClass=prio?' prio-'+prio:'';
+  const prioTitulo=prio==='vermelho'?'Prioridade: Urgente (clique para mudar)':prio==='amanha'?'Prioridade: Amanhã (clique para mudar)':prio==='verde'?'Prioridade: Em dia (clique para mudar)':'Definir prioridade';
+  return`<div class="client-card${prioClass}" data-id="${p.id}" data-type="${tipo}">
+    ${!finalizado?`<button class="priority-dot${prioClass}" title="${prioTitulo}" onclick="event.stopPropagation();togglePrioridade('${p.id}','${prio}')"></button>`:''}
     <div class="card-head"><div class="avatar">${ini(p.nome||'?')}</div>
     <div><div class="card-name">${p.nome}</div><div class="card-id">${p.codigo}·${p.tel||''}</div></div></div>
     <div class="card-desc">${p.desc||''}</div>
@@ -1772,6 +1784,22 @@ function clienteCard(p){
     </div>`:''}
   </div>`;
 }
+
+window.togglePrioridade = async function(id, atual){
+  const ordem=['','vermelho','amanha','verde'];
+  const idx=ordem.indexOf(atual||'');
+  const prox=ordem[(idx+1)%ordem.length];
+  // Otimista: atualiza local e re-renderiza na hora, sem esperar o Firebase
+  const p=pedidos.find(x=>x.id===id);
+  if(p)p.prioridade=prox;
+  renderPedidos();
+  try{
+    await updateDoc(doc(db,'pedidos',id),{prioridade:prox});
+  }catch(err){
+    console.error('Erro ao atualizar prioridade:',err);
+    showToast('Erro ao salvar prioridade');
+  }
+};
 
 function renderClientes(){
   renderClientesBD();
@@ -3724,7 +3752,8 @@ document.addEventListener('click',async e=>{
       etapa:ETAPAS.length-1,
       finalizado:true,
       mes:mesAtual,
-      dataFinalizacao:dataHoje
+      dataFinalizacao:dataHoje,
+      prioridade:''
     });
     document.getElementById('modal-bg').classList.remove('open');
     showToast('Pedido finalizado!');return;
