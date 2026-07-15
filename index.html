@@ -1576,7 +1576,7 @@ const db = getFirestore(app);
 
 const ETAPAS = ['Liberado para expedição','Em montagem','Preparando para finalizar montagem','Montagem finalizada','Preparando para instalação','Em instalação','Finalizado'];
 
-let pedidos=[], orcamentos=[], clientes=[], currentPedidoId=null, currentOrcId=null, editingItens=[];
+let pedidos=[], orcamentos=[], clientes=[], currentPedidoId=null, currentOrcId=null, editingItens=[], pedidosFiltroPrio='';
 window._setDesc=function(i,v){editingItens[i].desc=v;};
 window._setValor=function(i,v){
   editingItens[i].valor=parseFloat(v)||0;
@@ -2298,21 +2298,32 @@ function renderPedidos(){
   const lbl=document.getElementById('ped-count-label');
   if(badge){badge.textContent=ativos.length;badge.style.display=ativos.length>0?'inline-block':'none';}
   if(lbl){lbl.textContent=ativos.length>0?ativos.length+' ativo'+(ativos.length>1?'s':''):'';}
-  document.getElementById('pedidos-grid').innerHTML=ativos.map(clienteCard).join('')||'<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum pedido ativo.</div>';
+  const visiveis=pedidosFiltroPrio?ativos.filter(p=>p.prioridade===pedidosFiltroPrio):ativos;
+  document.getElementById('pedidos-grid').innerHTML=visiveis.map(clienteCard).join('')||'<div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Nenhum pedido nesse filtro.</div>';
   const prioBox=document.getElementById('ped-prio-counts');
   if(prioBox){
     const nVermelho=ativos.filter(p=>p.prioridade==='vermelho').length;
     const nAmanha=ativos.filter(p=>p.prioridade==='amanha').length;
     const nVerde=ativos.filter(p=>p.prioridade==='verde').length;
-    const pill=(cor,bg,border,label,n)=>n>0?`<span style="display:flex;align-items:center;gap:6px;background:${bg};border:1px solid ${border};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;color:${cor};"><span style="width:9px;height:9px;border-radius:50%;background:${cor};display:inline-block;"></span>${label} ${n}</span>`:'';
+    const pill=(cor,bg,border,label,n,key)=>{
+      if(n===0)return'';
+      const ativo=pedidosFiltroPrio===key;
+      return`<span onclick="filtrarPedidosPrio('${key}')" style="display:flex;align-items:center;gap:6px;background:${bg};border:1.5px solid ${ativo?cor:border};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;color:${cor};cursor:pointer;box-shadow:${ativo?'0 0 0 1px '+cor:'none'};"><span style="width:9px;height:9px;border-radius:50%;background:${cor};display:inline-block;"></span>${label} ${n}</span>`;
+    };
     const pills=[
-      pill('#A32D2D','#FCEBEB','#E39494','Urgente',nVermelho),
-      pill('#854F0B','#FEF6E4','#EFCB7E','Atenção',nAmanha),
-      pill('#1E7E4C','#EDF8F2','#9BD6B6','Sob controle',nVerde)
+      pill('#A32D2D','#FCEBEB','#E39494','Urgente',nVermelho,'vermelho'),
+      pill('#854F0B','#FEF6E4','#EFCB7E','Atenção',nAmanha,'amanha'),
+      pill('#1E7E4C','#EDF8F2','#9BD6B6','Sob controle',nVerde,'verde'),
+      pedidosFiltroPrio?`<span onclick="filtrarPedidosPrio('')" style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1.5px solid var(--border2);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;">✕ Mostrar todos</span>`:''
     ].join('');
     prioBox.innerHTML=pills;
   }
 }
+
+window.filtrarPedidosPrio=function(cor){
+  pedidosFiltroPrio=(pedidosFiltroPrio===cor)?'':cor;
+  renderPedidos();
+};
 
 function renderOrcamentos(){
   const list=document.getElementById('orc-list');
