@@ -3598,6 +3598,7 @@ window.trocarGrupoEdit = function(idx) {
   window._editGrupoIdx = idx;
   window.carregarGrupoParaEditar(o, idx);
   window.renderEditGruposTabs(o);
+  window._editModificado = false; // ao navegar, mostra o valor exato salvo do novo grupo
   // Atualiza aviso
   const aviso = document.getElementById('edit-grupos-aviso');
   if(aviso) aviso.innerHTML = `Editando: <strong>${o.grupos[idx]?.nome||'Serviço '+(idx+1)}</strong> — total do orçamento é a soma de todos os grupos.`;
@@ -3743,20 +3744,24 @@ window.validarCamposEdit = function() {
 window.atualizarTotaisEdit = function() {
   const o = (window._orcamentos||[]).find(x=>x.id===window._modalOrcId);
 
-  // Se não foi modificado: mostrar valores EXATOS do Firebase sem recalcular
-  if(!window._editModificado && o && o.venda > 0) {
-    const mr = o.venda>0 ? Math.round(o.lucro/o.venda*100) : 0;
-    const pM = o.venda>0 ? Math.round((o.subMat||0)/o.venda*100) : 0;
-    const pO = o.venda>0 ? Math.round((o.moVal||0)/o.venda*100) : 0;
-    const pC = o.venda>0 ? Math.round((o.custoTotal||0)/o.venda*100) : 0;
+  // Se não foi modificado: mostrar valores EXATOS salvos do GRUPO ATUAL (não a soma do orçamento inteiro)
+  const _idxAtual = window._editGrupoIdx||0;
+  const _temMultiGrupos = o && o.grupos && o.grupos.length > 1;
+  const _fonte = _temMultiGrupos ? (o.grupos[_idxAtual]||o) : o;
+  if(!window._editModificado && _fonte && _fonte.venda > 0) {
+    const mr = _fonte.venda>0 ? Math.round(_fonte.lucro/_fonte.venda*100) : 0;
+    const pM = _fonte.venda>0 ? Math.round((_fonte.subMat||0)/_fonte.venda*100) : 0;
+    const pO = _fonte.venda>0 ? Math.round((_fonte.moVal||0)/_fonte.venda*100) : 0;
+    const pC = _fonte.venda>0 ? Math.round((_fonte.custoTotal||0)/_fonte.venda*100) : 0;
     const badge = `<span style="font-size:10px;background:${mr>=40?'#dcfce7':mr>=25?'#fef9c3':'#fee2e2'};color:${mr>=40?'#166534':mr>=25?'#854d0e':'#991b1b'};padding:1px 7px;border-radius:10px;font-weight:700;margin-left:4px;">${mr}%</span>`;
     const el = document.getElementById('edit-orc-totais');
     if(el) el.innerHTML = `
-      <div class="mbar"><div class="mbar-label">Materiais <span style="font-size:10px;color:var(--muted);font-weight:400;">${pM}% da venda</span></div><div class="mbar-val">${fmt(o.subMat||0)}</div></div>
-      <div class="mbar"><div class="mbar-label">Mão de obra <span style="font-size:10px;color:var(--muted);font-weight:400;">${pO}% da venda</span></div><div class="mbar-val" style="color:var(--purple)">${fmt(o.moVal||0)}</div></div>
-      <div class="mbar"><div class="mbar-label">Custo total <span style="font-size:10px;color:var(--muted);font-weight:400;">${pC}% da venda</span></div><div class="mbar-val amber">${fmt(o.custoTotal||0)}</div></div>
-      <div class="mbar"><div class="mbar-label">Venda (${o.margemPct||0}% margem)</div><div class="mbar-val">${fmt(o.venda||0)}</div></div>
-      <div class="mbar"><div class="mbar-label">Lucro líquido ${badge}</div><div class="mbar-val green">${fmt(o.lucro||0)}</div></div>
+      ${_temMultiGrupos?`<div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:2px;">Valores deste serviço: <strong style="color:var(--text)">${_fonte.nome||'Serviço '+(_idxAtual+1)}</strong></div>`:''}
+      <div class="mbar"><div class="mbar-label">Materiais <span style="font-size:10px;color:var(--muted);font-weight:400;">${pM}% da venda</span></div><div class="mbar-val">${fmt(_fonte.subMat||0)}</div></div>
+      <div class="mbar"><div class="mbar-label">Mão de obra <span style="font-size:10px;color:var(--muted);font-weight:400;">${pO}% da venda</span></div><div class="mbar-val" style="color:var(--purple)">${fmt(_fonte.moVal||0)}</div></div>
+      <div class="mbar"><div class="mbar-label">Custo total <span style="font-size:10px;color:var(--muted);font-weight:400;">${pC}% da venda</span></div><div class="mbar-val amber">${fmt(_fonte.custoTotal||0)}</div></div>
+      <div class="mbar"><div class="mbar-label">Venda (${_fonte.margemPct||0}% margem)</div><div class="mbar-val">${fmt(_fonte.venda||0)}</div></div>
+      <div class="mbar"><div class="mbar-label">Lucro líquido ${badge}</div><div class="mbar-val green">${fmt(_fonte.lucro||0)}</div></div>
       <div style="grid-column:1/-1;margin-top:4px;padding:8px 12px;background:#f8f7f4;border-radius:8px;border:1px solid #e8e4de;"><div style="display:flex;gap:12px;flex-wrap:wrap;"><span style="font-size:11px;color:#166534;">🟢 ≥40% Excelente</span><span style="font-size:11px;color:#854d0e;">🟡 25–39% Bom</span><span style="font-size:11px;color:#991b1b;">🔴 &lt;25% Atenção</span></div></div>`;
     return; // NÃO recalcula
   }
