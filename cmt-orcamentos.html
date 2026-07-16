@@ -3490,28 +3490,28 @@ window.gerarRelatorioRecusas = function() {
         <h1>📊 Análise de Recusas</h1>
         <div class="sub">CMT Projetos e Fachadas · Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
       </div>
-      <span class="badge">${recusados.length} orçamentos recusados</span>
+      <span class="badge" id="badge-total">${recusados.length} orçamentos recusados</span>
     </div>
 
     <div class="cards">
       <div class="card">
         <div class="card-label">Total recusados</div>
-        <div class="card-val" style="color:#cc2222">${recusados.length}</div>
-        <div class="card-sub">todos os períodos</div>
+        <div class="card-val" style="color:#cc2222" id="card-total">${recusados.length}</div>
+        <div class="card-sub" id="card-total-sub">todos os períodos</div>
       </div>
       <div class="card">
         <div class="card-label">Valor total perdido</div>
-        <div class="card-val" style="color:#e8520a">R$ ${(totalPerdido/1000).toFixed(1)}k</div>
-        <div class="card-sub">${new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(totalPerdido)}</div>
+        <div class="card-val" style="color:#e8520a" id="card-valor">R$ ${(totalPerdido/1000).toFixed(1)}k</div>
+        <div class="card-sub" id="card-valor-sub">${new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(totalPerdido)}</div>
       </div>
       <div class="card">
         <div class="card-label">Com motivo registrado</div>
-        <div class="card-val" style="color:#1C2340">${recusados.filter(o=>o.motivoRecusa).length}</div>
-        <div class="card-sub">de ${recusados.length} recusados</div>
+        <div class="card-val" style="color:#1C2340" id="card-motivo">${recusados.filter(o=>o.motivoRecusa).length}</div>
+        <div class="card-sub" id="card-motivo-sub">de ${recusados.length} recusados</div>
       </div>
       <div class="card">
         <div class="card-label">Ticket médio perdido</div>
-        <div class="card-val" style="color:#666">${recusados.length>0?new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(totalPerdido/recusados.length):'—'}</div>
+        <div class="card-val" style="color:#666" id="card-ticket">${recusados.length>0?new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(totalPerdido/recusados.length):'—'}</div>
         <div class="card-sub">por orçamento</div>
       </div>
     </div>
@@ -3523,11 +3523,7 @@ window.gerarRelatorioRecusas = function() {
         <div class="leg-item"><div class="leg-dot" style="background:#1C2340"></div>Valor perdido (escala)</div>
       </div>
       <div style="overflow-x:auto;">
-        <svg width="${Math.max(totalW,600)}" height="${chartH}" style="display:block;">
-          <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${chartH-padB}" stroke="#eee" stroke-width="1"/>
-          <line x1="${padL}" y1="${chartH-padB}" x2="${totalW}" y2="${chartH-padB}" stroke="#eee" stroke-width="1"/>
-          ${bars}
-        </svg>
+        <div id="chart-wrap"></div>
       </div>
     </div>
 
@@ -3552,7 +3548,63 @@ window.gerarRelatorioRecusas = function() {
 
   <script>
     const dados = ${dadosJSON};
+    const nomesMes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
     function fmt(v){ return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v); }
+
+    function renderChart(filtrados, mesSel){
+      // Agrupa por mês
+      const porMes = {};
+      filtrados.forEach(o=>{
+        const k = o.dataKey;
+        if(!porMes[k]) porMes[k]={count:0,valor:0};
+        porMes[k].count++;
+        porMes[k].valor += o.valor;
+      });
+      const keys = Object.keys(porMes).sort((a,b)=>b.localeCompare(a));
+      if(!keys.length){ document.getElementById('chart-wrap').innerHTML='<div style="color:#bbb;padding:20px;text-align:center;">Nenhum dado no período</div>'; return; }
+      const maxC = Math.max(...keys.map(k=>porMes[k].count),1);
+      const maxV = Math.max(...keys.map(k=>porMes[k].valor),1);
+      const barW=36,gap=4,groupW=barW*2+gap,padL=60,padB=44,padT=24,chartH=200;
+      const totalW = Math.max(padL + keys.length*(groupW+20)+20, 600);
+      const bars = keys.map((k,i)=>{
+        const m = porMes[k];
+        const x = padL + i*(groupW+20);
+        const h1 = Math.max(4, Math.round((m.count/maxC)*(chartH-padB-padT)));
+        const h2 = Math.max(4, Math.round((m.valor/maxV)*(chartH-padB-padT)));
+        const y1 = chartH-padB-h1, y2 = chartH-padB-h2;
+        const [ano,mes] = k.split('-');
+        const highlight = mesSel && mesSel===k;
+        return \`
+          <rect x="\${x}" y="\${y1}" width="\${barW}" height="\${h1}" fill="\${highlight?'#ff6b2b':'#e8520a'}" rx="3" opacity="\${highlight?'1':'0.85'}"/>
+          <text x="\${x+barW/2}" y="\${y1-5}" text-anchor="middle" font-size="10" fill="#e8520a" font-weight="700">\${m.count}</text>
+          <rect x="\${x+barW+gap}" y="\${y2}" width="\${barW}" height="\${h2}" fill="\${highlight?'#2d4a8a':'#1C2340'}" rx="3" opacity="\${highlight?'1':'0.8'}"/>
+          <text x="\${x+barW+gap+barW/2}" y="\${y2-5}" text-anchor="middle" font-size="9" fill="#1C2340" font-weight="700">\${m.valor>=1000?(m.valor/1000).toFixed(1)+'k':Math.round(m.valor)}</text>
+          <text x="\${x+barW+gap/2+barW/2}" y="\${chartH-padB+16}" text-anchor="middle" font-size="11" fill="\${highlight?'#e8520a':'#555'}" font-weight="\${highlight?'700':'400'}">\${nomesMes[parseInt(mes)-1]}</text>
+          <text x="\${x+barW+gap/2+barW/2}" y="\${chartH-padB+29}" text-anchor="middle" font-size="9" fill="#aaa">\${ano}</text>\`;
+      }).join('');
+      document.getElementById('chart-wrap').innerHTML = \`<svg width="\${totalW}" height="\${chartH}" style="display:block;">
+        <line x1="\${padL}" y1="\${padT}" x2="\${padL}" y2="\${chartH-padB}" stroke="#eee" stroke-width="1"/>
+        <line x1="\${padL}" y1="\${chartH-padB}" x2="\${totalW}" y2="\${chartH-padB}" stroke="#eee" stroke-width="1"/>
+        \${bars}
+      </svg>\`;
+    }
+
+    function atualizarCards(filtrados, mesSel){
+      const total = filtrados.length;
+      const totalVal = filtrados.reduce((a,o)=>a+o.valor,0);
+      const comMotivo = filtrados.filter(o=>o.motivo).length;
+      const ticket = total>0 ? totalVal/total : 0;
+      const label = mesSel ? document.getElementById('sel-mes-rec').options[document.getElementById('sel-mes-rec').selectedIndex].text : 'todos os períodos';
+      document.getElementById('card-total').textContent = total;
+      document.getElementById('card-total-sub').textContent = label;
+      document.getElementById('card-valor').textContent = totalVal>=1000?'R$ '+(totalVal/1000).toFixed(1)+'k':fmt(totalVal);
+      document.getElementById('card-valor-sub').textContent = fmt(totalVal);
+      document.getElementById('card-motivo').textContent = comMotivo;
+      document.getElementById('card-motivo-sub').textContent = 'de '+total+' recusados';
+      document.getElementById('card-ticket').textContent = total>0?fmt(ticket):'—';
+      document.getElementById('badge-total').textContent = total+' orçamentos recusados';
+    }
+
     function filtrar(){
       const mes = document.getElementById('sel-mes-rec').value;
       const busca = (document.getElementById('busca-rec').value||'').toLowerCase();
@@ -3571,6 +3623,11 @@ window.gerarRelatorioRecusas = function() {
           <td style="color:#888;white-space:nowrap">\${o.data}</td>
           <td>\${o.motivo?'<span class="tag-motivo">'+o.motivo+'</span>':'<span class="tag-sem">Não informado</span>'}</td>
         </tr>\`).join('');
+      // Atualiza cards e gráfico
+      atualizarCards(filtrados, mes);
+      // Gráfico: sem filtro de busca para mostrar todos os meses; com filtro de mês, destaca o mês
+      const paraGrafico = busca ? filtrados : dados.filter(o=>!mes||o.dataKey===mes);
+      renderChart(busca ? filtrados : dados, mes);
     }
     filtrar();
   <\/script>
