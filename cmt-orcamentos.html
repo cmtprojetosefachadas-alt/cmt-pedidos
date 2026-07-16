@@ -3391,49 +3391,194 @@ window.gerarRelatorioRecusas = function() {
   const todos = window._orcamentos || [];
   const recusados = todos.filter(o=>o.status==='Recusado');
   if(!recusados.length){ showToast('Nenhum orçamento recusado encontrado!'); return; }
-  const win = window.open('','_blank');
-  if(!win){ alert('Permita pop-ups!'); return; }
-  const rows = recusados.map(o=>`
-    <tr>
-      <td style="font-weight:700;color:#888">${o.numero||o.num||'—'}</td>
-      <td style="font-weight:600">${o.cliente}</td>
-      <td style="color:#e8520a;font-weight:700">${fmt(o.venda||0)}</td>
-      <td style="color:#888">${fmtData(o.dataRecusa||o.criadoEm)}</td>
-      <td style="color:#991b1b;font-size:12px">${o.motivoRecusa||'<em style="color:#aaa">Não informado</em>'}</td>
-    </tr>`).join('');
+
+  // Agrupa por mês
+  const nomesMes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const nomesMesFull = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const porMes = {};
+  recusados.forEach(o=>{
+    const d = new Date(o.dataRecusa||o.criadoEm||Date.now());
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if(!porMes[key]) porMes[key]={label:`${nomesMesFull[d.getMonth()]} ${d.getFullYear()}`,count:0,valor:0,itens:[]};
+    porMes[key].count++;
+    porMes[key].valor += (o.venda||0);
+    porMes[key].itens.push(o);
+  });
+  const mesesKeys = Object.keys(porMes).sort((a,b)=>b.localeCompare(a));
+  const maxCount = Math.max(...mesesKeys.map(k=>porMes[k].count));
+  const maxValor = Math.max(...mesesKeys.map(k=>porMes[k].valor));
   const totalPerdido = recusados.reduce((a,o)=>a+(o.venda||0),0);
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+
+  // Gráfico SVG de barras duplas
+  const barW = 36, gap = 20, groupW = barW*2+gap, padL=60, padB=40, padT=20, chartH=180;
+  const totalW = padL + mesesKeys.length*(groupW+16) + 20;
+  const barColor1 = '#e8520a', barColor2 = '#1C2340';
+
+  const bars = mesesKeys.map((k,i)=>{
+    const m = porMes[k];
+    const x = padL + i*(groupW+16);
+    const h1 = maxCount>0 ? Math.round((m.count/maxCount)*(chartH-padB-padT)) : 0;
+    const h2 = maxValor>0 ? Math.round((m.valor/maxValor)*(chartH-padB-padT)) : 0;
+    const y1 = chartH-padB-h1, y2 = chartH-padB-h2;
+    const [ano,mes] = k.split('-');
+    return `
+      <rect x="${x}" y="${y1}" width="${barW}" height="${h1}" fill="${barColor1}" rx="3" opacity="0.9"/>
+      <text x="${x+barW/2}" y="${y1-4}" text-anchor="middle" font-size="10" fill="${barColor1}" font-weight="700">${m.count}</text>
+      <rect x="${x+barW+4}" y="${y2}" width="${barW}" height="${h2}" fill="${barColor2}" rx="3" opacity="0.8"/>
+      <text x="${x+barW+4+barW/2}" y="${y2-4}" text-anchor="middle" font-size="9" fill="${barColor2}" font-weight="700">${m.valor>=1000?(m.valor/1000).toFixed(1)+'k':Math.round(m.valor)}</text>
+      <text x="${x+barW+2}" y="${chartH-padB+14}" text-anchor="middle" font-size="10" fill="#666">${nomesMes[parseInt(mes)-1]}</text>
+      <text x="${x+barW+2}" y="${chartH-padB+26}" text-anchor="middle" font-size="9" fill="#999">${ano}</text>`;
+  }).join('');
+
+  // Opções de mês para select
+  const mesOpts = `<option value="">Todos os meses</option>` +
+    mesesKeys.map(k=>`<option value="${k}">${porMes[k].label}</option>`).join('');
+
+  // Linhas da tabela (geradas dinamicamente via JS)
+  const dadosJSON = JSON.stringify(recusados.map(o=>({
+    num: o.numero||o.num||'—',
+    cliente: o.cliente,
+    valor: o.venda||0,
+    dataKey: (new Date(o.dataRecusa||o.criadoEm||Date.now())).toISOString().substring(0,7),
+    data: new Date(o.dataRecusa||o.criadoEm||Date.now()).toLocaleDateString('pt-BR'),
+    motivo: o.motivoRecusa||''
+  })));
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head>
+  <meta charset="UTF-8"/>
   <title>Análise de Recusas — CMT</title>
   <style>
-    body{font-family:Inter,sans-serif;padding:32px;color:#1a1a1a;font-size:13px;}
-    h1{font-size:20px;color:#1C2340;margin-bottom:4px;}
-    .sub{font-size:12px;color:#6b6b6b;margin-bottom:24px;}
-    .resumo{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
-    .card{border:1px solid #ddd;border-radius:8px;padding:14px 18px;}
-    .card-label{font-size:11px;color:#6b6b6b;text-transform:uppercase;margin-bottom:4px;}
-    .card-val{font-size:22px;font-weight:700;}
-    table{width:100%;border-collapse:collapse;font-size:12px;}
-    th{background:#1C2340;color:#fff;padding:8px 10px;text-align:left;font-size:11px;}
-    td{padding:8px 10px;border-bottom:1px solid #eee;vertical-align:top;}
-    tr:nth-child(even) td{background:#f9f9f9;}
-    @media print{body{padding:16px;}}
-  </style></head><body>
-  <h1>CMT Projetos e Fachadas — Análise de Recusas</h1>
-  <div class="sub">Gerado em ${new Date().toLocaleDateString('pt-BR')} · Total: ${recusados.length} orçamentos recusados</div>
-  <div class="resumo">
-    <div class="card"><div class="card-label">Total recusados</div><div class="card-val" style="color:#cc2222">${recusados.length}</div></div>
-    <div class="card"><div class="card-label">Valor total perdido</div><div class="card-val" style="color:#cc2222">${fmt(totalPerdido)}</div></div>
-    <div class="card"><div class="card-label">Com motivo registrado</div><div class="card-val" style="color:#666">${recusados.filter(o=>o.motivoRecusa).length} de ${recusados.length}</div></div>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Inter,Arial,sans-serif;background:#f8f7f4;color:#1a1a1a;min-height:100vh;}
+    .page{max-width:980px;margin:0 auto;padding:32px 24px;}
+    .header{background:linear-gradient(135deg,#1C2340 0%,#2d3a5e 100%);color:#fff;border-radius:14px;padding:28px 32px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;}
+    .header h1{font-size:22px;font-weight:800;margin-bottom:4px;}
+    .header .sub{font-size:13px;opacity:.7;}
+    .header .badge{background:rgba(232,82,10,0.25);border:1px solid rgba(232,82,10,0.5);color:#ff8c5a;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;}
+    .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+    .card{background:#fff;border-radius:10px;padding:18px 20px;border:1px solid #e8e4de;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+    .card-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+    .card-val{font-size:24px;font-weight:800;}
+    .card-sub{font-size:11px;color:#aaa;margin-top:4px;}
+    .section{background:#fff;border-radius:10px;padding:22px 24px;border:1px solid #e8e4de;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+    .section h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#1C2340;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #f0ede8;}
+    .filters{display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
+    .filters select,.filters input{padding:8px 14px;border:1.5px solid #e0dbd3;border-radius:8px;font-size:13px;font-family:inherit;background:#fafaf8;color:#1a1a1a;cursor:pointer;}
+    .filters select:focus,.filters input:focus{outline:none;border-color:#e8520a;}
+    .btn-filtrar{padding:8px 20px;background:#e8520a;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+    .legend{display:flex;gap:16px;margin-bottom:12px;}
+    .leg-item{display:flex;align-items:center;gap:6px;font-size:12px;color:#666;}
+    .leg-dot{width:12px;height:12px;border-radius:3px;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th{background:#1C2340;color:#fff;padding:10px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+    th:first-child{border-radius:6px 0 0 6px;}th:last-child{border-radius:0 6px 6px 0;}
+    td{padding:10px 12px;border-bottom:1px solid #f0ede8;vertical-align:top;}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:#faf9f6;}
+    .tag-motivo{background:#fef2f2;color:#991b1b;padding:4px 10px;border-radius:6px;font-size:12px;display:inline-block;margin-top:4px;}
+    .tag-sem{color:#bbb;font-style:italic;font-size:12px;}
+    .valor-red{color:#e8520a;font-weight:700;}
+    .num-badge{background:#f0ede8;color:#888;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;}
+    .footer{text-align:center;color:#bbb;font-size:11px;margin-top:24px;padding-top:16px;border-top:1px solid #eee;}
+    #resultado-total{font-size:12px;color:#888;margin-top:8px;}
+    @media print{body{background:#fff;}.page{padding:16px;}.filters,.btn-filtrar{display:none!important;}.header{break-inside:avoid;}}
+  </style>
+  </head><body>
+  <div class="page">
+    <div class="header">
+      <div>
+        <h1>📊 Análise de Recusas</h1>
+        <div class="sub">CMT Projetos e Fachadas · Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+      </div>
+      <span class="badge">${recusados.length} orçamentos recusados</span>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-label">Total recusados</div>
+        <div class="card-val" style="color:#cc2222">${recusados.length}</div>
+        <div class="card-sub">todos os períodos</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Valor total perdido</div>
+        <div class="card-val" style="color:#e8520a">R$ ${(totalPerdido/1000).toFixed(1)}k</div>
+        <div class="card-sub">${new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(totalPerdido)}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Com motivo registrado</div>
+        <div class="card-val" style="color:#1C2340">${recusados.filter(o=>o.motivoRecusa).length}</div>
+        <div class="card-sub">de ${recusados.length} recusados</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Ticket médio perdido</div>
+        <div class="card-val" style="color:#666">${recusados.length>0?new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(totalPerdido/recusados.length):'—'}</div>
+        <div class="card-sub">por orçamento</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>📈 Recusas por mês</h2>
+      <div class="legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#e8520a"></div>Quantidade recusada</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#1C2340"></div>Valor perdido (escala)</div>
+      </div>
+      <div style="overflow-x:auto;">
+        <svg width="${Math.max(totalW,600)}" height="${chartH}" style="display:block;">
+          <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${chartH-padB}" stroke="#eee" stroke-width="1"/>
+          <line x1="${padL}" y1="${chartH-padB}" x2="${totalW}" y2="${chartH-padB}" stroke="#eee" stroke-width="1"/>
+          ${bars}
+        </svg>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🔍 Detalhamento por orçamento</h2>
+      <div class="filters">
+        <select id="sel-mes-rec" onchange="filtrar()">
+          ${mesOpts}
+        </select>
+        <input type="text" id="busca-rec" placeholder="Buscar cliente..." oninput="filtrar()" style="width:200px"/>
+        <button class="btn-filtrar" onclick="window.print()">🖨️ Imprimir</button>
+        <span id="resultado-total"></span>
+      </div>
+      <table>
+        <thead><tr><th>Nº</th><th>Cliente</th><th>Valor perdido</th><th>Data</th><th>Motivo da recusa</th></tr></thead>
+        <tbody id="tbody-rec"></tbody>
+      </table>
+    </div>
+
+    <div class="footer">CMT Projetos e Fachadas · Documento interno · Uso restrito</div>
   </div>
-  <table>
-    <thead><tr><th>Nº</th><th>Cliente</th><th>Valor</th><th>Data</th><th>Motivo da recusa</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-  <div style="margin-top:20px;font-size:11px;color:#aaa;border-top:1px solid #eee;padding-top:10px;">
-    CMT Projetos e Fachadas · Uso interno
-  </div>
-  <script>window.onload=()=>window.print()<\/script>
-  </body></html>`);
+
+  <script>
+    const dados = ${dadosJSON};
+    function fmt(v){ return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v); }
+    function filtrar(){
+      const mes = document.getElementById('sel-mes-rec').value;
+      const busca = (document.getElementById('busca-rec').value||'').toLowerCase();
+      const filtrados = dados.filter(o=>{
+        const okMes = !mes || o.dataKey===mes;
+        const okBusca = !busca || o.cliente.toLowerCase().includes(busca);
+        return okMes && okBusca;
+      });
+      const totalFilt = filtrados.reduce((a,o)=>a+o.valor,0);
+      document.getElementById('resultado-total').textContent = filtrados.length + ' resultado(s) · Total: ' + fmt(totalFilt);
+      document.getElementById('tbody-rec').innerHTML = filtrados.map(o=>\`
+        <tr>
+          <td><span class="num-badge">\${o.num}</span></td>
+          <td style="font-weight:600">\${o.cliente}</td>
+          <td class="valor-red">\${fmt(o.valor)}</td>
+          <td style="color:#888;white-space:nowrap">\${o.data}</td>
+          <td>\${o.motivo?'<span class="tag-motivo">'+o.motivo+'</span>':'<span class="tag-sem">Não informado</span>'}</td>
+        </tr>\`).join('');
+    }
+    filtrar();
+  <\/script>
+  </body></html>`;
+
+  const win = window.open('','_blank');
+  if(!win){ alert('Permita pop-ups!'); return; }
+  win.document.write(html);
   win.document.close();
 };
 
