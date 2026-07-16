@@ -3028,6 +3028,14 @@ window.gerarPDFOrcamento = function(id) {
     <div class="kpi blue"><div class="kpi-label">Margem de contribuição</div><div class="kpi-val" style="color:#1a5fa8">${margem}%</div></div>
   </div>
 
+  <!-- MOTIVO DE RECUSA -->
+  ${o.status==='Recusado'&&o.motivoRecusa?`
+  <div style="margin-top:20px;padding:14px 18px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;border-left:4px solid #dc2626;">
+    <div style="font-size:11px;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">❌ Motivo da recusa</div>
+    <div style="font-size:13px;color:#7f1d1d;line-height:1.6;">${o.motivoRecusa}</div>
+    ${o.dataRecusa?`<div style="font-size:11px;color:#b91c1c;margin-top:6px;">📅 Recusado em ${new Date(o.dataRecusa).toLocaleDateString('pt-BR')}</div>`:''}
+  </div>`:''}
+
   <!-- FOOTER -->
   <div class="footer">
     ${o.moResponsavel?`<span>Responsável pela execução: <strong>${o.moResponsavel}</strong></span>`:'<span>CMT Projetos e Fachadas — Documento interno</span>'}
@@ -3373,7 +3381,7 @@ window.enviarLembreteWpp = function(id) {
   if(!o) return;
   const dias = Math.floor((new Date()-new Date(o.criadoEm))/(1000*60*60*24));
   const tel = (o.tel||'').replace(/\D/g,'');
-  const msg = encodeURIComponent(`Olá, *${o.cliente}*! 👋\n\nPassando para saber se teve alguma dúvida sobre o orçamento *${o.numero||o.num}* que enviamos há ${dias} dias.\n\nEstamos à disposição para ajudar! 😊\n\n*CMT Projetos e Fachadas*\n(16) 99649-2182`);
+  const msg = encodeURIComponent(`Olá, *${o.cliente}*! 👋\n\nPassando para saber se teve alguma dúvida sobre o orçamento *${o.numero||o.num}* que enviamos há ${dias} dias.\n\nEstamos à disposição para ajudar! 😊\n\n*CMT Projetos e Fachadas*`);
   const url = tel ? `https://wa.me/55${tel}?text=${msg}` : `https://wa.me/?text=${msg}`;
   window.open(url,'_blank');
   document.getElementById('modal-overlay').classList.remove('open');
