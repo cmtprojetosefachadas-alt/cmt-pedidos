@@ -144,6 +144,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .posvenda-item{background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px}
 .posvenda-data{font-size:11px;color:var(--muted);margin-bottom:4px}
 .posvenda-msg{color:var(--text)}
+.obsint-box{background:#F4F0FB;border:1px solid #DED1F2;border-radius:10px;padding:14px;margin-bottom:18px}
+.obsint-title{font-size:12px;color:#5B3E96;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px;letter-spacing:.2px}
+.obsint-lista{max-height:180px;overflow-y:auto;margin-bottom:10px}
+.obsint-item{background:#fff;border:1px solid #E7DDF6;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px}
+.obsint-data{font-size:11px;color:#8467B8;margin-bottom:4px;font-weight:500}
+.obsint-msg{color:var(--text)}
+.obsint-input{width:100%;min-height:50px;padding:9px 12px;border:1px solid #DED1F2;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;background:#fff;color:var(--text)}
+.obsint-input:focus{border-color:#8467B8}
+.btn-obsint{background:#6D4AAE;border-color:#6D4AAE;color:#fff}
+.btn-obsint:hover{background:#5B3E96}
 .loading{text-align:center;padding:40px;color:var(--muted);font-size:14px}
 @media print{
   .topbar,.tabs-wrap,.actions,.section-header,#print-no,
@@ -1482,6 +1492,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="btn btn-primary" id="btn-salvar-msg">&#128190; Salvar mensagem</button>
       <button class="btn btn-wpp" id="btn-wpp-msg">&#128172; Enviar via WhatsApp</button>
     </div>
+    <div class="obsint-box">
+      <div class="obsint-title">&#128274; OBSERVAÇÕES INTERNAS &mdash; uso exclusivo da equipe</div>
+      <div class="obsint-lista" id="obsint-lista"></div>
+      <textarea class="obsint-input" id="obsint-input" placeholder="Ex: Cliente ligou reclamando de atraso, verificar com produção."></textarea>
+      <button class="btn btn-obsint" id="btn-salvar-obsint" style="width:100%;margin-top:8px;">&#128190; Salvar observação</button>
+    </div>
     <div class="modal-actions">
       <button class="btn" id="btn-fechar-modal">Fechar</button>
       <button class="btn" id="btn-ver-orc" style="display:none;">📄 Ver Pedido</button>
@@ -2766,6 +2782,7 @@ window.openModal = async function openModal(id){
   cancelEnderecoEdit();
   renderEtapas(p.etapa||0);
   await renderPosvenda(id);
+  await renderObsInternas(id);
   document.getElementById('modal-bg').classList.add('open');
 }
 
@@ -2819,6 +2836,14 @@ async function renderPosvenda(pedidoId){
   const msgs=snap.docs.map(d=>d.data());
   const el=document.getElementById('posvenda-lista');
   el.innerHTML=msgs.length?msgs.map(m=>`<div class="posvenda-item"><div class="posvenda-data">${fmtTS(m.criadoEm)}</div><div class="posvenda-msg">${m.texto}</div></div>`).join(''):'<div style="color:var(--muted);font-size:12px;padding:8px;">Nenhuma mensagem ainda.</div>';
+  el.scrollTop=el.scrollHeight;
+}
+
+async function renderObsInternas(pedidoId){
+  const snap=await getDocs(query(collection(db,'pedidos',pedidoId,'observacoesInternas'),orderBy('criadoEm','asc')));
+  const obs=snap.docs.map(d=>d.data());
+  const el=document.getElementById('obsint-lista');
+  el.innerHTML=obs.length?obs.map(o=>`<div class="obsint-item"><div class="obsint-data">${fmtTS(o.criadoEm)}</div><div class="obsint-msg">${o.texto}</div></div>`).join(''):'<div style="color:var(--muted);font-size:12px;padding:8px;">Nenhuma observação ainda.</div>';
   el.scrollTop=el.scrollHeight;
 }
 
@@ -3703,6 +3728,15 @@ document.addEventListener('click',async e=>{
     document.getElementById('posvenda-input').value='';
     await renderPosvenda(currentPedidoId);
     showToast('Mensagem salva!');return;
+  }
+  // Salvar observação interna
+  if(e.target.id==='btn-salvar-obsint'){
+    const texto=document.getElementById('obsint-input').value.trim();
+    if(!texto)return;
+    await addDoc(collection(db,'pedidos',currentPedidoId,'observacoesInternas'),{texto,criadoEm:serverTimestamp(),tipo:'admin'});
+    document.getElementById('obsint-input').value='';
+    await renderObsInternas(currentPedidoId);
+    showToast('Observação interna salva!');return;
   }
   // Enviar msg wpp
   if(e.target.id==='btn-wpp-msg'){
