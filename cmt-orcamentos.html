@@ -937,6 +937,48 @@ body {
 
 </div>
 
+<!-- MODAL VISUALIZAÇÃO RÁPIDA ITEM ESTOQUE -->
+<div id="modal-item-estoque" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:14px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.2);overflow:hidden;">
+    <div style="background:#1a2332;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div id="mie-nome" style="font-size:18px;font-weight:800;color:#fff;"></div>
+        <div id="mie-cat" style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:3px;"></div>
+      </div>
+      <button onclick="document.getElementById('modal-item-estoque').style.display='none'" style="background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;">×</button>
+    </div>
+    <div style="padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="background:#f8f7f4;border-radius:8px;padding:14px;">
+        <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px;">Quantidade</div>
+        <div id="mie-qtd" style="font-size:22px;font-weight:800;color:#1a2332;"></div>
+      </div>
+      <div style="background:#f8f7f4;border-radius:8px;padding:14px;">
+        <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px;">Valor unit.</div>
+        <div id="mie-unit" style="font-size:22px;font-weight:800;color:#1a2332;"></div>
+      </div>
+      <div style="background:#fff3e8;border-radius:8px;padding:14px;border:1px solid #fde8cc;">
+        <div style="font-size:11px;color:#e8520a;text-transform:uppercase;margin-bottom:4px;">Total</div>
+        <div id="mie-total" style="font-size:22px;font-weight:800;color:#e8520a;"></div>
+      </div>
+      <div id="mie-status-box" style="border-radius:8px;padding:14px;">
+        <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px;">Status</div>
+        <div id="mie-status" style="font-size:16px;font-weight:700;"></div>
+      </div>
+    </div>
+    <div style="padding:0 24px 20px;display:flex;flex-direction:column;gap:10px;">
+      <div id="mie-obs-box" style="display:none;background:#fafaf8;border:1px solid #e8e4de;border-radius:8px;padding:12px;">
+        <div style="font-size:11px;color:#888;margin-bottom:4px;">📝 Observação</div>
+        <div id="mie-obs" style="font-size:13px;color:#1a2332;"></div>
+      </div>
+      <div id="mie-cliente-box" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;">
+        <div style="font-size:11px;color:#1d4ed8;margin-bottom:4px;">🎯 Cliente destino</div>
+        <div id="mie-cliente" style="font-size:13px;font-weight:700;color:#1d4ed8;"></div>
+      </div>
+      <div id="mie-data" style="font-size:12px;color:#aaa;text-align:right;"></div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL NOVO LOCAL/PRESTADOR -->
 <div class="modal-overlay" id="modal-est-entidade" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:420px">
@@ -3341,9 +3383,15 @@ window.abrirModal = function(id) {
     </div>`:''}
 
     ${o.status==='Aguardando'&&o.criadoEm&&((new Date()-new Date(o.criadoEm))/(1000*60*60*24))>=2?`
-    <div style="margin-top:10px;padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-      <div style="font-size:12px;color:#991b1b;font-weight:600;">⚠️ Aguardando há ${Math.floor((new Date()-new Date(o.criadoEm))/(1000*60*60*24))} dias</div>
-      ${o.tel?`<button onclick="enviarLembreteWpp('${id}')" style="padding:7px 14px;border-radius:6px;border:none;background:#25d366;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">📲 Lembrete WhatsApp</button>`:''}
+    <div style="margin-top:10px;padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div style="font-size:12px;color:#991b1b;font-weight:600;">⚠️ Aguardando há ${Math.floor((new Date()-new Date(o.criadoEm))/(1000*60*60*24))} dias</div>
+        <button onclick="enviarLembreteWpp('${id}')" style="padding:7px 14px;border-radius:6px;border:none;background:#25d366;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">📲 Lembrete WhatsApp</button>
+      </div>
+      ${!o.tel?`<div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+        <input id="inp-tel-modal" type="tel" placeholder="WhatsApp do cliente ex: 16999990000" style="flex:1;padding:7px 10px;border:1.5px solid #fca5a5;border-radius:6px;font-size:12px;font-family:inherit;"/>
+        <button onclick="salvarTelModal('${id}')" style="padding:7px 14px;background:#1C2340;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Salvar</button>
+      </div><div style="font-size:11px;color:#b91c1c;margin-top:4px;">⚠️ Sem telefone — salve para pré-preencher o WhatsApp</div>`:''}
     </div>`:''}
   `;
   document.getElementById('modal-overlay').classList.add('open');
@@ -3376,11 +3424,53 @@ window.salvarMoResponsavel = async function(id) {
   }
 };
 
+window.verItemEstoque = function(it) {
+  const m = document.getElementById('modal-item-estoque');
+  if(!m) return;
+  document.getElementById('mie-nome').textContent = it.nome||'—';
+  document.getElementById('mie-cat').textContent = (it.cat||'') + (it.unidade?' · '+it.unidade:'');
+  document.getElementById('mie-qtd').textContent = (it.qtd||1).toLocaleString('pt-BR',{maximumFractionDigits:2}) + ' ' + (it.unidade||'un');
+  document.getElementById('mie-unit').textContent = fmt(it.valorUnit||0);
+  document.getElementById('mie-total').textContent = fmt(it.total||0);
+  const statusBox = document.getElementById('mie-status-box');
+  const statusEl = document.getElementById('mie-status');
+  if(it.usado){
+    statusBox.style.background='#f0fdf4'; statusBox.style.border='1px solid #86efac';
+    statusEl.textContent='✅ Utilizado'; statusEl.style.color='#166534';
+  } else {
+    statusBox.style.background='#fffbeb'; statusBox.style.border='1px solid #fde68a';
+    statusEl.textContent='📦 Disponível'; statusEl.style.color='#92400e';
+  }
+  const obsBox = document.getElementById('mie-obs-box');
+  if(it.obs){ obsBox.style.display='block'; document.getElementById('mie-obs').textContent=it.obs; }
+  else obsBox.style.display='none';
+  const cliBox = document.getElementById('mie-cliente-box');
+  if(it.cliente){ cliBox.style.display='block'; document.getElementById('mie-cliente').textContent=it.cliente; }
+  else cliBox.style.display='none';
+  document.getElementById('mie-data').textContent = it.data ? '📅 Lançado em ' + (it.data.split('-').reverse().join('/')) : '';
+  m.style.display='flex';
+};
+
+window.salvarTelModal = async function(id) {
+  const tel = (document.getElementById('inp-tel-modal')?.value||'').replace(/\D/g,'');
+  if(!tel){ showToast('Digite o telefone!'); return; }
+  const o = window._orcamentos.find(x=>x.id===id);
+  if(!o) return;
+  try {
+    await updateDoc(doc(db,'cmt_orcamentos',id),{tel});
+    o.tel = tel;
+    showToast('✓ Telefone salvo!');
+    abrirModal(id);
+  } catch(e){ showToast('Erro ao salvar!'); }
+};
+
 window.enviarLembreteWpp = function(id) {
   const o = window._orcamentos.find(x=>x.id===id);
   if(!o) return;
   const dias = Math.floor((new Date()-new Date(o.criadoEm))/(1000*60*60*24));
-  const tel = (o.tel||'').replace(/\D/g,'');
+  // Usa tel do orçamento ou do input se existir
+  const telInput = (document.getElementById('inp-tel-modal')?.value||'').replace(/\D/g,'');
+  const tel = (o.tel||telInput||'').replace(/\D/g,'');
   const msg = encodeURIComponent(`Olá, *${o.cliente}*! 👋\n\nPassando para saber se teve alguma dúvida sobre o orçamento *${o.numero||o.num}* que enviamos há ${dias} dias.\n\nEstamos à disposição para ajudar! 😊\n\n*CMT Projetos e Fachadas*`);
   const url = tel ? `https://wa.me/55${tel}?text=${msg}` : `https://wa.me/?text=${msg}`;
   window.open(url,'_blank');
@@ -5868,8 +5958,8 @@ window.renderEstoque = function renderEstoque() {
                 </tr></thead>
                 <tbody>
                   ${itens.map(it=>`
-                    <tr style="${it.usado?'opacity:.5;':''}">
-                      <td style="padding:8px;border-bottom:1px solid var(--border);text-align:center">
+                    <tr style="${it.usado?'opacity:.5;':''}cursor:pointer;" onclick="window.verItemEstoque(${JSON.stringify(it).replace(/"/g,'&quot;')})" title="Clique para ver detalhes">
+                      <td style="padding:8px;border-bottom:1px solid var(--border);text-align:center" onclick="event.stopPropagation()">
                         <input type="checkbox" ${it.usado?'checked':''} onchange="window.toggleEstoqueUsado('${it.id}',this.checked)"
                           style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer">
                       </td>
