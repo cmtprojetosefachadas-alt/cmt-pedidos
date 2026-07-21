@@ -4026,17 +4026,16 @@ window.trocarGrupoEdit = function(idx) {
 window.salvarGrupoAtualEdit = function(o) {
   const idx = window._editGrupoIdx;
   if(!o.grupos || !o.grupos[idx]) return;
-  const margem = parseFloat(document.getElementById('edit-margem').value)||30;
-  const moPct  = parseFloat(document.getElementById('edit-mo-pct').value)||25;
-  const subMat = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100,0);
-  // Fórmula única: venda = subMat / (1 - margem% - MO%)
-  const divisor = Math.max(0.001, 1 - margem/100 - moPct/100);
-  const venda   = Math.round(subMat/divisor*100)/100;
-  const moVal   = Math.round(venda*moPct/100*100)/100;
-  const custoTotal = Math.round((subMat+moVal)*100)/100;
-  const lucro   = Math.round((venda-custoTotal)*100)/100;
-  const margemPct = venda>0 ? Math.round(lucro/venda*100) : margem;
-  o.grupos[idx] = {...o.grupos[idx], itens:[..._editItens], margem, moPct, subMat, moVal, venda, lucro, custoTotal, margemPct};
+  const margem   = parseFloat(document.getElementById('edit-margem').value)||30;
+  const moPct    = parseFloat(document.getElementById('edit-mo-pct').value)||25;
+  const pag      = document.getElementById('edit-pagamento')?.value||'dinheiro';
+  const isCard   = pag==='cartao_debito'||pag==='cartao_credito';
+  const taxaCard = isCard?(parseFloat(document.getElementById('edit-taxa-cartao')?.value)||0):0;
+  const subMat   = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100,0);
+  // Fórmula única (igual ao preview): venda = subMat / (1 - margem% - MO% - taxa%)
+  const calc = window.calcularVendaGrupo(subMat, margem, moPct, taxaCard);
+  const {venda, moVal, custoTotal, lucro, margemPct} = calc;
+  o.grupos[idx] = {...o.grupos[idx], itens:[..._editItens], margem, moPct, subMat, moVal, venda, lucro, custoTotal, margemPct, taxaCartao:taxaCard};
 };
 
 window.toggleTipoCliente = function(tipo) {
@@ -4158,6 +4157,20 @@ window.validarCamposEdit = function() {
   if(aviso) aviso.style.display='none';
 };
 
+// FÓRMULA ÚNICA DE CÁLCULO — usada em TODOS os pontos do sistema (preview, total geral e salvamento)
+// para garantir que o valor mostrado na tela seja sempre igual ao valor salvo.
+window.calcularVendaGrupo = function(subMat, margem, moPct, taxaCard) {
+  taxaCard = taxaCard || 0;
+  const divisor    = Math.max(0.001, 1 - margem/100 - moPct/100 - taxaCard/100);
+  const venda      = Math.round(subMat/divisor*100)/100;
+  const moVal      = Math.round(venda*moPct/100*100)/100;
+  const taxaVal    = Math.round(venda*taxaCard/100*100)/100;
+  const custoTotal = Math.round((subMat+moVal+taxaVal)*100)/100;
+  const lucro      = Math.round((venda-custoTotal)*100)/100;
+  const margemPct  = venda>0 ? Math.round(lucro/venda*100) : margem;
+  return {venda, moVal, taxaVal, custoTotal, lucro, margemPct};
+};
+
 window.atualizarTotaisEdit = function() {
   const o = (window._orcamentos||[]).find(x=>x.id===window._modalOrcId);
 
@@ -4189,13 +4202,8 @@ window.atualizarTotaisEdit = function() {
   const isCard   = pag==='cartao_debito'||pag==='cartao_credito';
   const taxaCard = isCard?(parseFloat(document.getElementById('edit-taxa-cartao')?.value)||0):0;
   const subMat   = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100, 0);
-  // Venda = Mat / (1 - margem% - MO% - taxa%)
-  const divisor  = Math.max(0.001, 1 - margem/100 - moPct/100 - taxaCard/100);
-  const venda    = Math.round(subMat/divisor*100)/100;
-  const moVal    = Math.round(venda*moPct/100*100)/100;
-  const taxaVal  = Math.round(venda*taxaCard/100*100)/100;
-  const custoT   = Math.round((subMat+moVal+taxaVal)*100)/100;
-  const lucro    = Math.round((venda-custoT)*100)/100;
+  const calc1    = window.calcularVendaGrupo(subMat, margem, moPct, taxaCard);
+  const venda    = calc1.venda, moVal = calc1.moVal, taxaVal = calc1.taxaVal, custoT = calc1.custoTotal, lucro = calc1.lucro;
   const pagLabel = {'dinheiro':'Dinheiro/PIX','boleto':'Boleto','cartao_debito':'Débito','cartao_credito':'Crédito','cheque':'Cheque','transferencia':'Transferência'}[pag]||pag;
 
   // Linha de MO no resumo de itens
@@ -4244,11 +4252,8 @@ window.atualizarTotaisEdit = function() {
     const gAtual = oAtual.grupos[idx];
     if(gAtual) {
       const subMatG = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100,0);
-      const divG    = Math.max(0.001, 1 - margem/100 - moPct/100);
-      const vendaG  = Math.round(subMatG/divG*100)/100;
-      const moValG  = Math.round(vendaG*moPct/100*100)/100;
-      const custoG  = Math.round((subMatG+moValG)*100)/100;
-      const lucroG  = Math.round((vendaG-custoG)*100)/100;
+      const calcG   = window.calcularVendaGrupo(subMatG, margem, moPct, taxaCard);
+      const vendaG  = calcG.venda, moValG = calcG.moVal, custoG = calcG.custoTotal, lucroG = calcG.lucro;
       // Cópia temporária para cálculo sem alterar o original
       const gruposCopy = oAtual.grupos.map((g,i) => i===idx
         ? {...g,venda:vendaG,custoTotal:custoG,lucro:lucroG,subMat:subMatG,moVal:moValG}
@@ -4319,15 +4324,15 @@ window.salvarEdicaoOrcamento = async function() {
 
   // Se não tem grupos, cria um com os itens atuais
   if(!o.grupos || !o.grupos.length) {
-    const margem = parseFloat(document.getElementById('edit-margem').value)||30;
-    const moPct  = parseFloat(document.getElementById('edit-mo-pct').value)||25;
-    const subMat = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100,0);
-    const divisor = Math.max(0.001, 1 - margem/100 - moPct/100);
-    const venda   = Math.round(subMat/divisor*100)/100;
-    const moVal   = Math.round(venda*moPct/100*100)/100;
-    const custoTotal = Math.round((subMat+moVal)*100)/100;
-    const lucro   = Math.round((venda-custoTotal)*100)/100;
-    o.grupos = [{id:'g1',nome:'Serviço 1',margem,moPct,itens:[..._editItens],subMat,moVal,venda,lucro,custoTotal}];
+    const margem   = parseFloat(document.getElementById('edit-margem').value)||30;
+    const moPct    = parseFloat(document.getElementById('edit-mo-pct').value)||25;
+    const pagFB    = document.getElementById('edit-pagamento')?.value||'dinheiro';
+    const isCardFB = pagFB==='cartao_debito'||pagFB==='cartao_credito';
+    const taxaFB   = isCardFB?(parseFloat(document.getElementById('edit-taxa-cartao')?.value)||0):0;
+    const subMat   = _editItens.reduce((a,i)=>a+Math.round(i.custo*i.qty*100)/100,0);
+    const calcFB   = window.calcularVendaGrupo(subMat, margem, moPct, taxaFB);
+    const {venda, moVal, custoTotal, lucro} = calcFB;
+    o.grupos = [{id:'g1',nome:'Serviço 1',margem,moPct,itens:[..._editItens],subMat,moVal,venda,lucro,custoTotal,taxaCartao:taxaFB}];
   }
 
   // Soma TODOS os grupos
