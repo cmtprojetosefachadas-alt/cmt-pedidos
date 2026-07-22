@@ -2340,6 +2340,8 @@ window.renderGrupos = function() {
   const lucroBase  = totais.reduce((s,c)=>s+c.lucro,0);
   const custoMatBase = totais.reduce((s,c)=>s+c.subMat,0);
   const moValBase  = totais.reduce((s,c)=>s+c.moVal,0);
+  const custoFixoPct = window._custoFixoPct||0;
+  const custoFixoVal = window._custoFixoVal||0;
   const vendaTotal   = Math.round((vendaBase + custoFixoVal)*100)/100;
   const lucroTotal   = Math.round((lucroBase - custoFixoVal)*100)/100;
   const lucroP       = vendaTotal>0?(lucroTotal/vendaTotal*100):0;
