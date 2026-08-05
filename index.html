@@ -587,6 +587,27 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         </div>
       </label>
 
+      <!-- À vista - Entrada + Saldo -->
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 14px;border:2px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--surface2);transition:all 0.15s;flex-wrap:wrap;" id="pgto-label-entrada">
+        <input type="checkbox" id="pgto-entrada" onchange="syncPgto()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;"/>
+        <span style="font-size:13px;font-weight:600;flex:1;min-width:150px;">🏗️ Entrada + Saldo</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+            <span style="font-size:13px;color:var(--muted);">R$</span>
+            <input type="number" id="pgto-entrada-val" placeholder="0,00" min="0" step="0.01"
+              oninput="calcEntradaSaldo()"
+              style="width:110px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);text-align:right;"
+              onclick="event.stopPropagation()"/>
+            <input type="number" id="pgto-entrada-pct" value="60" min="0" max="100" step="1"
+              oninput="calcEntradaSaldo()"
+              style="width:52px;padding:6px 6px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);text-align:center;"
+              onclick="event.stopPropagation()"/>
+            <span style="font-size:12px;color:var(--muted);">% entrada</span>
+          </div>
+          <div id="pgto-entrada-preview" style="display:none;font-size:12px;font-weight:700;color:#0F6E56;text-align:right;">—</div>
+        </div>
+      </label>
+
       <!-- Cartão de crédito -->
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 14px;border:2px solid var(--border);border-radius:10px;background:var(--surface2);transition:all 0.15s;flex-wrap:wrap;" id="pgto-label-cartao">
         <input type="checkbox" id="pgto-cartao" onchange="syncPgto()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;"/>
@@ -1714,13 +1735,17 @@ window.showTab = async function showTab(tab){
       const ca=document.getElementById('pgto-avista');if(ca)ca.checked=false;
       const cc=document.getElementById('pgto-cartao');if(cc)cc.checked=false;
       const cs=document.getElementById('pgto-semjuros');if(cs)cs.checked=false;
+      const ce=document.getElementById('pgto-entrada');if(ce)ce.checked=false;
       ['avista','cartao','semjuros'].forEach(t=>{const l=document.getElementById('pgto-label-'+t);if(l){l.style.borderColor='var(--border)';l.style.background='var(--surface2)';}});
       document.getElementById('pgto-avista-val')?.value && (document.getElementById('pgto-avista-val').value='');
       document.getElementById('pgto-cartao-total')?.value && (document.getElementById('pgto-cartao-total').value='');
       document.getElementById('pgto-parcelas') && (document.getElementById('pgto-parcelas').value='1');
       document.getElementById('pgto-semjuros-val')?.value && (document.getElementById('pgto-semjuros-val').value='');
+      document.getElementById('pgto-entrada-val')?.value && (document.getElementById('pgto-entrada-val').value='');
+      const pep=document.getElementById('pgto-entrada-pct');if(pep)pep.value='60';
       document.getElementById('pgto-cartao-preview') && (document.getElementById('pgto-cartao-preview').style.display='none');
       document.getElementById('pgto-semjuros-preview') && (document.getElementById('pgto-semjuros-preview').style.display='none');
+      document.getElementById('pgto-entrada-preview') && (document.getElementById('pgto-entrada-preview').style.display='none');
       const pv=document.getElementById('pgto-avista-val');if(pv)pv.value='';
       const pt=document.getElementById('pgto-cartao-total');if(pt)pt.value='';
       const pp=document.getElementById('pgto-parcelas');if(pp)pp.value='1';
@@ -3926,9 +3951,11 @@ document.addEventListener('click',async e=>{
         const chkAvista = document.getElementById('pgto-avista');
         const chkCartao = document.getElementById('pgto-cartao');
         const chkSemJuros = document.getElementById('pgto-semjuros');
-        if(chkAvista) { chkAvista.checked = pg.includes('À vista'); syncPgto && syncPgto(); }
+        const chkEntrada = document.getElementById('pgto-entrada');
+        if(chkAvista) { chkAvista.checked = pg.includes('À vista:') || pg.includes('À vista ('); syncPgto && syncPgto(); }
         if(chkCartao) { chkCartao.checked = pg.includes('Cartão de crédito:') && !pg.includes('sem juros'); }
         if(chkSemJuros) { chkSemJuros.checked = pg.includes('sem juros'); }
+        if(chkEntrada) { chkEntrada.checked = pg.includes('Entrada + Saldo'); }
         if(typeof syncPgto === 'function') syncPgto();
       }
       // Restore checkboxes from saved text
@@ -6926,8 +6953,9 @@ window.syncPgto = function() {
   const ativoAvista   = document.getElementById('pgto-avista').checked;
   const ativoCartao   = document.getElementById('pgto-cartao').checked;
   const ativoSemJuros = document.getElementById('pgto-semjuros')?.checked||false;
+  const ativoEntrada  = document.getElementById('pgto-entrada')?.checked||false;
 
-  [['avista',ativoAvista],['cartao',ativoCartao],['semjuros',ativoSemJuros]].forEach(([t,on])=>{
+  [['avista',ativoAvista],['cartao',ativoCartao],['semjuros',ativoSemJuros],['entrada',ativoEntrada]].forEach(([t,on])=>{
     const l=document.getElementById('pgto-label-'+t);
     if(l){l.style.borderColor=on?'var(--brand)':'var(--border)';l.style.background=on?'#fff3ec':'var(--surface2)';}
   });
@@ -6941,6 +6969,21 @@ window.syncPgto = function() {
       partes.push(`À vista: ${fmtMoney(comDesconto)} (5% desconto)`);
     } else {
       partes.push('À vista (5% desconto)');
+    }
+  }
+
+  if(ativoEntrada) {
+    const val = parseFloat(document.getElementById('pgto-entrada-val').value)||0;
+    let pct = parseFloat(document.getElementById('pgto-entrada-pct').value);
+    if(isNaN(pct) || pct < 0) pct = 0;
+    if(pct > 100) pct = 100;
+    const pctSaldo = 100 - pct;
+    if(val > 0) {
+      const entrada = val * (pct/100);
+      const saldo = val - entrada;
+      partes.push(`Entrada + Saldo: Entrada de ${fmtMoney(entrada)} (${pct}%) na aprovação do orçamento + Saldo de ${fmtMoney(saldo)} (${pctSaldo}%) no término do serviço`);
+    } else {
+      partes.push(`Entrada + Saldo: ${pct}% na aprovação + ${pctSaldo}% no término`);
     }
   }
 
@@ -6967,6 +7010,27 @@ window.syncPgto = function() {
   }
 
   document.getElementById('f-pagamento').value = partes.join('\n');
+};
+
+window.calcEntradaSaldo = function() {
+  document.getElementById('pgto-entrada').checked = true;
+  const val = parseFloat(document.getElementById('pgto-entrada-val').value)||0;
+  const pctInput = document.getElementById('pgto-entrada-pct');
+  let pct = parseFloat(pctInput.value);
+  if(isNaN(pct) || pct < 0) pct = 0;
+  if(pct > 100) pct = 100;
+  const preview = document.getElementById('pgto-entrada-preview');
+  if(val > 0) {
+    const entrada = val * (pct/100);
+    const saldo = val - entrada;
+    if(preview) {
+      preview.textContent = `Entrada (${pct}%): ${fmtMoney(entrada)}  •  Saldo (${100-pct}%): ${fmtMoney(saldo)}`;
+      preview.style.display = 'block';
+    }
+  } else if(preview) {
+    preview.style.display = 'none';
+  }
+  syncPgto();
 };
 
 window.calcAvista = function() {
