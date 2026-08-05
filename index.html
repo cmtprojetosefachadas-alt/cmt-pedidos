@@ -1419,6 +1419,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
+<!-- Modal Ver/Editar cliente do cadastro simples (aba "Cadastrar Cliente") -->
+<div class="modal-bg" id="cad-cliente-modal-bg">
+  <div class="modal" style="max-width:460px;">
+    <button class="modal-close" id="btn-close-cad-cliente-modal">×</button>
+    <h2 id="cad-cliente-modal-title">👤 Dados do cliente</h2>
+    <input type="hidden" id="cad-modal-id"/>
+    <div class="modal-field"><label>Nome *</label><input type="text" id="cad-modal-nome" placeholder="Ex: João da Silva"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="modal-field"><label>Telefone *</label><input type="text" id="cad-modal-tel" placeholder="Ex: 16991234567"/></div>
+      <div class="modal-field"><label>CPF ou CNPJ</label><input type="text" id="cad-modal-doc" placeholder="000.000.000-00"/></div>
+    </div>
+    <div class="modal-field"><label>Endereço</label><input type="text" id="cad-modal-end" placeholder="Rua das Flores, 123"/></div>
+    <div class="modal-actions" id="cad-modal-actions">
+      <button class="btn" id="btn-cad-modal-fechar">Fechar</button>
+      <button class="btn btn-primary" id="btn-cad-modal-editar">✏️ Editar</button>
+      <button class="btn btn-primary" id="btn-cad-modal-salvar" style="display:none;">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL RELATÓRIO FATURAMENTO -->
 <div class="modal-bg" id="relatorio-bg">
   <div class="modal" style="max-width:680px;">
@@ -3002,8 +3022,8 @@ function renderCadLista(){
   if(!clientes.length){el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Nenhum cliente cadastrado ainda.</div>';return;}
   el.innerHTML=clientes.map(c=>`
     <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);">
-      <div class="avatar" style="width:36px;height:36px;font-size:12px;">${ini(c.nome)}</div>
-      <div style="flex:1;">
+      <div class="avatar" style="width:36px;height:36px;font-size:12px;cursor:pointer;" onclick="abrirCadClienteModal('${c.id}',false)">${ini(c.nome)}</div>
+      <div style="flex:1;cursor:pointer;" onclick="abrirCadClienteModal('${c.id}',false)">
         <div style="font-size:14px;font-weight:600;">${c.nome}</div>
         <div style="font-size:12px;color:var(--muted);">${c.tel?'📞 '+c.tel:''} ${c.doc?'· '+c.doc:''} ${c.end?'<br/>📍 '+c.end:''}</div>
       </div>
@@ -3452,6 +3472,55 @@ document.getElementById('btn-cadastrar').addEventListener('click',async()=>{
   showToast('Cliente cadastrado!','toast-cad');
 });
 
+// ===== VER / EDITAR CLIENTE (cadastro simples) =====
+window.setCadModalMode = function(editable) {
+  ['cad-modal-nome','cad-modal-tel','cad-modal-doc','cad-modal-end'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.readOnly = !editable;
+    el.style.background = editable ? 'var(--surface)' : 'var(--surface2)';
+    el.style.cursor = editable ? 'text' : 'default';
+  });
+  const titulo = document.getElementById('cad-cliente-modal-title');
+  if(titulo) titulo.textContent = editable ? '✏️ Editar cliente' : '👤 Dados do cliente';
+  const btnEditar = document.getElementById('btn-cad-modal-editar');
+  const btnSalvar = document.getElementById('btn-cad-modal-salvar');
+  if(btnEditar) btnEditar.style.display = editable ? 'none' : 'inline-flex';
+  if(btnSalvar) btnSalvar.style.display = editable ? 'inline-flex' : 'none';
+};
+
+window.abrirCadClienteModal = function(id, editMode) {
+  const c = clientes.find(x=>x.id===id);
+  if(!c) return;
+  document.getElementById('cad-modal-id').value = c.id;
+  document.getElementById('cad-modal-nome').value = c.nome||'';
+  document.getElementById('cad-modal-tel').value = c.tel||'';
+  document.getElementById('cad-modal-doc').value = c.doc||'';
+  document.getElementById('cad-modal-end').value = c.end||'';
+  setCadModalMode(!!editMode);
+  document.getElementById('cad-cliente-modal-bg').classList.add('open');
+};
+
+function fecharCadClienteModal(){
+  document.getElementById('cad-cliente-modal-bg').classList.remove('open');
+}
+document.getElementById('btn-close-cad-cliente-modal').addEventListener('click', fecharCadClienteModal);
+document.getElementById('btn-cad-modal-fechar').addEventListener('click', fecharCadClienteModal);
+document.getElementById('btn-cad-modal-editar').addEventListener('click', ()=> setCadModalMode(true));
+document.getElementById('btn-cad-modal-salvar').addEventListener('click', async ()=>{
+  const id = document.getElementById('cad-modal-id').value;
+  const nome = document.getElementById('cad-modal-nome').value.trim();
+  const tel = document.getElementById('cad-modal-tel').value.trim();
+  if(!nome){ alert('Nome é obrigatório.'); return; }
+  const docv = document.getElementById('cad-modal-doc').value.trim();
+  const end = document.getElementById('cad-modal-end').value.trim();
+  if(id){
+    await updateDoc(doc(db,'clientes',id),{nome,tel,doc:docv,end});
+  }
+  fecharCadClienteModal();
+  showToast('✅ Cliente atualizado!');
+});
+
 // FOTOS
 function setupFotoInput(inputId, previewId) {
   const input = document.getElementById(inputId);
@@ -3651,16 +3720,9 @@ document.addEventListener('click',async e=>{
     if(!confirm('Remover este cliente?'))return;
     await deleteDoc(doc(db,'clientes',e.target.dataset.id));return;
   }
-  // Editar cliente
+  // Editar cliente (cadastro simples)
   if(e.target.dataset.type==='editcliente'){
-    const c=clientes.find(x=>x.id===e.target.dataset.id);
-    if(!c)return;
-    document.getElementById('edit-cliente-id').value=c.id;
-    document.getElementById('edit-nome').value=c.nome||'';
-    document.getElementById('edit-tel').value=c.tel||'';
-    document.getElementById('edit-doc').value=c.doc||'';
-    document.getElementById('edit-end').value=c.end||'';
-    document.getElementById('edit-cliente-bg').classList.add('open');
+    abrirCadClienteModal(e.target.dataset.id, true);
     return;
   }
   // Abrir pedido finalizado → PDF
