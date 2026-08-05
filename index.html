@@ -635,10 +635,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         </div>
       </label>
 
-      <!-- 2x sem juros -->
+      <!-- 3x sem juros -->
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 14px;border:2px solid var(--border);border-radius:10px;margin-top:10px;background:var(--surface2);transition:all 0.15s;flex-wrap:wrap;" id="pgto-label-semjuros">
         <input type="checkbox" id="pgto-semjuros" onchange="syncPgto()" style="width:16px;height:16px;accent-color:var(--brand);flex-shrink:0;"/>
-        <span style="font-size:13px;font-weight:600;flex:1;min-width:120px;">✌️ 2x sem juros</span>
+        <span style="font-size:13px;font-weight:600;flex:1;min-width:120px;">🤟 3x sem juros</span>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
           <span style="font-size:13px;color:var(--muted);">valor à vista R$</span>
           <input type="number" id="pgto-semjuros-val" placeholder="0,00" min="0" step="0.01"
@@ -7067,8 +7067,8 @@ window.syncPgto = function() {
   if(ativoSemJuros) {
     const val = parseFloat(document.getElementById('pgto-semjuros-val')?.value)||0;
     partes.push(val > 0
-      ? `Cartão de crédito: 2x de ${fmtMoney(val/2)} sem juros`
-      : 'Cartão de crédito: 2x sem juros');
+      ? `Cartão de crédito: 3x de ${fmtMoney(val/3)} sem juros`
+      : 'Cartão de crédito: 3x sem juros');
   }
 
   document.getElementById('f-pagamento').value = partes.join('\n');
@@ -7148,7 +7148,7 @@ window.calcSemJuros = function() {
   const preview = document.getElementById('pgto-semjuros-preview');
   const elParcela = document.getElementById('pgto-semjuros-parcela');
   if(val > 0) {
-    if(elParcela) elParcela.textContent = `2x ${fmtMoney(val/2)}`;
+    if(elParcela) elParcela.textContent = `3x ${fmtMoney(val/3)}`;
     if(preview) preview.style.display = 'flex';
   } else {
     if(preview) preview.style.display = 'none';
