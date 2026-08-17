@@ -987,6 +987,44 @@ body {
   </div>
 </div>
 
+<!-- MODAL DETALHE DE USO (histórico) -->
+<div id="modal-detalhe-uso" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)window.fecharDetalheUso()">
+  <div style="background:#fff;border-radius:14px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#6b21a8,#e8520a);padding:20px 24px;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Uso registrado</div>
+        <div id="du-nome" style="font-size:18px;font-weight:800;color:#fff;"></div>
+      </div>
+      <button onclick="window.fecharDetalheUso()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;flex-shrink:0;">×</button>
+    </div>
+    <div style="padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="background:#f8f7f4;border-radius:8px;padding:14px;grid-column:1 / -1;">
+        <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px;">Data</div>
+        <div id="du-data" style="font-size:15px;font-weight:700;color:#1a2332;"></div>
+      </div>
+      <div style="background:#f8f7f4;border-radius:8px;padding:14px;">
+        <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px;">Qtd. usada</div>
+        <div id="du-qtd" style="font-size:20px;font-weight:800;color:#1a2332;"></div>
+      </div>
+      <div style="background:#fff3e8;border-radius:8px;padding:14px;border:1px solid #fde8cc;">
+        <div style="font-size:11px;color:#e8520a;text-transform:uppercase;margin-bottom:4px;">Valor debitado</div>
+        <div id="du-valor" style="font-size:20px;font-weight:800;color:#e8520a;"></div>
+      </div>
+      <div style="background:#f8f7f4;border-radius:8px;padding:14px;grid-column:1 / -1;">
+        <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px;">Local / Prestador</div>
+        <div id="du-local" style="font-size:15px;font-weight:700;color:#1a2332;"></div>
+      </div>
+      <div id="du-cliente-box" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;grid-column:1 / -1;">
+        <div style="font-size:11px;color:#1d4ed8;text-transform:uppercase;margin-bottom:4px;">🎯 Cliente destino</div>
+        <div id="du-cliente" style="font-size:15px;font-weight:700;color:#1d4ed8;"></div>
+      </div>
+    </div>
+    <div style="padding:0 24px 20px;">
+      <button class="btn" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);margin-top:0" onclick="window.fecharDetalheUso()">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL NOVO LOCAL/PRESTADOR -->
 <div class="modal-overlay" id="modal-est-entidade" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:420px">
@@ -1666,7 +1704,8 @@ window.renderRelUso = function() {
   var nomesMes = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   var mesesSet = {};
   todos.forEach(function(it){
-    var d = new Date(it.ultimoUso);
+    var d = new Date(it.data||it.ultimoUso);
+    if(isNaN(d.getTime())) return;
     var key = (d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getFullYear();
     mesesSet[key] = true;
   });
@@ -1688,7 +1727,8 @@ window.renderRelUso = function() {
     });
   }
   var filtrados = window._relUsoMesSel === 'todos' ? todos : todos.filter(function(it){
-    var d=new Date(it.ultimoUso);
+    var d=new Date(it.data||it.ultimoUso);
+    if(isNaN(d.getTime())) return false;
     return ((d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getFullYear()) === window._relUsoMesSel;
   });
   if(busca) filtrados = filtrados.filter(function(it){
@@ -1704,6 +1744,7 @@ window.renderRelUso = function() {
   if(total) total.textContent=filtrados.length+' registro'+(filtrados.length!==1?'s':'');
   if(!filtrados.length){ tbody.innerHTML=''; if(vazio) vazio.style.display='block'; return; }
   if(vazio) vazio.style.display='none';
+  window._relUsoFiltrados = filtrados;
   tbody.innerHTML=filtrados.map(function(it,i){
     var entNome = it.entidadeNome || (function(){ var e=entidades.find(function(e){return e.id===it.entidadeId;}); return e?e.nome:'—'; })();
     var dataUso = (it.data||it.ultimoUso) ? new Date(it.data||it.ultimoUso).toLocaleDateString('pt-BR') : '—';
@@ -1712,7 +1753,7 @@ window.renderRelUso = function() {
     var nome = it.itemNome || it.nome || '—';
     var cliente = it.cliente || '—';
     var bg=i%2===0?'':'background:#fafaf8;';
-    return '<tr style="'+bg+'border-bottom:1px solid #f0ede8;">'+
+    return '<tr data-relidx="'+i+'" style="'+bg+'border-bottom:1px solid #f0ede8;cursor:pointer;" onclick="window.abrirDetalheUso('+i+')">'+
       '<td style="padding:10px 14px;color:#888;font-size:12px;white-space:nowrap;">'+dataUso+'</td>'+
       '<td style="padding:10px 14px;font-weight:600;color:#1a2332;">'+nome+'</td>'+
       '<td style="padding:10px 14px;font-size:12px;color:#555;">'+entNome+'</td>'+
@@ -1721,6 +1762,39 @@ window.renderRelUso = function() {
       '<td style="padding:10px 14px;font-size:12px;color:'+(it.cliente?'#1a5fa8':'#aaa')+';font-weight:'+(it.cliente?'600':'400')+';">'+cliente+'</td>'+
     '</tr>';
   }).join('');
+};
+
+window.abrirDetalheUso = function(idx) {
+  var it = (window._relUsoFiltrados||[])[idx];
+  if(!it) return;
+  var entidades = window._estoqueEntidades || [];
+  var entNome = it.entidadeNome || (function(){ var e=entidades.find(function(e){return e.id===it.entidadeId;}); return e?e.nome:'—'; })();
+  var dataUso = (it.data||it.ultimoUso) ? new Date(it.data||it.ultimoUso).toLocaleDateString('pt-BR') : '—';
+  var horaUso = (it.data||it.ultimoUso) ? new Date(it.data||it.ultimoUso).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
+  var qtd = it.qtdUsada !== undefined ? it.qtdUsada : (it.ultimoUsoQtd||0);
+  var val = it.valorDebitado !== undefined ? it.valorDebitado : Math.round(qtd*(parseFloat(it.valorUnit)||0)*100)/100;
+  var nome = it.itemNome || it.nome || '—';
+  var cliente = it.cliente || '';
+
+  document.getElementById('du-nome').textContent = nome;
+  document.getElementById('du-data').textContent = dataUso + (horaUso ? ' às '+horaUso : '');
+  document.getElementById('du-local').textContent = entNome;
+  document.getElementById('du-qtd').textContent = (typeof qtd==='number'?qtd.toLocaleString('pt-BR',{maximumFractionDigits:2}):'—');
+  document.getElementById('du-valor').textContent = (val>0&&window.fmt?window.fmt(val):'—');
+
+  var clienteBox = document.getElementById('du-cliente-box');
+  if(cliente) {
+    document.getElementById('du-cliente').textContent = cliente;
+    clienteBox.style.display = 'block';
+  } else {
+    clienteBox.style.display = 'none';
+  }
+
+  document.getElementById('modal-detalhe-uso').style.display = 'flex';
+};
+
+window.fecharDetalheUso = function() {
+  document.getElementById('modal-detalhe-uso').style.display = 'none';
 };
 </script>
 <script>
