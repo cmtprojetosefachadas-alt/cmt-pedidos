@@ -1580,33 +1580,15 @@ window.confirmarUsarEst = async function() {
   const obsNova  = obs ? ((_usarEstItem.obs?_usarEstItem.obs+' | ':'')+obs) : _usarEstItem.obs;
 
   try {
-    const agora = new Date().toISOString();
-    // Atualizar o item
     await window._updateDoc(window._doc(window._db,'cmt_estoque_itens',_usarEstItem.id), {
       qtd:   novaQtd,
       total: novoTotal,
       obs:   obsNova||'',
       cliente: cliente||_usarEstItem.cliente||'',
       usado: novaQtd <= 0,
-      ultimoUso: agora,
+      ultimoUso: new Date().toISOString(),
       ultimoUsoQtd: qtdUsar,
       ultimoUsoObs: obs
-    });
-    // Salvar registro no histórico
-    const ent = window._estoqueEntidades||[];
-    const entNome = (ent.find(e=>e.id===_usarEstItem.entidadeId)||{}).nome||'—';
-    await window._addDoc(window._collection(window._db,'cmt_estoque_uso'), {
-      itemId:      _usarEstItem.id,
-      itemNome:    _usarEstItem.nome,
-      entidadeId:  _usarEstItem.entidadeId||'',
-      entidadeNome: entNome,
-      qtdUsada:    qtdUsar,
-      valorUnit:   valUnit,
-      valorDebitado: Math.round(qtdUsar*valUnit*100)/100,
-      obs:         obs||'',
-      cliente:     cliente||'',
-      data:        agora,
-      lancadoPor:  (window._usuarioLogado&&window._usuarioLogado.nome)||'Sistema'
     });
     // Atualizar local
     const idx = window._estoqueItens.findIndex(x=>x.id===_usarEstItem.id);
@@ -1659,16 +1641,32 @@ window._selRelUso = function(mes) {
 };
 
 window.renderRelUso = function() {
-  // Usar histórico real da coleção cmt_estoque_uso
-  var historico = window._estoqueUsoHistorico || [];
+  var itens = window._estoqueItens || [];
+  var entidades = window._estoqueEntidades || [];
+  // Combinar colecao nova (cmt_estoque_uso) + legado (ultimoUso dos itens)
+  var historico = (window._estoqueUsoHistorico || []).slice();
+  itens.forEach(function(it) {
+    if(!it.ultimoUso) return;
+    var jaExiste = historico.some(function(h) {
+      return h.itemId === it.id && Math.abs(new Date(h.data) - new Date(it.ultimoUso)) < 60000;
+    });
+    if(!jaExiste) {
+      var ent = entidades.find(function(e){ return e.id === it.entidadeId; });
+      historico.push({
+        itemId: it.id, itemNome: it.nome,
+        entidadeId: it.entidadeId||'', entidadeNome: ent ? ent.nome : '—',
+        qtdUsada: it.ultimoUsoQtd||0,
+        valorDebitado: Math.round((it.ultimoUsoQtd||0)*(parseFloat(it.valorUnit)||0)*100)/100,
+        cliente: it.cliente||'', data: it.ultimoUso
+      });
+    }
+  });
   var busca = ((document.getElementById('rel-uso-busca')||{}).value||'').toLowerCase().trim();
-  // Ordenar por data desc
   var todos = historico.slice().sort(function(a,b){ return new Date(b.data)-new Date(a.data); });
   var nomesMes = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   var mesesSet = {};
   todos.forEach(function(it){
-    var d = new Date(it.data||it.ultimoUso||'');
-    if(isNaN(d)) return;
+    var d = new Date(it.ultimoUso);
     var key = (d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getFullYear();
     mesesSet[key] = true;
   });
@@ -1690,15 +1688,14 @@ window.renderRelUso = function() {
     });
   }
   var filtrados = window._relUsoMesSel === 'todos' ? todos : todos.filter(function(it){
-    var d=new Date(it.data||it.ultimoUso||'');
+    var d=new Date(it.ultimoUso);
     return ((d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getFullYear()) === window._relUsoMesSel;
   });
   if(busca) filtrados = filtrados.filter(function(it){
-    var dataStr = (it.data||it.ultimoUso)?new Date(it.data||it.ultimoUso).toLocaleDateString('pt-BR'):'';
-    return (it.itemNome||it.nome||'').toLowerCase().includes(busca)||
-           (it.cliente||'').toLowerCase().includes(busca)||
-           (it.entidadeNome||'').toLowerCase().includes(busca)||
-           dataStr.includes(busca);
+    var ent=entidades.find(function(e){return e.id===it.entidadeId;});
+    return it.nome.toLowerCase().includes(busca)||(it.cliente||'').toLowerCase().includes(busca)||
+           (ent?ent.nome.toLowerCase():'').includes(busca)||
+           (it.ultimoUso?new Date(it.ultimoUso).toLocaleDateString('pt-BR'):'').includes(busca);
   });
   var tbody=document.getElementById('rel-uso-tbody');
   var vazio=document.getElementById('rel-uso-vazio');
@@ -1708,10 +1705,11 @@ window.renderRelUso = function() {
   if(!filtrados.length){ tbody.innerHTML=''; if(vazio) vazio.style.display='block'; return; }
   if(vazio) vazio.style.display='none';
   tbody.innerHTML=filtrados.map(function(it,i){
-    var entNome=it.entidadeNome||'—';
-    var dataUso=(it.data||it.ultimoUso)?new Date(it.data||it.ultimoUso).toLocaleDateString('pt-BR'):'—';
-    var qtd=it.qtdUsada||it.ultimoUsoQtd;
-    var val=it.valorDebitado||(typeof qtd==='number'?(parseFloat(it.valorUnit)||0)*qtd:0);
+    var ent=entidades.find(function(e){return e.id===it.entidadeId;});
+    var entNome=ent?ent.nome:'—';
+    var dataUso=it.ultimoUso?new Date(it.ultimoUso).toLocaleDateString('pt-BR'):'—';
+    var qtd=it.ultimoUsoQtd; var valUnit=parseFloat(it.valorUnit)||0;
+    var val=typeof qtd==='number'?valUnit*qtd:0;
     var bg=i%2===0?'':'background:#fafaf8;';
     return '<tr style="'+bg+'border-bottom:1px solid #f0ede8;">'+
       '<td style="padding:10px 14px;color:#888;font-size:12px;white-space:nowrap;">'+dataUso+'</td>'+
@@ -5803,17 +5801,7 @@ async function carregarEstoque() {
   } catch(e){ window._estoqueEntidades=[]; window._estoqueItens=[]; }
 }
 
-function iniciarEstoque() {
-  window._estoqueUsoHistorico = [];
-  // Carregar histórico de uso
-  getDocs(collection(db,'cmt_estoque_uso')).then(snap=>{
-    window._estoqueUsoHistorico = snap.docs.map(d=>({id:d.id,...d.data()}))
-      .sort((a,b)=>new Date(b.data)-new Date(a.data));
-    // Atualizar renderRelUso se estiver aberto
-    if(document.getElementById('est-rel-uso')?.style.display!=='none') window.renderRelUso();
-  }).catch(()=>{});
-  renderEstoque();
-}
+function iniciarEstoque() { renderEstoque(); }
 
 window.abrirModalEstoqueLocal = function() {
   document.getElementById('modal-est-entidade-title').textContent = 'Adicionar Local';
