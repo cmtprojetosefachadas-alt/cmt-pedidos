@@ -120,6 +120,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .pdf-total{text-align:right;font-size:14px;margin-top:4px}
 .pdf-total-final{font-size:20px;font-weight:800;color:var(--green)}
 .pdf-obs{font-size:12px;color:#555;border-top:1px solid #ddd;padding-top:16px;margin-top:16px}
+.pdf-pgto-box{margin-top:14px;padding:16px 18px;border-radius:12px;background:linear-gradient(135deg,#F3EAFB 0%,#FDEFE7 100%);border:1px solid #EAD9F6}
+.pdf-pgto-title{font-size:11px;font-weight:800;color:#6b21a8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.pdf-pgto-item{display:flex;align-items:flex-start;gap:10px;background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+.pdf-pgto-item:last-child{margin-bottom:0}
+.pdf-pgto-icon{font-size:15px;flex-shrink:0;width:20px;text-align:center;line-height:1.4}
+.pdf-pgto-text{font-size:12.5px;color:#333;line-height:1.5}
+.pdf-pgto-text b{color:#1a2332}
 .pdf-footer{display:flex;justify-content:space-between;font-size:11px;color:#aaa;margin-top:28px}
 .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
 .section-title{font-size:18px;font-weight:600}
@@ -169,6 +176,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   .app-wrap{display:block}
   .content-wrap{width:100%;margin:0;padding:0}
   .main{padding:0;max-width:100%}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
 }
 
 @media screen and (max-width:1200px){
@@ -1705,6 +1713,26 @@ window._setMargem=function(i,v){
 
 // HELPERS
 const fmtMoney = v => 'R$ '+Number(v).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+
+window.formatPagamentoPDF = function(txt) {
+  if(!txt) return '';
+  const linhas = txt.split('\n').map(l=>l.trim()).filter(Boolean);
+  const classificar = (linha) => {
+    if(/^À vista/i.test(linha)) return {icon:'💰', cor:'#0F6E56'};
+    if(/^Entrada \+ Saldo/i.test(linha)) return {icon:'📥', cor:'#B45309'};
+    if(/sem juros/i.test(linha)) return {icon:'✨', cor:'#6b21a8'};
+    if(/^Cartão de crédito/i.test(linha)) return {icon:'💳', cor:'#1D4ED8'};
+    return {icon:'•', cor:'#555'};
+  };
+  const itens = linhas.map(linha=>{
+    const c = classificar(linha);
+    const m = linha.match(/^([^:]+):\s*(.*)$/);
+    const label = m ? m[1] : linha;
+    const resto = m ? m[2] : '';
+    return `<div class="pdf-pgto-item" style="border-left:3px solid ${c.cor}"><span class="pdf-pgto-icon">${c.icon}</span><span class="pdf-pgto-text"><b>${label}</b>${resto?': '+resto:''}</span></div>`;
+  }).join('');
+  return `<div class="pdf-pgto-box"><div class="pdf-pgto-title">💳 Forma de Pagamento</div>${itens}</div>`;
+};
 const fmtDate = s => { if(!s)return''; const[y,m,d]=s.split('-'); return`${d}/${m}/${y}`; };
 const fmtTS = ts => { if(!ts)return''; const d=ts.toDate?ts.toDate():new Date(ts); return d.toLocaleString('pt-BR'); };
 const ini = n => n.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
@@ -3321,7 +3349,7 @@ function gerarPDFHTML(){
       if(linha.endsWith(':') && linha.length < 60) return `<strong>${linha}</strong>`;
       return linha || '&nbsp;';
     }).join('<br/>')}</div>
-    ${pagamento?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>💳 Forma de Pagamento:</strong><br/>${pagamento}</div>`:''}
+    ${pagamento?window.formatPagamentoPDF(pagamento):''}
     ${garantias?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>🛡️ Garantias:</strong><br/>${garantias.replace(/\n/g,'<br/>')}</div>`:''}
     <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${fmtDate(dt)}</span></div>
     <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
@@ -3871,7 +3899,7 @@ document.addEventListener('click',async e=>{
       <tbody>${rows||'<tr><td colspan="3" style="text-align:center;color:#999;">Sem itens registrados</td></tr>'}</tbody></table>
       <div class="pdf-total"><div class="pdf-total-final">Total: ${total}</div></div>
       ${p.orcObs?`<div class="pdf-obs"><strong>Observações:</strong><br/>${(p.orcObs||'').split('\n').join('<br/>')}</div>`:''}
-      ${p.orcPagamento?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>💳 Forma de Pagamento:</strong><br/>${p.orcPagamento}</div>`:''}
+      ${p.orcPagamento?window.formatPagamentoPDF(p.orcPagamento):''}
       <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
         <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>CMT Projetos e Fachadas</strong><br/>CNPJ: 53.466.209/0001-01</div></div>
         <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>Cliente: ${p.nome}</strong><br/>Assinatura</div></div>
@@ -4094,7 +4122,7 @@ document.addEventListener('click',async e=>{
         <div class="pdf-total-final">Total: ${fmtMoney(o.valor||0)}</div>
       </div>
       ${o.obs?`<div class="pdf-obs"><strong>Observações:</strong><br/>${o.obs.replace(/\n/g,'<br/>')}</div>`:''}
-      ${o.pagamento?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>💳 Forma de Pagamento:</strong><br/>${o.pagamento.replace(/\n/g,'<br/>')}</div>`:''}
+      ${o.pagamento?window.formatPagamentoPDF(o.pagamento):''}
       ${o.garantias?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>🛡️ Garantias:</strong><br/>${o.garantias.replace(/\n/g,'<br/>')}</div>`:''}
       <div class="pdf-footer"><span>CMT Projetos e Fachadas · Comercial: (16) 99649-2182</span><span>Gerado em ${o.data||''}</span></div>
       <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
@@ -4237,7 +4265,7 @@ window.verPedidoPDF = function(id) {
     <tbody>${rows||'<tr><td colspan="3" style="text-align:center;color:#999;">Sem itens registrados</td></tr>'}</tbody></table>
     <div class="pdf-total"><div class="pdf-total-final">Total: ${total}</div></div>
     ${p.orcObs?`<div class="pdf-obs"><strong>Observações:</strong><br/>${(p.orcObs||'').split('\n').join('<br/>')}</div>`:''}
-    ${p.orcPagamento?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>💳 Forma de Pagamento:</strong><br/>${p.orcPagamento}</div>`:''}
+    ${p.orcPagamento?window.formatPagamentoPDF(p.orcPagamento):''}
     ${p.orcGarantias?`<div class="pdf-obs" style="margin-top:10px;border-top:1px solid #eee;padding-top:10px;"><strong>🛡️ Garantias:</strong><br/>${(p.orcGarantias||'').split('\n').join('<br/>')}</div>`:''}
     <div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:16px;border-top:1px solid #ddd;">
       <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;"><strong>CMT Projetos e Fachadas</strong><br/>CNPJ: 53.466.209/0001-01</div></div>
