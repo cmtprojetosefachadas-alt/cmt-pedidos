@@ -2181,6 +2181,28 @@ function renderDashboard() {
     </div>`;
 }
 
+// Calcula o status do lembrete de um orçamento.
+// Se houver uma data específica agendada (lembreteData), ela manda —
+// o alerta só dispara a partir dela (ignora o cálculo por "dias sem resposta").
+// Caso contrário, usa o padrão de dias sem resposta desde a criação.
+function statusLembrete(o, agora) {
+  agora = agora || new Date();
+  if (o.status !== 'Aguardando') return { devido: false, agendado: false };
+  if (o.lembreteData) {
+    const alvo = new Date(o.lembreteData + 'T00:00:00');
+    const devido = agora >= alvo;
+    return { devido, agendado: !devido, tipo: 'data', dataAlvo: o.lembreteData };
+  }
+  if (o.criadoEm) {
+    const diasPassados = (agora - new Date(o.criadoEm)) / (1000 * 60 * 60 * 24);
+    const limiteDias = o.diasLembrete != null ? o.diasLembrete : 1;
+    const devido = diasPassados >= limiteDias;
+    return { devido, agendado: false, tipo: 'dias', dias: Math.floor(diasPassados) };
+  }
+  return { devido: false, agendado: false };
+}
+window.statusLembrete = statusLembrete;
+
 function renderListaOrcamentos() {
   renderDashboard();
   window.popularMesesLista && window.popularMesesLista();
@@ -2193,14 +2215,14 @@ function renderListaOrcamentos() {
     // Verifica se aguardando há mais dias que o limite configurado (padrão 1 dia)
     let rowStyle='cursor:pointer;';
     let alertIcon='';
-    if(o.status==='Aguardando' && o.criadoEm){
-      const criado=new Date(o.criadoEm);
-      const diasPassados=(agora-criado)/(1000*60*60*24);
-      const limiteDias = o.diasLembrete!=null ? o.diasLembrete : 1;
-      if(diasPassados>=limiteDias){
-        rowStyle='cursor:pointer;background:#fef2f2;border-left:3px solid #dc2626;';
-        alertIcon='<span title="Aguardando há '+Math.floor(diasPassados)+' dias!" style="color:#dc2626;font-weight:700;margin-left:4px;">⚠️</span>';
-      }
+    const lb = statusLembrete(o, agora);
+    if(lb.devido){
+      rowStyle='cursor:pointer;background:#fef2f2;border-left:3px solid #dc2626;';
+      const titulo = lb.tipo==='data' ? 'Lembrete agendado para '+fmtData(lb.dataAlvo)+'!' : 'Aguardando há '+lb.dias+' dias!';
+      alertIcon='<span title="'+titulo+'" style="color:#dc2626;font-weight:700;margin-left:4px;">⚠️</span>';
+    } else if(lb.agendado){
+      rowStyle='cursor:pointer;background:#f5f3ff;border-left:3px solid #6b46c1;';
+      alertIcon='<span title="Lembrete agendado para '+fmtData(lb.dataAlvo)+'" style="color:#6b46c1;font-weight:700;margin-left:4px;">🔔</span>';
     }
     return `
     <tr onclick="abrirModal('${o.id}')" style="${rowStyle}">
@@ -3523,6 +3545,13 @@ window.abrirModal = function(id) {
       <input id="inp-dias-lembrete-${id}" type="number" min="1" step="1" value="${o.diasLembrete!=null?o.diasLembrete:1}" style="width:52px;padding:5px 6px;border:1.5px solid var(--border,#ddd);border-radius:6px;font-size:12px;font-family:inherit;text-align:center;"/>
       <span style="font-size:11px;color:var(--muted);">dia(s) sem resposta</span>
       <button onclick="salvarDiasLembrete('${id}')" style="padding:5px 12px;background:#1C2340;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-left:auto;">Salvar</button>
+    </div>
+    <div style="margin-top:8px;padding:8px 12px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--purple);white-space:nowrap;font-weight:600;">📅 Cliente pediu para aguardar até</span>
+      <input id="inp-data-lembrete-${id}" type="date" value="${o.lembreteData||''}" style="padding:5px 6px;border:1.5px solid #ddd6fe;border-radius:6px;font-size:12px;font-family:inherit;"/>
+      <button onclick="salvarDataLembrete('${id}')" style="padding:5px 12px;background:var(--purple);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Agendar</button>
+      ${o.lembreteData?`<button onclick="limparDataLembrete('${id}')" style="padding:5px 10px;background:none;color:var(--purple);border:1px solid #ddd6fe;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">Remover</button>`:''}
+      <span style="font-size:11px;color:var(--muted);width:100%;">${o.lembreteData?'📌 Agendado para '+fmtData(o.lembreteData)+' — o orçamento vai te alertar nessa data, com prioridade sobre o lembrete por dias.':'Escolha uma data e o orçamento será destacado na lista a partir dela, pronto para enviar a mensagem.'}</span>
     </div>`:''}
 
     ${o.status==='Recusado'&&o.motivoRecusa?`
@@ -3532,10 +3561,10 @@ window.abrirModal = function(id) {
       ${o.dataRecusa?`<div style="font-size:11px;color:#b91c1c;margin-top:4px;">📅 ${fmtData(o.dataRecusa)}</div>`:''}
     </div>`:''}
 
-    ${o.status==='Aguardando'&&o.criadoEm&&((new Date()-new Date(o.criadoEm))/(1000*60*60*24))>=(o.diasLembrete!=null?o.diasLembrete:1)?`
+    ${(()=>{const lb=statusLembrete(o); return lb.devido; })()?`
     <div style="margin-top:10px;padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-        <div style="font-size:12px;color:#991b1b;font-weight:600;">⚠️ Aguardando há ${Math.floor((new Date()-new Date(o.criadoEm))/(1000*60*60*24))} dias</div>
+        <div style="font-size:12px;color:#991b1b;font-weight:600;">⚠️ ${statusLembrete(o).tipo==='data'?'Lembrete de hoje — cliente pediu retorno em '+fmtData(o.lembreteData):'Aguardando há '+statusLembrete(o).dias+' dias'}</div>
         <button onclick="enviarLembreteWpp('${id}')" style="padding:7px 14px;border-radius:6px;border:none;background:#25d366;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">📲 Lembrete WhatsApp</button>
       </div>
       ${!o.tel?`<div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
@@ -3615,6 +3644,31 @@ window.salvarDiasLembrete = async function(id) {
   } catch(e){ showToast('Erro ao salvar!'); }
 };
 
+window.salvarDataLembrete = async function(id) {
+  const input = document.getElementById('inp-data-lembrete-'+id);
+  const data = input?.value;
+  if(!data){ showToast('Escolha uma data!'); return; }
+  const o = window._orcamentos.find(x=>x.id===id);
+  if(!o) return;
+  try {
+    await updateDoc(doc(db,'cmt_orcamentos',id),{lembreteData:data});
+    o.lembreteData = data;
+    showToast('✓ Lembrete agendado para '+fmtData(data)+'!');
+    abrirModal(id);
+  } catch(e){ showToast('Erro ao salvar!'); }
+};
+
+window.limparDataLembrete = async function(id) {
+  const o = window._orcamentos.find(x=>x.id===id);
+  if(!o) return;
+  try {
+    await updateDoc(doc(db,'cmt_orcamentos',id),{lembreteData:null});
+    o.lembreteData = null;
+    showToast('✓ Lembrete de data removido!');
+    abrirModal(id);
+  } catch(e){ showToast('Erro ao remover!'); }
+};
+
 window.salvarTelModal = async function(id) {
   const tel = (document.getElementById('inp-tel-modal')?.value||'').replace(/\D/g,'');
   if(!tel){ showToast('Digite o telefone!'); return; }
@@ -3635,7 +3689,7 @@ window.enviarLembreteWpp = function(id) {
   // Usa tel do orçamento ou do input se existir
   const telInput = (document.getElementById('inp-tel-modal')?.value||'').replace(/\D/g,'');
   const tel = (o.tel||telInput||'').replace(/\D/g,'');
-  const msg = encodeURIComponent(`Olá, *${o.cliente}*! 👋\n\nPassando para saber se teve alguma dúvida sobre o orçamento *${o.numero||o.num}* que enviamos há ${dias} dias.\n\nEstamos à disposição para ajudar! 😊\n\n*CMT Projetos e Fachadas*`);
+  const msg = encodeURIComponent(`Olá, *${o.cliente}*! 👋\n\nPassando para saber se teve alguma dúvida sobre o orçamento *${o.numero||o.num}* que enviamos há ${dias} dias. Caso tenha qualquer dúvida ou até mesmo uma proposta para apresentar, estamos abertos a negociar.\n\nEstamos à disposição para ajudar! 😊\n\n*CMT Projetos e Fachadas*`);
   const url = tel ? `https://wa.me/55${tel}?text=${msg}` : `https://wa.me/?text=${msg}`;
   window.open(url,'_blank');
   document.getElementById('modal-overlay').classList.remove('open');
