@@ -2214,6 +2214,8 @@ function badgeStatusHTML(o) {
 }
 window.badgeStatusHTML = badgeStatusHTML;
 
+function escAttr(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
 function renderListaOrcamentos() {
   renderDashboard();
   window.popularMesesLista && window.popularMesesLista();
@@ -2229,11 +2231,14 @@ function renderListaOrcamentos() {
     const lb = statusLembrete(o, agora);
     if(lb.devido){
       rowStyle='cursor:pointer;background:#fef2f2;border-left:3px solid #dc2626;';
-      const titulo = lb.tipo==='data' ? 'Lembrete agendado para '+fmtData(lb.dataAlvo)+'!' : 'Aguardando há '+lb.dias+' dias!';
-      alertIcon='<span title="'+titulo+'" style="color:#dc2626;font-weight:700;margin-left:4px;">⚠️</span>';
+      let titulo = lb.tipo==='data' ? 'Lembrete agendado para '+fmtData(lb.dataAlvo)+'!' : 'Aguardando há '+lb.dias+' dias!';
+      if(o.lembreteObs) titulo += ' — '+o.lembreteObs;
+      alertIcon='<span title="'+escAttr(titulo)+'" style="color:#dc2626;font-weight:700;margin-left:4px;">⚠️</span>';
     } else if(lb.agendado){
       rowStyle='cursor:pointer;background:#f5f3ff;border-left:3px solid #6b46c1;';
-      alertIcon='<span title="Lembrete agendado para '+fmtData(lb.dataAlvo)+'" style="color:#6b46c1;font-weight:700;margin-left:4px;">🔔</span>';
+      let titulo = 'Lembrete agendado para '+fmtData(lb.dataAlvo);
+      if(o.lembreteObs) titulo += ' — '+o.lembreteObs;
+      alertIcon='<span title="'+escAttr(titulo)+'" style="color:#6b46c1;font-weight:700;margin-left:4px;">🔔</span>';
     }
     return `
     <tr onclick="abrirModal('${o.id}')" style="${rowStyle}">
@@ -3561,9 +3566,11 @@ window.abrirModal = function(id) {
     <div style="margin-top:8px;padding:8px 12px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <span style="font-size:11px;color:var(--purple);white-space:nowrap;font-weight:600;">📅 Cliente pediu para aguardar até</span>
       <input id="inp-data-lembrete-${id}" type="date" value="${o.lembreteData||''}" style="padding:5px 6px;border:1.5px solid #ddd6fe;border-radius:6px;font-size:12px;font-family:inherit;"/>
+      <textarea id="inp-obs-lembrete-${id}" placeholder="Obs: por que agendou? Ex: cliente vai fechar orçamento com fornecedor, retornar em setembro..." style="width:100%;min-height:44px;padding:7px 10px;border:1.5px solid #ddd6fe;border-radius:6px;font-size:12px;font-family:inherit;resize:vertical;">${o.lembreteObs||''}</textarea>
       <button onclick="salvarDataLembrete('${id}')" style="padding:5px 12px;background:var(--purple);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Agendar</button>
       ${o.lembreteData?`<button onclick="limparDataLembrete('${id}')" style="padding:5px 10px;background:none;color:var(--purple);border:1px solid #ddd6fe;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">Remover</button>`:''}
       <span style="font-size:11px;color:var(--muted);width:100%;">${o.lembreteData?'📌 Agendado para '+fmtData(o.lembreteData)+' — o orçamento vai te alertar nessa data, com prioridade sobre o lembrete por dias.':'Escolha uma data e o orçamento será destacado na lista a partir dela, pronto para enviar a mensagem.'}</span>
+      ${o.lembreteObs?`<div style="width:100%;margin-top:2px;padding:6px 10px;background:#fff;border-radius:6px;border:1px solid #ddd6fe;font-size:11px;color:#6b21a8;">📝 ${o.lembreteObs}</div>`:''}
     </div>`:''}
 
     ${o.status==='Recusado'&&o.motivoRecusa?`
@@ -3579,6 +3586,7 @@ window.abrirModal = function(id) {
         <div style="font-size:12px;color:#991b1b;font-weight:600;">⚠️ ${statusLembrete(o).tipo==='data'?'Lembrete de hoje — cliente pediu retorno em '+fmtData(o.lembreteData):'Aguardando há '+statusLembrete(o).dias+' dias'}</div>
         <button onclick="enviarLembreteWpp('${id}')" style="padding:7px 14px;border-radius:6px;border:none;background:#25d366;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">📲 Lembrete WhatsApp</button>
       </div>
+      ${o.lembreteObs?`<div style="margin-top:8px;padding:8px 10px;background:#fff;border-radius:6px;border:1px solid #fca5a5;font-size:12px;color:#7f1d1d;">📝 <strong>Motivo do agendamento:</strong> ${o.lembreteObs}</div>`:''}
       ${!o.tel?`<div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
         <input id="inp-tel-modal" type="tel" placeholder="WhatsApp do cliente ex: 16999990000" style="flex:1;padding:7px 10px;border:1.5px solid #fca5a5;border-radius:6px;font-size:12px;font-family:inherit;"/>
         <button onclick="salvarTelModal('${id}')" style="padding:7px 14px;background:#1C2340;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Salvar</button>
@@ -3660,11 +3668,14 @@ window.salvarDataLembrete = async function(id) {
   const input = document.getElementById('inp-data-lembrete-'+id);
   const data = input?.value;
   if(!data){ showToast('Escolha uma data!'); return; }
+  const obsInput = document.getElementById('inp-obs-lembrete-'+id);
+  const obs = (obsInput?.value||'').trim();
   const o = window._orcamentos.find(x=>x.id===id);
   if(!o) return;
   try {
-    await updateDoc(doc(db,'cmt_orcamentos',id),{lembreteData:data});
+    await updateDoc(doc(db,'cmt_orcamentos',id),{lembreteData:data,lembreteObs:obs});
     o.lembreteData = data;
+    o.lembreteObs = obs;
     showToast('✓ Lembrete agendado para '+fmtData(data)+'!');
     abrirModal(id);
   } catch(e){ showToast('Erro ao salvar!'); }
@@ -3674,8 +3685,9 @@ window.limparDataLembrete = async function(id) {
   const o = window._orcamentos.find(x=>x.id===id);
   if(!o) return;
   try {
-    await updateDoc(doc(db,'cmt_orcamentos',id),{lembreteData:null});
+    await updateDoc(doc(db,'cmt_orcamentos',id),{lembreteData:null,lembreteObs:null});
     o.lembreteData = null;
+    o.lembreteObs = null;
     showToast('✓ Lembrete de data removido!');
     abrirModal(id);
   } catch(e){ showToast('Erro ao remover!'); }
