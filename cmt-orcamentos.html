@@ -628,6 +628,7 @@ body {
       <option value="">Todos status</option>
       <option value="Aprovado">Aprovado</option>
       <option value="Aguardando">Aguardando</option>
+      <option value="Agendado">📅 Agendado</option>
       <option value="Recusado">Recusado</option>
     </select>
     <!-- Filtro data -->
@@ -2203,6 +2204,16 @@ function statusLembrete(o, agora) {
 }
 window.statusLembrete = statusLembrete;
 
+// Gera o HTML do badge de status, mostrando "Agendado" junto quando houver data marcada
+function badgeStatusHTML(o) {
+  const base = '<span class="badge ' + badgeClass(o.status) + '">' + o.status + '</span>';
+  if (o.status === 'Aguardando' && o.lembreteData) {
+    return base + ' <span class="badge" title="Retorno agendado para ' + fmtData(o.lembreteData) + '" style="background:#ede9fe;color:#6b21a8;border:1px solid #d8b4fe;margin-left:4px;white-space:nowrap;">📅 Agendado</span>';
+  }
+  return base;
+}
+window.badgeStatusHTML = badgeStatusHTML;
+
 function renderListaOrcamentos() {
   renderDashboard();
   window.popularMesesLista && window.popularMesesLista();
@@ -2234,7 +2245,7 @@ function renderListaOrcamentos() {
       <td class="td-val ${(o.lucro||0)>=0?'td-green':'td-red'}">${fmt(o.lucro||0)}</td>
       <td class="td-val">${o.margemPct||0}%</td>
       <td style="color:var(--muted)">${fmtData(o.dataAprovacao||o.criadoEm)}</td>
-      <td><span class="badge ${badgeClass(o.status)}">${o.status}</span></td>
+      <td><span class="badge ${badgeClass(o.status)}">${o.status}</span>${o.status==='Aguardando'&&o.lembreteData?' <span class="badge" title="Retorno agendado para '+fmtData(o.lembreteData)+'" style="background:#ede9fe;color:#6b21a8;border:1px solid #d8b4fe;margin-left:4px;white-space:nowrap;">📅 Agendado</span>':''}</td>
       <td onclick="event.stopPropagation()">
         <button onclick="window.excluirOrcamento('${o.id}','${(o.cliente||'').replace(/'/g,'')}','${o.numero||o.num||''}')"
           title="Excluir orçamento"
@@ -2664,7 +2675,8 @@ window.getOrcamentosFiltrados = function() {
   const dataFim= document.getElementById('filtro-data-fim')?.value||'';
   return (window._orcamentos||[]).filter(o=>{
     if(q && !o.cliente.toLowerCase().includes(q) && !(o.desc||'').toLowerCase().includes(q)) return false;
-    if(status && o.status!==status) return false;
+    if(status==='Agendado'){ if(!(o.status==='Aguardando' && o.lembreteData)) return false; }
+    else if(status && o.status!==status) return false;
     // Para aprovados: usa dataAprovacao; para outros: usa criadoEm
     const dataOrc = (o.status==='Aprovado' ? (o.dataAprovacao||o.criadoEm) : (o.criadoEm||o.dataAprovacao)||'').substring(0,10);
     if(mesSel && dataOrc){
@@ -3532,7 +3544,7 @@ window.abrirModal = function(id) {
     </div>
 
     <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:12px;color:var(--muted)">Status: <span class="badge ${badgeClass(o.status)}">${o.status}</span></div>
+      <div style="font-size:12px;color:var(--muted)">Status: <span class="badge ${badgeClass(o.status)}">${o.status}</span>${o.status==='Aguardando'&&o.lembreteData?' <span class="badge" title="Retorno agendado para '+fmtData(o.lembreteData)+'" style="background:#ede9fe;color:#6b21a8;border:1px solid #d8b4fe;margin-left:4px;white-space:nowrap;">📅 Agendado</span>':''}</div>
       <div style="display:flex;gap:8px">
         <button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="window.gerarPDFOrcamento('${id}')">📄 PDF</button>
         <button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="abrirEdicaoOrcamento('${id}')">✏️ Editar itens</button>
@@ -4012,6 +4024,8 @@ window.renderRelatorio = function() {
   const orcs  = todos.filter(o=>o.status==='Aprovado');
   const aguard= todos.filter(o=>o.status==='Aguardando');
   const recus = todos.filter(o=>o.status==='Recusado');
+  const agendados = aguard.filter(o=>o.lembreteData);
+  const fatAgendados = agendados.reduce((a,o)=>a+o.venda,0);
 
   const fat       = orcs.reduce((a,o)=>a+o.venda,0);
   const custo     = orcs.reduce((a,o)=>a+o.custoTotal,0);
@@ -4043,6 +4057,10 @@ window.renderRelatorio = function() {
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(232,82,10,0.08);border-radius:6px">
           <span style="font-size:13px;font-weight:600;color:var(--accent)">Negociando</span>
           <div style="text-align:right"><div style="font-weight:800;color:var(--accent)">${aguard.length}</div><div style="font-size:11px;color:var(--muted)">${fmt(fatAguard)}</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;margin:0 10px;background:rgba(107,33,168,0.08);border-radius:6px">
+          <span style="font-size:12px;font-weight:600;color:#6b21a8">📅 Agendados p/ retorno</span>
+          <div style="text-align:right"><div style="font-weight:800;color:#6b21a8">${agendados.length}</div><div style="font-size:11px;color:var(--muted)">${fmt(fatAgendados)}</div></div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(10,138,74,0.08);border-radius:6px">
           <span style="font-size:13px;font-weight:600;color:var(--green)">Fechados ✓</span>
@@ -4135,7 +4153,7 @@ window.renderRelatorio = function() {
         <td>${o.cliente}</td>
         <td class="td-val td-amber">${fmt(o.venda)}</td>
         <td class="td-val ${o.lucro>=0?'td-green':'td-red'}">${fmt(o.lucro)}</td>
-        <td><span class="badge ${badgeClass(o.status)}">${o.status}</span></td>
+        <td><span class="badge ${badgeClass(o.status)}">${o.status}</span>${o.status==='Aguardando'&&o.lembreteData?' <span class="badge" title="Retorno agendado para '+fmtData(o.lembreteData)+'" style="background:#ede9fe;color:#6b21a8;border:1px solid #d8b4fe;margin-left:4px;white-space:nowrap;">📅 Agendado</span>':''}</td>
       </tr>
     `).join('')
     : '<tr><td colspan="4" style="color:var(--muted);padding:20px;text-align:center">Nenhum aprovado.</td></tr>';
