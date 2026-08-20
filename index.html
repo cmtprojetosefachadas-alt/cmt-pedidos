@@ -112,6 +112,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .pdf-badge-sub{font-size:12px;color:rgba(255,255,255,0.85);margin-top:4px}
 .pdf-cliente{background:#faf8f4;border:1px solid #e8e4de;border-left:4px solid var(--roxo);padding:12px 16px;border-radius:6px;font-size:13px;margin-bottom:18px}
 .pdf-item-badge{display:inline-block;background:var(--roxo);color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.5px;padding:3px 9px;border-radius:6px;white-space:nowrap;font-family:'DM Sans',sans-serif}
+.pdf-item-badge-light{display:inline-block;background:#ede9fe;color:#6b21a8;border:1px solid #d8b4fe;font-size:10.5px;font-weight:800;letter-spacing:.5px;padding:3px 9px;border-radius:6px;white-space:nowrap;font-family:'DM Sans',sans-serif}
 .pdf-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
 .pdf-tbl th{background:linear-gradient(135deg,var(--roxo),var(--brand));color:#fff;padding:8px 12px;text-align:left;font-size:11px;font-weight:600}
 .pdf-tbl td{padding:8px 12px;border-bottom:1px solid #eee}
@@ -3329,7 +3330,7 @@ function gerarPDFHTML(){
   const sub=editingItens.reduce(function(s,it){return s+(parseFloat(it.valor)||0);},0);
   const desc=parseFloat(document.getElementById('desconto').value)||0;
   const total=sub*(1-desc/100);
-  const rows=editingItens.length?editingItens.map(it=>`<tr><td>${it.desc}</td><td>${fmtMoney(it.valor)}</td></tr>`).join(''):'<tr><td colspan="2" style="text-align:center;color:#999;">Nenhum serviço</td></tr>';
+  const rows=editingItens.length?editingItens.map((it,i)=>`<tr><td class="pdf-item-col" style="white-space:nowrap;padding-right:10px;vertical-align:top;"><span class="pdf-item-badge-light">ITEM ${i+1}</span></td><td>${it.desc}</td><td class="pdf-val" style="text-align:right;">${fmtMoney(it.valor)}</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:#999;">Nenhum serviço</td></tr>';
   const pedidoCliente=pedidos.find(x=>x.nome===cliente&&x.enderecoEntrega&&(x.enderecoEntrega.rua||x.enderecoEntrega.cidade));
   const endAddr=pedidoCliente?[pedidoCliente.enderecoEntrega.rua,pedidoCliente.enderecoEntrega.num,pedidoCliente.enderecoEntrega.bairro,pedidoCliente.enderecoEntrega.cidade,pedidoCliente.enderecoEntrega.uf?'&#8211;'+pedidoCliente.enderecoEntrega.uf:'',pedidoCliente.enderecoEntrega.cep?'CEP: '+pedidoCliente.enderecoEntrega.cep:''].filter(Boolean).join(', '):'';
   document.getElementById('pdf-content').innerHTML=`
@@ -3338,7 +3339,7 @@ function gerarPDFHTML(){
       <div><div class="pdf-badge">ORÇAMENTO</div><div class="pdf-badge-sub">Nº ${num} · ${fmtDate(dt)}<br/>Válido até ${fmtDate(dtv)}</div></div>
     </div>
     <div class="pdf-cliente"><strong>Cliente:</strong> ${cliente}${endAddr?' &nbsp;|&nbsp; <strong>Entrega:</strong> '+endAddr:''}</div>
-    <table class="pdf-tbl"><thead><tr><th style="width:70%">Descrição do serviço</th><th>Valor</th></tr></thead><tbody>${rows}</tbody></table>
+    <table class="pdf-tbl"><thead><tr><th style="width:60px">Item</th><th style="width:60%">Descrição do serviço</th><th>Valor</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="pdf-total">
       <div style="color:#555;font-size:13px;">Subtotal: <strong>${fmtMoney(sub)}</strong></div>
       ${desc>0?`<div style="color:#555;font-size:13px;">Desconto (${desc}%): <strong>– ${fmtMoney(sub*desc/100)}</strong></div>`:''}
@@ -4107,7 +4108,7 @@ document.addEventListener('click',async e=>{
   if(e.target.id==='btn-pdf-orc'){
     const o=orcamentos.find(x=>x.id===currentOrcId);if(!o)return;
     document.getElementById('orc-modal-bg').classList.remove('open');
-    const rows=(o.itens&&o.itens.length)?o.itens.map(it=>`<tr><td>${it.desc}</td><td>${fmtMoney(it.valor)}</td></tr>`).join(''):'<tr><td colspan="2" style="text-align:center;color:#999;">Nenhum serviço</td></tr>';
+    const rows=(o.itens&&o.itens.length)?o.itens.map((it,i)=>`<tr><td class="pdf-item-col" style="white-space:nowrap;padding-right:10px;vertical-align:top;"><span class="pdf-item-badge-light">ITEM ${i+1}</span></td><td>${it.desc}</td><td class="pdf-val" style="text-align:right;">${fmtMoney(it.valor)}</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:#999;">Nenhum serviço</td></tr>';
     const sub=(o.itens||[]).reduce((s,it)=>s+it.valor,0);
     const pedidoOrc=pedidos.find(x=>x.nome===o.nome&&x.enderecoEntrega&&(x.enderecoEntrega.rua||x.enderecoEntrega.cidade));
     const endAddrOrc=pedidoOrc?[pedidoOrc.enderecoEntrega.rua,pedidoOrc.enderecoEntrega.num,pedidoOrc.enderecoEntrega.bairro,pedidoOrc.enderecoEntrega.cidade,pedidoOrc.enderecoEntrega.uf?'&#8211;'+pedidoOrc.enderecoEntrega.uf:'',pedidoOrc.enderecoEntrega.cep?'CEP: '+pedidoOrc.enderecoEntrega.cep:''].filter(Boolean).join(', '):'';
@@ -4117,7 +4118,7 @@ document.addEventListener('click',async e=>{
         <div><div class="pdf-badge">ORÇAMENTO</div><div class="pdf-badge-sub">Nº ${o.num} · ${o.data||''}<br/>Válido até ${o.validade||''}</div></div>
       </div>
       <div class="pdf-cliente"><strong>Cliente:</strong> ${o.nome}${endAddrOrc?' &nbsp;|&nbsp; <strong>Entrega:</strong> '+endAddrOrc:''}</div>
-      <table class="pdf-tbl"><thead><tr><th style="width:70%">Descrição do serviço</th><th>Valor</th></tr></thead><tbody>${rows}</tbody></table>
+      <table class="pdf-tbl"><thead><tr><th style="width:60px">Item</th><th style="width:60%">Descrição do serviço</th><th>Valor</th></tr></thead><tbody>${rows}</tbody></table>
       <div class="pdf-total">
         <div style="color:#555;font-size:13px;">Total: <strong>${fmtMoney(o.valor||0)}</strong></div>
         <div class="pdf-total-final">Total: ${fmtMoney(o.valor||0)}</div>
