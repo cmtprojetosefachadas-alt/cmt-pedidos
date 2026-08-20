@@ -3883,6 +3883,7 @@ document.addEventListener('click',async e=>{
   // Enviar credenciais
   if(e.target.id==='btn-ver-orc'){
     const p=pedidos.find(x=>x.id===currentPedidoId);if(!p)return;
+    const cadCliente=clientes.find(c=>c.nome&&c.nome.trim().toLowerCase()===(p.nome||'').trim().toLowerCase());
     const rows=(p.orcItens||[]).map((it,i)=>`<tr><td class="pdf-item-col" style="white-space:nowrap;padding-right:10px;vertical-align:top;"><span class="pdf-item-badge">ITEM ${i+1}</span></td><td>${it.desc}</td><td class="pdf-val" style="text-align:right;">${fmtMoney(it.valor||0)}</td></tr>`).join('');
     const total=fmtMoney(p.valor||0);
     document.getElementById('pdf-content').innerHTML=`
