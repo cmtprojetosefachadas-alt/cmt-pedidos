@@ -1070,6 +1070,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div style="font-size:12px;color:var(--muted);margin-bottom:16px;max-width:640px;">
     Reparos pontuais identificados durante a instalação que não se enquadram como manutenção — um mini pedido para você preencher na hora, enviar ao prestador e manter o cliente informado.
   </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+    <input type="text" id="reparo-busca" placeholder="🔎 Buscar por cliente..." style="flex:1;min-width:200px;padding:7px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;"/>
+    <label style="font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;">📅 Filtrar por mês:</label>
+    <select id="reparo-mes-select" style="padding:7px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer;">
+      <option value="">Todos os meses</option>
+    </select>
+  </div>
   <div id="reparos-lista"></div>
 </div>
 
@@ -5282,19 +5289,85 @@ onSnapshot(query(collection(db,'reparos'),orderBy('criadoEm','desc')), snap=>{
   const abertos = reparos.filter(r=>r.status==='aberta'||r.status==='andamento').length;
   const badge = document.getElementById('sb-reparos');
   if(badge) badge.textContent = abertos||'';
+  popularMesesReparos();
 });
 
 const reparoStatusLabel = {aberta:'Aberta',andamento:'Em andamento',concluida:'Concluída',cancelada:'Cancelada'};
 const reparoStatusColor = {aberta:'#DBEAFE:#1E40AF',andamento:'#FEF3C7:#92400E',concluida:'#D1FAE5:#065F46',cancelada:'#FEE2E2:#991B1B'};
 
+function popularMesesReparos() {
+  const sel = document.getElementById('reparo-mes-select');
+  if(!sel) return;
+  const meses = new Set();
+  reparos.forEach(r => {
+    if(r.data) {
+      const d = new Date(r.data+'T12:00:00');
+      const key = String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+      meses.add(key);
+    }
+  });
+  const atual = sel.value;
+  const sorted = [...meses].sort((a,b)=>{
+    const [ma,ya] = a.split('/'); const [mb,yb] = b.split('/');
+    return (yb*12+Number(mb)) - (ya*12+Number(ma));
+  });
+  sel.innerHTML = '<option value="">Todos os meses</option>' +
+    sorted.map(m => {
+      const [mm,yy] = m.split('/');
+      const nome = new Date(yy,mm-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+      return `<option value="${m}"${m===atual?' selected':''}>${nome.charAt(0).toUpperCase()+nome.slice(1)}</option>`;
+    }).join('');
+  if(atual && meses.has(atual)) sel.value = atual;
+}
+
+// Guarda quais meses estão abertos no acordeão de reparos
+const _reparoMesesAbertos = new Set();
+
 async function renderReparos() {
   const el = document.getElementById('reparos-lista');
   if(!el) return;
-  if(!reparos.length){
-    el.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Nenhum reparo cadastrado.<br><button class="btn btn-primary" onclick="abrirNovoReparo()" style="margin-top:16px;">+ Criar novo reparo</button></div>';
+
+  const busca = (document.getElementById('reparo-busca')?.value||'').trim().toLowerCase();
+  const mesFiltro = document.getElementById('reparo-mes-select')?.value || '';
+
+  let lista = [...reparos];
+  if(busca) lista = lista.filter(r => (r.cliente||'').toLowerCase().includes(busca));
+  if(mesFiltro){
+    const [mm, yy] = mesFiltro.split('/');
+    lista = lista.filter(r => {
+      if(!r.data) return false;
+      const d = new Date(r.data+'T12:00:00');
+      return String(d.getMonth()+1).padStart(2,'0') === mm && String(d.getFullYear()) === yy;
+    });
+  }
+
+  if(!lista.length){
+    el.innerHTML = reparos.length
+      ? '<div style="text-align:center;color:var(--muted);padding:40px;">Nenhum reparo encontrado com esse filtro.</div>'
+      : '<div style="text-align:center;color:var(--muted);padding:40px;">Nenhum reparo cadastrado.<br><button class="btn btn-primary" onclick="abrirNovoReparo()" style="margin-top:16px;">+ Criar novo reparo</button></div>';
     return;
   }
-  el.innerHTML = reparos.map(r=>{
+
+  const grupos = {};
+  lista.forEach(r => {
+    const key = r.data ? (()=>{
+      const d = new Date(r.data+'T12:00:00');
+      return String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+    })() : 'sem-data';
+    if(!grupos[key]) grupos[key] = [];
+    grupos[key].push(r);
+  });
+
+  const mesesOrdenados = Object.keys(grupos).sort((a,b) => {
+    if(a==='sem-data') return 1; if(b==='sem-data') return -1;
+    const [ma,ya]=a.split('/'); const [mb,yb]=b.split('/');
+    return (yb*12+Number(mb))-(ya*12+Number(ma));
+  });
+
+  // Se filtrando por mês ou buscando, expande automaticamente os grupos resultantes
+  if(mesFiltro || busca) mesesOrdenados.forEach(k=>_reparoMesesAbertos.add(k));
+
+  function cardReparo(r) {
     const [bg,cor] = (reparoStatusColor[r.status]||'#F3F4F6:#374151').split(':');
     const dataFmt = r.data ? new Date(r.data+'T12:00:00').toLocaleDateString('pt-BR') : '—';
     return `
@@ -5320,8 +5393,51 @@ async function renderReparos() {
         ${r.status==='concluida'?`<span style="font-size:11px;color:#065F46;font-weight:700;">✅ Concluído</span>`:''}
       </div>
     </div>`;
+  }
+
+  el.innerHTML = mesesOrdenados.map(mesKey => {
+    const itens = grupos[mesKey];
+    const aberto = _reparoMesesAbertos.has(mesKey);
+    const nomeMes = mesKey==='sem-data' ? 'Sem data' : (()=>{
+      const [mm,yy]=mesKey.split('/');
+      const n=new Date(yy,mm-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+      return n.charAt(0).toUpperCase()+n.slice(1);
+    })();
+    const abertosCount = itens.filter(r=>r.status==='aberta'||r.status==='andamento').length;
+    const concluidosCount = itens.filter(r=>r.status==='concluida').length;
+    const mesId = 'reparo-mes-'+mesKey.replace('/','_');
+    return `
+    <div style="margin-bottom:10px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      <div onclick="toggleMesReparo('${mesKey}')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface2);cursor:pointer;user-select:none;" onmouseover="this.style.background='var(--border2)'" onmouseout="this.style.background='var(--surface2)'">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span id="${mesId}-seta" style="font-size:14px;color:var(--muted);">${aberto?'▼':'▶'}</span>
+          <div>
+            <div style="font-weight:700;font-size:14px;">${nomeMes}</div>
+            <div style="font-size:11px;color:var(--muted);">${itens.length} reparo${itens.length!==1?'s':''} · ${abertosCount} em aberto · ${concluidosCount} concluído${concluidosCount!==1?'s':''}</div>
+          </div>
+        </div>
+        <span style="background:var(--surface);border:1px solid var(--border);padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600;">${itens.length}</span>
+      </div>
+      <div id="${mesId}" style="display:${aberto?'block':'none'};padding:12px;">
+        ${itens.map(r=>cardReparo(r)).join('')}
+      </div>
+    </div>`;
   }).join('');
 }
+
+window.toggleMesReparo = function(mesKey) {
+  const el = document.getElementById('reparo-mes-'+mesKey.replace('/','_'));
+  const seta = document.getElementById('reparo-mes-'+mesKey.replace('/','_')+'-seta');
+  if(!el) return;
+  const aberto = el.style.display !== 'none';
+  el.style.display = aberto ? 'none' : 'block';
+  if(aberto) _reparoMesesAbertos.delete(mesKey);
+  else _reparoMesesAbertos.add(mesKey);
+  if(seta) seta.textContent = aberto ? '▶' : '▼';
+};
+
+document.getElementById('reparo-busca').addEventListener('input', renderReparos);
+document.getElementById('reparo-mes-select').addEventListener('change', renderReparos);
 
 window.avancarStatusReparo = async function(id, novoStatus) {
   const agora = new Date();
