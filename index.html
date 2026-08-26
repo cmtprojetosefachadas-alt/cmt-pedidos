@@ -255,7 +255,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 
 
-<div class="mob-nav" style="display:none;background:#1C2340;padding:8px;gap:5px;flex-wrap:wrap;position:sticky;top:0;z-index:999;width:100%;box-sizing:border-box;"><button onclick="showTab('visao')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">📊 Geral</button><button onclick="showTab('clientes')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">🏢 Clientes</button><button onclick="showTab('pedidos')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">📦 Pedidos</button><button onclick="showTab('orcamentos')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">📋 Orç.</button><button onclick="showTab('finalizados')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">✅ Final.</button><button onclick="showTab('faturamento')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">💰 Fat.</button><button onclick="showTab('fluxo')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">💵 Fluxo</button><button onclick="showTab('manutencoes')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">🔧 Manut.</button><button onclick="showTab('cancelados')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">🚫 Canc.</button><button onclick="showTab('cadastro')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:#E05C1A;color:#fff;cursor:pointer;">+ Cliente</button><button onclick="showTab('novo-orc')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:#0F6E56;color:#fff;cursor:pointer;">+ Orç.</button></div>
+<div class="mob-nav" style="display:none;background:#1C2340;padding:8px;gap:5px;flex-wrap:wrap;position:sticky;top:0;z-index:999;width:100%;box-sizing:border-box;"><button onclick="showTab('visao')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">📊 Geral</button><button onclick="showTab('clientes')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">🏢 Clientes</button><button onclick="showTab('pedidos')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">📦 Pedidos</button><button onclick="showTab('orcamentos')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">📋 Orç.</button><button onclick="showTab('finalizados')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">✅ Final.</button><button onclick="showTab('faturamento')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">💰 Fat.</button><button onclick="showTab('fluxo')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">💵 Fluxo</button><button onclick="showTab('manutencoes')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">🔧 Manut.</button><button onclick="showTab('reparos')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">🔩 Reparos</button><button onclick="showTab('cancelados')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">🚫 Canc.</button><button onclick="showTab('cadastro')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:#E05C1A;color:#fff;cursor:pointer;">+ Cliente</button><button onclick="showTab('novo-orc')" style="font-size:12px;padding:8px 12px;border-radius:6px;border:none;background:#0F6E56;color:#fff;cursor:pointer;">+ Orç.</button></div>
 <div class="app-wrap">
 <!-- SIDEBAR -->
 <nav class="sidebar">
@@ -279,6 +279,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
   <div class="sidebar-section">Outros</div>
   <button class="side-btn" id="tab-manutencoes"><span class="side-icon">🔧</span> Manutenções <span class="side-badge" id="sb-manutencoes">0</span></button>
+  <button class="side-btn" id="tab-reparos"><span class="side-icon">🔩</span> Pequenos Reparos <span class="side-badge" id="sb-reparos">0</span></button>
   <button class="side-btn" id="tab-cancelados"><span class="side-icon">🚫</span> Cancelados <span class="side-badge red" id="sb-cancelados">0</span></button>
   <button class="side-btn" id="tab-terceirizados" onclick="showTab('terceirizados')"><span class="side-icon">👷</span> Terceirizados <span class="side-badge" id="sb-terceirizados" style="display:none;background:#185FA5;color:#fff;">0</span></button>
 </nav>
@@ -1060,6 +1061,85 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div id="manut-lista"></div>
 </div>
 
+<!-- PAINEL PEQUENOS REPAROS -->
+<div id="panel-reparos" class="panel">
+  <div class="section-header">
+    <span class="section-title">🔩 Pequenos Reparos</span>
+    <button class="btn btn-primary" id="btn-novo-reparo" style="font-size:13px;padding:7px 16px;">+ Novo Reparo</button>
+  </div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:16px;max-width:640px;">
+    Reparos pontuais identificados durante a instalação que não se enquadram como manutenção — um mini pedido para você preencher na hora, enviar ao prestador e manter o cliente informado.
+  </div>
+  <div id="reparos-lista"></div>
+</div>
+
+<!-- MODAL NOVO/EDITAR REPARO -->
+<div class="modal-bg" id="reparo-modal-bg">
+  <div class="modal" style="max-width:600px;">
+    <button class="modal-close" id="btn-close-reparo">×</button>
+    <h2 id="reparo-modal-title">🔩 Novo Pequeno Reparo</h2>
+    <input type="hidden" id="reparo-edit-id"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div class="modal-field" style="margin:0;grid-column:1/-1;">
+        <label>Descrição do reparo *</label>
+        <textarea id="reparo-desc" placeholder="Ex: Ajustar suporte solto, trocar parafuso de fixação..." style="min-height:60px;"></textarea>
+      </div>
+      <div class="modal-field" style="margin:0;grid-column:1/-1;">
+        <label>Cliente</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="reparo-cliente-select" style="flex:1;padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;">
+            <option value="">— Selecionar da lista —</option>
+          </select>
+          <span style="font-size:12px;color:var(--muted);white-space:nowrap;">ou digitar:</span>
+        </div>
+        <input type="text" id="reparo-cliente-manual" placeholder="Nome do cliente (se não estiver na lista)" style="margin-top:6px;width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;"/>
+      </div>
+      <div class="modal-field" style="margin:0;">
+        <label>Contato do cliente</label>
+        <input type="text" id="reparo-contato" placeholder="16 9 9999-0000"/>
+      </div>
+      <div class="modal-field" style="margin:0;">
+        <label>Endereço</label>
+        <input type="text" id="reparo-endereco" placeholder="Rua, número, bairro"/>
+      </div>
+      <div class="modal-field" style="margin:0;">
+        <label>Prestador de serviço</label>
+        <input type="text" id="reparo-prestador" placeholder="Nome de quem vai executar"/>
+      </div>
+      <div class="modal-field" style="margin:0;">
+        <label>Contato do prestador</label>
+        <input type="text" id="reparo-prestador-contato" placeholder="16 9 9999-0000"/>
+      </div>
+      <div class="modal-field" style="margin:0;">
+        <label>Data do reparo</label>
+        <input type="date" id="reparo-data"/>
+      </div>
+      <div class="modal-field" style="margin:0;">
+        <label>Prazo de execução</label>
+        <input type="text" id="reparo-prazo" placeholder="Ex: Até 30/04/2026"/>
+      </div>
+      <div class="modal-field" style="margin:0;grid-column:1/-1;">
+        <label>Status</label>
+        <select id="reparo-status" style="padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;">
+          <option value="aberta">Aberta</option>
+          <option value="andamento">Em andamento</option>
+          <option value="concluida">Concluída</option>
+          <option value="cancelada">Cancelada</option>
+        </select>
+      </div>
+      <div class="modal-field" style="margin:0;grid-column:1/-1;">
+        <label>Observações / Materiais necessários</label>
+        <textarea id="reparo-obs" placeholder="Detalhes para o prestador..." style="min-height:60px;"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-fechar-reparo">Fechar</button>
+      <button class="btn" id="btn-pdf-reparo" style="background:#F0FDF4;color:#166534;border-color:#BBF7D0;font-weight:600;">🖨️ Imprimir mini pedido</button>
+      <button class="btn btn-primary" id="btn-salvar-reparo">💾 Salvar Reparo</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL NOVA O.S. -->
 <div class="modal-bg" id="os-modal-bg">
   <div class="modal" style="max-width:600px;">
@@ -1753,6 +1833,7 @@ window.showTab = async function showTab(tab){
   if(panelEl)panelEl.classList.add('active');
   if(tab==='finalizados') await renderFinalizados();
   if(tab==='manutencoes') await renderManutencoes();
+  if(tab==='reparos') await renderReparos();
   if(tab==='cancelados') await renderCancelados();
   if(tab==='visao')renderVisaoGeral();
   if(tab==='terceirizados'){renderTerceirizados();populateTercDatalist();}
@@ -3396,7 +3477,7 @@ document.getElementById('login-senha').addEventListener('keydown',e=>{if(e.key==
 document.getElementById('btn-savelink').addEventListener('click',()=>showToast('Link salvo!'));
 
 // SIDEBAR TABS
-['visao','clientes','pedidos','orcamentos','finalizados','cadastro','faturamento','fluxo','manutencoes','cancelados'].forEach(t=>{
+['visao','clientes','pedidos','orcamentos','finalizados','cadastro','faturamento','fluxo','manutencoes','reparos','cancelados'].forEach(t=>{
   document.getElementById('tab-'+t).addEventListener('click',()=>showTab(t));
 });
 document.getElementById('tab-novo-orc').addEventListener('click',()=>{
@@ -5188,6 +5269,210 @@ document.getElementById('btn-salvar-os').addEventListener('click', async ()=>{
     showToast('✅ O.S. criada!');
   }
   document.getElementById('os-modal-bg').classList.remove('open');
+});
+
+// ══════════════════════════════════════════
+// PEQUENOS REPAROS — mini pedidos avulsos
+// ══════════════════════════════════════════
+let reparos = [];
+onSnapshot(query(collection(db,'reparos'),orderBy('criadoEm','desc')), snap=>{
+  reparos = snap.docs.map(d=>({id:d.id,...d.data()}));
+  const tab = document.querySelector('.side-btn.active');
+  if(tab && tab.id==='tab-reparos') renderReparos();
+  const abertos = reparos.filter(r=>r.status==='aberta'||r.status==='andamento').length;
+  const badge = document.getElementById('sb-reparos');
+  if(badge) badge.textContent = abertos||'';
+});
+
+const reparoStatusLabel = {aberta:'Aberta',andamento:'Em andamento',concluida:'Concluída',cancelada:'Cancelada'};
+const reparoStatusColor = {aberta:'#DBEAFE:#1E40AF',andamento:'#FEF3C7:#92400E',concluida:'#D1FAE5:#065F46',cancelada:'#FEE2E2:#991B1B'};
+
+async function renderReparos() {
+  const el = document.getElementById('reparos-lista');
+  if(!el) return;
+  if(!reparos.length){
+    el.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;">Nenhum reparo cadastrado.<br><button class="btn btn-primary" onclick="abrirNovoReparo()" style="margin-top:16px;">+ Criar novo reparo</button></div>';
+    return;
+  }
+  el.innerHTML = reparos.map(r=>{
+    const [bg,cor] = (reparoStatusColor[r.status]||'#F3F4F6:#374151').split(':');
+    const dataFmt = r.data ? new Date(r.data+'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    return `
+    <div onclick="editarReparo('${r.id}')" style="background:var(--surface);border:1px solid var(--border);border-left:4px solid ${cor};border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;cursor:pointer;" onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.09)'" onmouseout="this.style.boxShadow='none'">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;margin-bottom:2px;">${r.cliente||'—'}</div>
+          <div style="font-size:12px;color:var(--muted);">${r.contato||''} ${r.endereco?'· '+r.endereco:''}</div>
+        </div>
+        <span style="background:${bg};color:${cor};padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap;">${reparoStatusLabel[r.status]||r.status}</span>
+      </div>
+      <div style="font-size:13px;color:var(--text);background:var(--surface2);border-radius:6px;padding:8px 10px;">${r.desc||'—'}</div>
+      <div style="display:flex;gap:12px;font-size:12px;color:var(--muted);flex-wrap:wrap;align-items:center;">
+        ${r.data?`<span>📅 <strong>${dataFmt}</strong></span>`:''}
+        ${r.prazo?`<span>⏱ Prazo: <strong>${r.prazo}</strong></span>`:''}
+        ${r.prestador?`<span style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:6px;padding:2px 8px;color:#5B21B6;">🔧 ${r.prestador}${r.prestadorContato?' · '+r.prestadorContato:''}</span>`:''}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:2px;flex-wrap:wrap;">
+        <button class="btn" onclick="event.stopPropagation();editarReparo('${r.id}')" style="font-size:11px;padding:4px 12px;">✏️ Editar</button>
+        <button class="btn" onclick="event.stopPropagation();imprimirReparo('${r.id}')" style="font-size:11px;padding:4px 12px;background:#F0FDF4;color:#166534;border-color:#BBF7D0;">🖨️ Imprimir</button>
+        ${r.status==='aberta'?`<button class="btn" onclick="event.stopPropagation();avancarStatusReparo('${r.id}','andamento')" style="font-size:11px;padding:4px 14px;background:#FEF3C7;color:#92400E;border-color:#FDE68A;font-weight:700;">▶ Iniciar</button>`:''}
+        ${r.status==='andamento'?`<button class="btn" onclick="event.stopPropagation();avancarStatusReparo('${r.id}','concluida')" style="font-size:11px;padding:4px 14px;background:#D1FAE5;color:#065F46;border-color:#6EE7B7;font-weight:700;">✔ Concluir</button>`:''}
+        ${r.status==='concluida'?`<span style="font-size:11px;color:#065F46;font-weight:700;">✅ Concluído</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.avancarStatusReparo = async function(id, novoStatus) {
+  const agora = new Date();
+  const dataHora = agora.toLocaleDateString('pt-BR') + ' às ' + agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const upd = {status: novoStatus};
+  if(novoStatus==='andamento') upd.dataInicio = dataHora;
+  if(novoStatus==='concluida') upd.dataConclusao = dataHora;
+  await updateDoc(doc(db,'reparos',id), upd);
+  showToast(novoStatus==='andamento'?'🔧 Reparo em andamento!':'✅ Reparo concluído!');
+};
+
+window.abrirNovoReparo = function() {
+  document.getElementById('reparo-edit-id').value = '';
+  document.getElementById('reparo-modal-title').textContent = '🔩 Novo Pequeno Reparo';
+  document.getElementById('reparo-desc').value = '';
+  document.getElementById('reparo-cliente-manual').value = '';
+  document.getElementById('reparo-contato').value = '';
+  document.getElementById('reparo-endereco').value = '';
+  document.getElementById('reparo-prestador').value = '';
+  document.getElementById('reparo-prestador-contato').value = '';
+  document.getElementById('reparo-prazo').value = '';
+  document.getElementById('reparo-obs').value = '';
+  document.getElementById('reparo-status').value = 'aberta';
+  document.getElementById('reparo-data').value = new Date().toISOString().split('T')[0];
+  const sel = document.getElementById('reparo-cliente-select');
+  sel.innerHTML = '<option value="">— Selecionar da lista —</option>' +
+    clientes.map(c=>`<option value="${c.nome}">${c.nome}${c.tel?' · '+c.tel:''}</option>`).join('');
+  document.getElementById('reparo-modal-bg').classList.add('open');
+};
+
+window.editarReparo = function(id) {
+  const r = reparos.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('reparo-edit-id').value = id;
+  document.getElementById('reparo-modal-title').textContent = '✏️ Editar Reparo';
+  document.getElementById('reparo-desc').value = r.desc||'';
+  document.getElementById('reparo-cliente-manual').value = r.cliente||'';
+  document.getElementById('reparo-contato').value = r.contato||'';
+  document.getElementById('reparo-endereco').value = r.endereco||'';
+  document.getElementById('reparo-prestador').value = r.prestador||'';
+  document.getElementById('reparo-prestador-contato').value = r.prestadorContato||'';
+  document.getElementById('reparo-prazo').value = r.prazo||'';
+  document.getElementById('reparo-obs').value = r.obs||'';
+  document.getElementById('reparo-status').value = r.status||'aberta';
+  document.getElementById('reparo-data').value = r.data||new Date().toISOString().split('T')[0];
+  const sel = document.getElementById('reparo-cliente-select');
+  sel.innerHTML = '<option value="">— Selecionar da lista —</option>' +
+    clientes.map(c=>`<option value="${c.nome}">${c.nome}${c.tel?' · '+c.tel:''}</option>`).join('');
+  document.getElementById('reparo-modal-bg').classList.add('open');
+};
+
+window.imprimirReparo = function(id) {
+  const r = reparos.find(x=>x.id===id);
+  if(!r) return;
+  const dataFmt = r.data ? new Date(r.data+'T12:00:00').toLocaleDateString('pt-BR') : '—';
+  const num = String(reparos.indexOf(r)+1).padStart(4,'0');
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reparo - ${r.cliente||'Cliente'}</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:700px;margin:0 auto;}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #E05A00;padding-bottom:14px;margin-bottom:20px;}
+    .logo-txt{font-size:20px;font-weight:900;color:#E05A00;line-height:1.1;}
+    .logo-sub{font-size:11px;color:#666;}
+    .os-num{font-size:22px;font-weight:900;color:#E05A00;}
+    h2{font-size:14px;text-transform:uppercase;color:#666;margin:18px 0 8px;border-bottom:1px solid #ddd;padding-bottom:4px;}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin-bottom:12px;}
+    .field label{font-size:10px;color:#888;text-transform:uppercase;font-weight:700;}
+    .field p{font-size:13px;margin:2px 0 0;font-weight:500;}
+    .desc-box{background:#f9f9f9;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px;line-height:1.6;margin-bottom:16px;}
+    .prestador-box{background:#F5F3FF;border:1px solid #DDD6FE;border-radius:6px;padding:12px;margin-bottom:16px;}
+    .assinatura{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px;}
+    .ass-line{border-top:1px solid #999;padding-top:6px;font-size:11px;color:#666;text-align:center;}
+    .badge{display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;background:#DBEAFE;color:#1E40AF;}
+    .footer{margin-top:30px;font-size:10px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:10px;}
+    @media print{body{padding:15px;}}
+  </style></head><body>
+  <div class="header">
+    <div><div class="logo-txt">CMT Projetos e Fachadas</div><div class="logo-sub">Comunicação Visual · Franca/SP</div></div>
+    <div style="text-align:right;"><div class="os-num">Reparo #${num}</div><div style="font-size:11px;color:#666;">${new Date().toLocaleDateString('pt-BR')}</div></div>
+  </div>
+  <h2>📋 Dados do Cliente</h2>
+  <div class="grid">
+    <div class="field"><label>Cliente</label><p>${r.cliente||'—'}</p></div>
+    <div class="field"><label>Contato</label><p>${r.contato||'—'}</p></div>
+    <div class="field" style="grid-column:1/-1;"><label>Endereço</label><p>${r.endereco||'—'}</p></div>
+  </div>
+  <h2>🔩 Reparo a Executar</h2>
+  <div class="desc-box">${r.desc||'—'}</div>
+  <div class="grid">
+    <div class="field"><label>Data</label><p>${dataFmt}</p></div>
+    <div class="field"><label>Prazo de Execução</label><p>${r.prazo||'—'}</p></div>
+    <div class="field"><label>Status</label><p><span class="badge">${reparoStatusLabel[r.status]||r.status}</span></p></div>
+  </div>
+  ${(r.prestador||r.prestadorContato)?`<h2>🔧 Prestador de Serviço</h2>
+  <div class="prestador-box">
+    <div class="grid" style="margin-bottom:0;">
+      <div class="field"><label>Prestador</label><p>${r.prestador||'—'}</p></div>
+      <div class="field"><label>Contato</label><p>${r.prestadorContato||'—'}</p></div>
+    </div>
+  </div>`:''}
+  ${r.obs?`<h2>📝 Observações / Materiais</h2><div class="desc-box">${r.obs}</div>`:''}
+  <div class="assinatura">
+    <div class="ass-line">Responsável pela execução</div>
+    <div class="ass-line">Ciente — Assinatura do cliente</div>
+  </div>
+  <div class="footer">CMT Projetos e Fachadas · Documento gerado em ${new Date().toLocaleDateString('pt-BR')} · Mini pedido de reparo</div>
+  </body></html>`;
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  w.print();
+};
+
+document.getElementById('btn-novo-reparo').addEventListener('click', window.abrirNovoReparo);
+document.getElementById('btn-close-reparo').addEventListener('click', ()=>document.getElementById('reparo-modal-bg').classList.remove('open'));
+document.getElementById('btn-fechar-reparo').addEventListener('click', ()=>document.getElementById('reparo-modal-bg').classList.remove('open'));
+
+document.getElementById('reparo-cliente-select').addEventListener('change', function(){
+  if(this.value) document.getElementById('reparo-cliente-manual').value = this.value.split(' · ')[0];
+});
+
+document.getElementById('btn-pdf-reparo').addEventListener('click', ()=>{
+  const id = document.getElementById('reparo-edit-id').value;
+  if(id){ window.imprimirReparo(id); } else { alert('Salve o reparo primeiro para imprimir!'); }
+});
+
+document.getElementById('btn-salvar-reparo').addEventListener('click', async ()=>{
+  const desc = document.getElementById('reparo-desc').value.trim();
+  if(!desc){ alert('Descrição do reparo é obrigatória!'); return; }
+  const cliente = document.getElementById('reparo-cliente-manual').value.trim() ||
+                  document.getElementById('reparo-cliente-select').value.split(' · ')[0] || '';
+  const dados = {
+    desc,
+    cliente,
+    contato: document.getElementById('reparo-contato').value.trim(),
+    endereco: document.getElementById('reparo-endereco').value.trim(),
+    prestador: document.getElementById('reparo-prestador').value.trim(),
+    prestadorContato: document.getElementById('reparo-prestador-contato').value.trim(),
+    data: document.getElementById('reparo-data').value,
+    prazo: document.getElementById('reparo-prazo').value.trim(),
+    obs: document.getElementById('reparo-obs').value.trim(),
+    status: document.getElementById('reparo-status').value,
+  };
+  const editId = document.getElementById('reparo-edit-id').value;
+  if(editId){
+    await updateDoc(doc(db,'reparos',editId), dados);
+    showToast('✅ Reparo atualizado!');
+  } else {
+    await addDoc(collection(db,'reparos'), {...dados, criadoEm: serverTimestamp()});
+    showToast('✅ Reparo criado!');
+  }
+  document.getElementById('reparo-modal-bg').classList.remove('open');
 });
 
 // VISÃO GERAL — funções auxiliares (devem vir antes de renderVisaoGeral)
