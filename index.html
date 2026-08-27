@@ -430,6 +430,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <span class="section-title">Pedidos em andamento &nbsp;<span id="ped-count-label" style="font-size:14px;font-weight:500;color:var(--brand);background:#fff3ec;padding:3px 12px;border-radius:20px;"></span></span>
       <div id="ped-prio-counts" style="display:flex;gap:8px;align-items:center;"></div>
     </div>
+    <div id="ped-dashboard" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:20px;"></div>
     <div class="cards-grid" id="pedidos-grid"><div class="loading">Carregando...</div></div>
   </div>
 
@@ -1868,8 +1869,8 @@ function clienteCard(p){
     <div class="card-head"><div class="avatar">${ini(p.nome||'?')}</div>
     <div><div class="card-name">${p.nome}</div><div class="card-id">${p.codigo}·${p.tel||''}</div></div></div>
     <div class="card-desc">${p.desc||''}</div>
-    ${p.dataConversao?`<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">&#128197; ${p.dataConversao}</div>`:''}
-    ${p.previsaoEntrega?`<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">&#128336; Previsão: ${p.previsaoEntrega}</div>`:''}
+    ${p.dataConversao?`<div style="display:flex;align-items:center;gap:6px;background:#EFF6FF;border:1.5px solid #93C5FD;border-radius:7px;padding:4px 10px;margin-bottom:6px;"><span style="font-size:13px;">📅</span><span style="font-size:12px;font-weight:800;color:#1E40AF;">${p.dataConversao}</span></div>`:''}
+    ${p.previsaoEntrega?`<div style="display:flex;align-items:center;gap:6px;background:#FFF3EC;border:1.5px solid var(--brand);border-radius:7px;padding:4px 10px;margin-bottom:6px;"><span style="font-size:13px;">⏰</span><span style="font-size:12px;font-weight:800;color:var(--brand);">Previsão: ${p.previsaoEntrega}</span></div>`:''}
     <span class="badge ${finalizado?'badge-finished':'badge-production'}">${ETAPAS[etapa]}</span>
     ${finalizado&&p.dataFinalizacao?`<div style="background:#FEE2E2;border:1.5px solid #A32D2D;border-radius:7px;padding:5px 10px;margin:6px 0;display:flex;align-items:center;gap:6px;"><span style="font-size:11px;font-weight:800;color:#A32D2D;">🏁 FINALIZADO EM:</span><span style="font-size:12px;font-weight:700;color:#7C0000;">${p.dataFinalizacao}</span></div>`:''}
     <div class="progress-bar"><div class="progress-fill" style="width:${prog(etapa)}%"></div></div>
@@ -2417,6 +2418,40 @@ function renderPedidos(){
     ].join('');
     prioBox.innerHTML=pills;
   }
+  renderPedidosDashboard(ativos);
+}
+
+function renderPedidosDashboard(ativos){
+  const box=document.getElementById('ped-dashboard');
+  if(!box) return;
+  const grupos=[
+    {key:'vermelho',label:'🔴 Urgente',cor:'#A32D2D',bg:'#FCEBEB',border:'#E39494'},
+    {key:'amanha',label:'🟠 Atenção',cor:'#854F0B',bg:'#FEF6E4',border:'#EFCB7E'},
+    {key:'verde',label:'🟢 Sob controle',cor:'#1E7E4C',bg:'#EDF8F2',border:'#9BD6B6'},
+  ];
+  box.innerHTML=grupos.map(g=>{
+    const itens=ativos.filter(p=>p.prioridade===g.key);
+    if(!itens.length) return '';
+    const ordenados=[...itens].sort((a,b)=>(b.valor||0)-(a.valor||0));
+    const top5=ordenados.slice(0,5);
+    const totalValor=itens.reduce((s,p)=>s+(p.valor||0),0);
+    const resto=itens.length-top5.length;
+    return `
+    <div style="background:${g.bg};border:1.5px solid ${g.border};border-radius:12px;padding:14px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:13px;font-weight:800;color:${g.cor};">${g.label} · ${itens.length}</span>
+        <span style="font-size:13px;font-weight:800;color:${g.cor};">${fmtMoney(totalValor)}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        ${top5.map(p=>`
+          <div onclick="openModal('${p.id}')" style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:#fff;border-radius:7px;padding:6px 10px;cursor:pointer;">
+            <span style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.nome}</span>
+            <span style="font-size:12px;font-weight:700;color:${g.cor};white-space:nowrap;">${fmtMoney(p.valor||0)}</span>
+          </div>`).join('')}
+        ${resto>0?`<div style="font-size:11px;color:${g.cor};text-align:center;padding-top:2px;font-weight:600;">+${resto} pedido${resto>1?'s':''}</div>`:''}
+      </div>
+    </div>`;
+  }).join('') || '';
 }
 
 window.filtrarPedidosPrio=function(cor){
